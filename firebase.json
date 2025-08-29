@@ -1,1 +1,22 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"routemate-470316","appId":"1:896053782358:android:a70ad578c3d51cbb5318f7","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"routemate-470316","configurations":{"android":"1:896053782358:android:a70ad578c3d51cbb5318f7","web":"1:896053782358:web:e4ee98514cd6e42a5318f7"}}}}}}
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "routemate-470316",
+                    "appId": "1:896053782358:android:0d9458d20f533c815318f7",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "routemate-470316",
+                    "configurations": {
+                        "android": "1:896053782358:android:0d9458d20f533c815318f7",
+                        "web": "1:896053782358:web:e4ee98514cd6e42a5318f7"
+                    }
+                }
+            }
+        }
+    }
+}

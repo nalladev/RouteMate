@@ -9,7 +9,7 @@
     pkgs.unzip
   ];
   # Sets environment variables in the workspace
-  env = {};
+  env = { };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
@@ -30,7 +30,7 @@
         #   manager = "flutter";
         # };
         android = {
-          command = ["flutter" "run" "--machine" "-d" "android" "-d" "localhost:5555"];
+          command = [ "flutter" "run" "--machine" "-d" "android" "-d" "localhost:5555" ];
           manager = "flutter";
         };
       };

@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:896053782358:android:a70ad578c3d51cbb5318f7",
+        "mobilesdk_app_id": "1:896053782358:android:0d9458d20f533c815318f7",
         "android_client_info": {
-          "package_name": "com.example.myapp"
+          "package_name": "com.routemate.app"
         }
       },
       "oauth_client": [],
