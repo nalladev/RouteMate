@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:location/location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,6 +27,27 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(const MyApp());
+}
+
+// A simple data model for location suggestions
+class PlaceSuggestion {
+  final String displayName;
+  final double latitude;
+  final double longitude;
+
+  PlaceSuggestion({
+    required this.displayName,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
+    return PlaceSuggestion(
+      displayName: json['display_name'],
+      latitude: double.parse(json['lat']),
+      longitude: double.parse(json['lon']),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -71,6 +94,12 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // App Data
   int _walletPoints = 100;
   latlng.LatLng? _currentLocation;
+
+  // Search-specific state
+  List<PlaceSuggestion> _suggestions = [];
+  PlaceSuggestion? _selectedPlace;
+  bool _isSearching = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -125,7 +154,6 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _currentLocation = newPos;
         });
 
-        // STRATEGIC FIX 1: Prevent crash by ensuring map is ready before moving it.
         if (_isMapReady) {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
@@ -164,10 +192,58 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     });
   }
 
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (query.length > 2) {
+        _performSearch(query);
+      } else {
+        setState(() {
+          _suggestions = [];
+        });
+      }
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5',
+      );
+      final response = await http.get(
+        uri,
+        headers: {
+          'User-Agent':
+              'com.example.myapp', // Required by Nominatim's Usage Policy
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List results = json.decode(response.body);
+        setState(() {
+          _suggestions = results
+              .map((e) => PlaceSuggestion.fromJson(e))
+              .toList();
+        });
+      } else {
+        _showMessage("Error fetching locations.");
+      }
+    } catch (e) {
+      _showMessage("Could not connect to location service.");
+    } finally {
+      setState(() {
+        _isSearching = false;
+      });
+    }
+  }
+
   void _startDriving() {
-    final destinationName = _destinationController.text;
-    if (destinationName.isEmpty) {
-      _showMessage("Please enter a destination.");
+    if (_selectedPlace == null) {
+      _showMessage("Please select a destination from the list.");
       return;
     }
     setState(() => _appState = AppState.driving);
@@ -175,11 +251,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   void _findRide() {
-    final destinationName = _destinationController.text;
-    if (destinationName.isEmpty || _currentLocation == null) {
-      _showMessage(
-        "Please enter a destination and ensure location is enabled.",
-      );
+    if (_selectedPlace == null || _currentLocation == null) {
+      _showMessage("Please select a destination from the list.");
       return;
     }
     _firestore.collection('ride_requests').doc(_currentUser!.uid).set({
@@ -188,7 +261,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         _currentLocation!.latitude,
         _currentLocation!.longitude,
       ),
-      'destination': destinationName,
+      'destination': _selectedPlace!.displayName,
+      'destination_location': GeoPoint(
+        _selectedPlace!.latitude,
+        _selectedPlace!.longitude,
+      ),
       'status': 'waiting',
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -203,6 +280,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     setState(() {
       _appState = AppState.initial;
       _destinationController.clear();
+      _suggestions = [];
+      _selectedPlace = null;
     });
   }
 
@@ -288,7 +367,6 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           ),
           children: [
             TileLayer(
-              // STRATEGIC FIX 2: Address OSM warnings.
               urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
               userAgentPackageName: 'com.example.myapp',
             ),
@@ -366,9 +444,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   Widget _buildInitialStateUI() {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
           controller: _destinationController,
+          onChanged: _onSearchChanged,
           decoration: InputDecoration(
             hintText: "Where are you going?",
             filled: true,
@@ -378,8 +458,39 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            suffixIcon: _isSearching
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
           ),
         ),
+        if (_suggestions.isNotEmpty)
+          SizedBox(
+            height: 150,
+            child: ListView.builder(
+              itemCount: _suggestions.length,
+              itemBuilder: (context, index) {
+                final suggestion = _suggestions[index];
+                return ListTile(
+                  title: Text(
+                    suggestion.displayName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    setState(() {
+                      _destinationController.text = suggestion.displayName;
+                      _selectedPlace = suggestion;
+                      _suggestions = [];
+                    });
+                    FocusScope.of(context).unfocus(); // Hide keyboard
+                  },
+                );
+              },
+            ),
+          ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -542,6 +653,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _locationSubscription?.cancel();
     _destinationController.dispose();
     _mapController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 }
