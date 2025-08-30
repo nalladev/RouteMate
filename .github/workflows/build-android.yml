@@ -42,6 +42,9 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=keystore.jks" >> android/key.properties
 
+      - name: Debug - List Files in Android Directory
+        run: ls -R android
+
       # 5. Get Flutter dependencies
       - name: Get Flutter dependencies
         run: flutter pub get
