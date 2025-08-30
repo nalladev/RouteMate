@@ -2,11 +2,13 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-val keyPropertiesFile = rootProject.file("android/key.properties")
+// Use a direct relative path to avoid context issues in the runner
+val keyPropertiesFile = file("../key.properties")
 val keyProperties = Properties()
 
 if (!keyPropertiesFile.exists()) {
-    throw GradleException("Could not find 'android/key.properties'. Please create it and add your keystore details.")
+    // Updated error message for clarity
+    throw GradleException("Could not find 'key.properties' in the 'android' directory. The file was not found at the expected path: ${keyPropertiesFile.absolutePath}")
 }
 
 keyProperties.load(FileInputStream(keyPropertiesFile))
