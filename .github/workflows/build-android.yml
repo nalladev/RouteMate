@@ -1,0 +1,58 @@
+# .github/workflows/build-android.yml
+
+name: Build Android APK
+
+# This workflow runs on every push to the 'master' or 'main' branch
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Check out the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Java, which is required for Android builds
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      # 3. Set up Flutter using a popular community action
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      # 4. Decode the Keystore and create the properties file from secrets
+      - name: Decode Keystore and Create Properties
+        run: |
+          # Decode the base64 keystore from the GitHub secret
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+          # Create the key.properties file from the GitHub secrets
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=app/upload-keystore.jks" >> android/key.properties
+        
+      # 5. Get Flutter dependencies
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      # 6. Build the release APK. This will use the signing key we just created.
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 7. Upload the generated APK as an artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RouteMate-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
