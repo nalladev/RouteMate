@@ -32,7 +32,6 @@ jobs:
           echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          # Corrected Path: The keystore is in the same directory as the build script, so no path prefix is needed.
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
       - name: Get Flutter dependencies
