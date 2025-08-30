@@ -1,6 +1,6 @@
 # .github/workflows/build-android.yml
 
-name: Build Android APK
+name: Build & Release
 
 # This workflow runs on every push to the 'master' or 'main' branch
 on:
@@ -31,17 +31,17 @@ jobs:
           channel: 'stable'
 
       # 4. Decode the Keystore and create the properties file from secrets
-      - name: Decode Keystore and Create Properties
+      - name: Decode Keystore
         run: |
-          # Decode the base64 keystore from the GitHub secret
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
 
-          # Create the key.properties file from the GitHub secrets
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=app/upload-keystore.jks" >> android/key.properties
-        
+          echo "storeFile=keystore.jks" >> android/key.properties
+
       # 5. Get Flutter dependencies
       - name: Get Flutter dependencies
         run: flutter pub get
