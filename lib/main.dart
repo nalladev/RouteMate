@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math'; // NEW import for distance calculation
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,8 @@ import 'package:location/location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// REMOVED: import 'package:geolocator/geolocator.dart';
+
 
 // It's highly recommended to use the flutterfire_cli and the generated firebase_options.dart file.
 // If you have it, uncomment the following lines.
@@ -168,6 +171,13 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   PlaceSuggestion? _selectedPlace;
   bool _isSearching = false;
   Timer? _debounce;
+
+  // Realtime subscriptions and data lists for matching
+  StreamSubscription? _rideRequestsSubscription;
+  StreamSubscription? _driversSubscription;
+  List<DocumentSnapshot> _relevantRideRequests = [];
+  List<DocumentSnapshot> _availableDrivers = [];
+  static const double proximityThreshold = 3000; // 3km in meters
 
   @override
   void initState() {
@@ -350,7 +360,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Future<void> _startDriving() async {
-    if (_selectedPlace == null) {
+    if (_selectedPlace == null || _currentUser == null) {
       _showMessage("Please select a destination from the list.");
       return;
     }
@@ -362,7 +372,17 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     await _getRoute(); 
 
     if (_routePoints.isNotEmpty) {
+      await _firestore.collection('users').doc(_currentUser!.uid).update({
+        'status': 'driving',
+        'destination_name': _selectedPlace!.displayName,
+        'destination_location': GeoPoint(
+          _selectedPlace!.latitude,
+          _selectedPlace!.longitude,
+        ),
+      });
+
       setState(() => _appState = AppState.driving);
+      _listenForRideRequests();
       _showMessage("You are now driving.");
     }
   }
@@ -386,7 +406,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       'status': 'waiting',
       'timestamp': FieldValue.serverTimestamp(),
     });
+
     setState(() => _appState = AppState.searching);
+    _listenForDrivers();
     _showMessage("Requesting a ride...");
   }
 
@@ -394,12 +416,105 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     if (_appState == AppState.searching) {
       _firestore.collection('ride_requests').doc(_currentUser!.uid).delete();
     }
+    if (_appState == AppState.driving && _currentUser != null) {
+      _firestore.collection('users').doc(_currentUser!.uid).update({
+        'status': 'idle',
+        'destination_name': null,
+        'destination_location': null,
+      });
+    }
+
+    _rideRequestsSubscription?.cancel();
+    _driversSubscription?.cancel();
+
     setState(() {
       _appState = AppState.initial;
       _destinationController.clear();
       _suggestions = [];
       _selectedPlace = null;
       _routePoints = [];
+      _relevantRideRequests = [];
+      _availableDrivers = [];
+    });
+  }
+  
+  // NEW: Manual distance calculation to avoid external packages
+  double _calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
+    var p = 0.017453292519943295; // Math.PI / 180
+    var a = 0.5 -
+        cos((lat2 - lat1) * p) / 2 +
+        cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2;
+    return 12742 * 1000 * asin(sqrt(a)); // 2 * R * 1000; R = 6371 km
+  }
+
+  void _listenForRideRequests() {
+    _rideRequestsSubscription?.cancel();
+    if (_appState != AppState.driving || _selectedPlace == null) return;
+
+    _rideRequestsSubscription = _firestore
+        .collection('ride_requests')
+        .where('status', isEqualTo: 'waiting')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      final driverDestination = _selectedPlace!;
+      List<DocumentSnapshot> relevantRequests = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final destPoint = data['destination_location'] as GeoPoint;
+        
+        // REPLACED Geolocator with manual calculation
+        double distance = _calculateDistanceInMeters(
+          driverDestination.latitude,
+          driverDestination.longitude,
+          destPoint.latitude,
+          destPoint.longitude,
+        );
+
+        if (distance <= proximityThreshold) {
+          relevantRequests.add(doc);
+        }
+      }
+      setState(() {
+        _relevantRideRequests = relevantRequests;
+      });
+    });
+  }
+
+  void _listenForDrivers() {
+    _driversSubscription?.cancel();
+    if (_appState != AppState.searching || _selectedPlace == null) return;
+
+    _driversSubscription = _firestore
+        .collection('users')
+        .where('status', isEqualTo: 'driving')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      final passengerDestination = _selectedPlace!;
+      List<DocumentSnapshot> matchedDrivers = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['destination_location'] == null) continue;
+        final destPoint = data['destination_location'] as GeoPoint;
+
+        // REPLACED Geolocator with manual calculation
+        double distance = _calculateDistanceInMeters(
+          passengerDestination.latitude,
+          passengerDestination.longitude,
+          destPoint.latitude,
+          destPoint.longitude,
+        );
+        
+        if (distance <= proximityThreshold) {
+          matchedDrivers.add(doc);
+        }
+      }
+      setState(() {
+        _availableDrivers = matchedDrivers;
+      });
     });
   }
 
@@ -419,34 +534,28 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Widget _buildMapView() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore
-          .collection('ride_requests')
-          .where('status', isEqualTo: 'waiting')
-          .snapshots(),
-      builder: (context, snapshot) {
-        List<Marker> markers = [];
+    List<Marker> markers = [];
 
-        // Add current location marker with new pulsing dot
-        if (_currentLocation != null) {
-          markers.add(
-            Marker(
-              width: 80.0,
-              height: 80.0,
-              point: _currentLocation!,
-              child: _appState == AppState.driving
-                  ? const PulsingDot() // Use pulsing dot when driving
-                  : Icon(
-                      Icons.person_pin_circle,
-                      color: Colors.blue.shade800,
-                      size: 40,
-                    ),
-            ),
-          );
-        }
-
-        // Add red destination marker when driving
-        if (_appState == AppState.driving && _selectedPlace != null) {
+    // 1. Add the user's current location marker (always a pulsing dot)
+    if (_currentLocation != null) {
+      markers.add(
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: _currentLocation!,
+          child: const PulsingDot(),
+        ),
+      );
+    }
+    
+    // 2. Add other markers based on the app's state
+    switch (_appState) {
+      case AppState.initial:
+        // No other markers are needed in the initial state.
+        break;
+      case AppState.driving:
+        // Add destination marker
+        if (_selectedPlace != null) {
           markers.add(
             Marker(
               width: 80.0,
@@ -455,73 +564,94 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 _selectedPlace!.latitude,
                 _selectedPlace!.longitude,
               ),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.red.shade800,
-                size: 45,
+              child: Icon(Icons.location_on, color: Colors.red.shade800, size: 45),
+            ),
+          );
+        }
+        // Add relevant ride request markers
+        for (var doc in _relevantRideRequests) {
+          final data = doc.data() as Map<String, dynamic>;
+          final geoPoint = data['location'] as GeoPoint;
+          markers.add(
+            Marker(
+              width: 80.0,
+              height: 80.0,
+              point: latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
+              child: GestureDetector(
+                onTap: () => _showPickupDialog(doc),
+                child: Tooltip(
+                  message: "To: ${data['destination']}",
+                  child: Icon(Icons.hail, color: Colors.purple.shade600, size: 40),
+                ),
               ),
             ),
           );
         }
-
-        if (snapshot.hasData) {
-          for (var doc in snapshot.data!.docs) {
-            if (doc.id == _currentUser?.uid) {
-              continue;
-            }
-            final data = doc.data() as Map<String, dynamic>;
-            final geoPoint = data['location'] as GeoPoint;
-            markers.add(
-              Marker(
-                width: 80.0,
-                height: 80.0,
-                point: latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
-                child: GestureDetector(
-                  onTap: _appState == AppState.driving
-                      ? () => _showPickupDialog(doc)
-                      : null,
-                  child: Tooltip(
-                    message: "To: ${data['destination']}",
-                    child: Icon(Icons.hail, color: Colors.green, size: 40),
-                  ),
-                ),
+        break;
+      case AppState.searching:
+        // Add destination marker
+        if (_selectedPlace != null) {
+          markers.add(
+            Marker(
+              width: 80.0,
+              height: 80.0,
+              point: latlng.LatLng(
+                _selectedPlace!.latitude,
+                _selectedPlace!.longitude,
               ),
-            );
-          }
-        }
-
-        return FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _currentLocation!,
-            initialZoom: 15.0,
-            onMapReady: () {
-              setState(() {
-                _isMapReady = true;
-              });
-            },
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-              userAgentPackageName: 'com.routemate.app',
+              child: Icon(Icons.location_on, color: Colors.red.shade800, size: 45),
             ),
-            if (_routePoints.isNotEmpty)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: _routePoints,
-                    strokeWidth: 5.0,
-                    color: const Color(0xFF0284C7),
-                    borderColor: const Color(0xFF0369A1),
-                    borderStrokeWidth: 1.0,
-                  ),
-                ],
+          );
+        }
+        // Add available driver markers
+        for (var doc in _availableDrivers) {
+          final data = doc.data() as Map<String, dynamic>;
+          final geoPoint = data['location'] as GeoPoint;
+          markers.add(
+            Marker(
+              width: 80.0,
+              height: 80.0,
+              point: latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
+              child: Tooltip(
+                message: "To: ${data['destination_name']}",
+                child: Icon(Icons.drive_eta, color: Colors.orange.shade800, size: 40),
               ),
-            MarkerLayer(markers: markers),
-          ],
-        );
-      },
+            ),
+          );
+        }
+        break;
+    }
+    
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _currentLocation!,
+        initialZoom: 15.0,
+        onMapReady: () {
+          setState(() {
+            _isMapReady = true;
+          });
+        },
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          userAgentPackageName: 'com.routemate.app',
+        ),
+        if (_routePoints.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _routePoints,
+                strokeWidth: 5.0,
+                color: const Color(0xFF0284C7),
+                borderColor: const Color(0xFF0369A1),
+                borderStrokeWidth: 1.0,
+              ),
+            ],
+          ),
+        MarkerLayer(markers: markers),
+      ],
     );
   }
 
@@ -569,9 +699,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   Widget _buildControlPanel() {
     return Positioned(
-      top: 50,
+      bottom: 20,
       left: 16,
-      right: 70,
+      right: 16,
       child: Material(
         elevation: 4,
         borderRadius: BorderRadius.circular(16),
@@ -581,9 +711,12 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
             color: const Color.fromRGBO(255, 255, 255, 0.95),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: _appState == AppState.initial
-              ? _buildInitialStateUI()
-              : _buildActiveStateUI(),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            child: _appState == AppState.initial
+                ? _buildInitialStateUI()
+                : _buildActiveStateUI(),
+          ),
         ),
       ),
     );
@@ -678,23 +811,60 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Widget _buildActiveStateUI() {
-    String message = _appState == AppState.driving
-        ? "You are driving"
-        : "Waiting for a ride...";
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            message,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+    if (_appState == AppState.driving) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text("You are driving", style: TextStyle(fontWeight: FontWeight.bold)),
+          TextButton(
+            onPressed: _resetApp,
+            child: const Text('Cancel', style: TextStyle(color: Colors.red)),
           ),
-        ),
-        TextButton(
-          onPressed: _resetApp,
-          child: const Text('Cancel', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    );
+        ],
+      );
+    }
+
+    if (_appState == AppState.searching) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Searching for drivers...", style: TextStyle(fontWeight: FontWeight.bold)),
+              TextButton(
+                onPressed: _resetApp,
+                child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _availableDrivers.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text("No nearby drivers found yet."),
+            )
+          : ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 150),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _availableDrivers.length,
+                itemBuilder: (context, index) {
+                  final driver = _availableDrivers[index].data() as Map<String, dynamic>;
+                  return Card(
+                    child: ListTile(
+                      leading: Icon(Icons.drive_eta, color: Colors.orange.shade800),
+                      title: const Text("Driver nearby"),
+                      subtitle: Text("Heading to: ${driver['destination_name']}"),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      );
+    }
+    return const SizedBox.shrink(); // Should not happen
   }
 
   void _showWallet() {
@@ -802,6 +972,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _destinationController.dispose();
     _mapController.dispose();
     _debounce?.cancel();
+    _rideRequestsSubscription?.cancel();
+    _driversSubscription?.cancel();
     super.dispose();
   }
 }
