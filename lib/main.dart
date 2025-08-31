@@ -70,6 +70,73 @@ class MyApp extends StatelessWidget {
 
 enum AppState { initial, driving, searching }
 
+// NEW WIDGET for the pulsing blue dot
+class PulsingDot extends StatefulWidget {
+  const PulsingDot({super.key});
+
+  @override
+  State<PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _animationController.repeat();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        FadeTransition(
+          opacity: _animation.drive(Tween<double>(begin: 1.0, end: 0.0)),
+          child: ScaleTransition(
+            scale: _animation,
+            child: Container(
+              width: 50.0,
+              height: 50.0,
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 20.0,
+          height: 20.0,
+          decoration: BoxDecoration(
+            color: Colors.blue.shade700,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+}
+
 class RouteMateHomePage extends StatefulWidget {
   const RouteMateHomePage({super.key});
 
@@ -94,6 +161,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // App Data
   int _walletPoints = 100;
   latlng.LatLng? _currentLocation;
+  List<latlng.LatLng> _routePoints = [];
 
   // Search-specific state
   List<PlaceSuggestion> _suggestions = [];
@@ -154,7 +222,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _currentLocation = newPos;
         });
 
-        if (_isMapReady) {
+        if (_isMapReady && _appState != AppState.driving) {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
 
@@ -241,13 +309,62 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     }
   }
 
-  void _startDriving() {
+  Future<void> _getRoute() async {
+    if (_currentLocation == null || _selectedPlace == null) return;
+
+    final start = _currentLocation!;
+    final end = latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude);
+
+    final url = 'http://router.project-osrm.org/route/v1/driving/'
+        '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
+        '?overview=full&geometries=geojson';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final geometry = data['routes'][0]['geometry']['coordinates'];
+        final List<latlng.LatLng> points = geometry
+            .map<latlng.LatLng>((coord) => latlng.LatLng(coord[1], coord[0]))
+            .toList();
+
+        setState(() {
+          _routePoints = points;
+        });
+        
+        if (_routePoints.isNotEmpty && _isMapReady) {
+          final bounds = LatLngBounds.fromPoints(_routePoints);
+          _mapController.fitCamera(
+            CameraFit.bounds(
+              bounds: bounds,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+            ),
+          );
+        }
+      } else {
+        _showMessage("Could not get route. Please try again.");
+      }
+    } catch (e) {
+      _showMessage("Error connecting to routing service.");
+    }
+  }
+
+  Future<void> _startDriving() async {
     if (_selectedPlace == null) {
       _showMessage("Please select a destination from the list.");
       return;
     }
-    setState(() => _appState = AppState.driving);
-    _showMessage("You are now driving.");
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Fetching route...')),
+    );
+
+    await _getRoute(); 
+
+    if (_routePoints.isNotEmpty) {
+      setState(() => _appState = AppState.driving);
+      _showMessage("You are now driving.");
+    }
   }
 
   void _findRide() {
@@ -282,6 +399,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       _destinationController.clear();
       _suggestions = [];
       _selectedPlace = null;
+      _routePoints = [];
     });
   }
 
@@ -309,20 +427,38 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       builder: (context, snapshot) {
         List<Marker> markers = [];
 
+        // Add current location marker with new pulsing dot
         if (_currentLocation != null) {
           markers.add(
             Marker(
               width: 80.0,
               height: 80.0,
               point: _currentLocation!,
+              child: _appState == AppState.driving
+                  ? const PulsingDot() // Use pulsing dot when driving
+                  : Icon(
+                      Icons.person_pin_circle,
+                      color: Colors.blue.shade800,
+                      size: 40,
+                    ),
+            ),
+          );
+        }
+
+        // Add red destination marker when driving
+        if (_appState == AppState.driving && _selectedPlace != null) {
+          markers.add(
+            Marker(
+              width: 80.0,
+              height: 80.0,
+              point: latlng.LatLng(
+                _selectedPlace!.latitude,
+                _selectedPlace!.longitude,
+              ),
               child: Icon(
-                _appState == AppState.driving
-                    ? Icons.drive_eta
-                    : Icons.person_pin_circle,
-                color: _appState == AppState.driving
-                    ? Colors.orange.shade800
-                    : Colors.blue.shade800,
-                size: 40,
+                Icons.location_on,
+                color: Colors.red.shade800,
+                size: 45,
               ),
             ),
           );
@@ -370,6 +506,18 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
               urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
               userAgentPackageName: 'com.routemate.app',
             ),
+            if (_routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    strokeWidth: 5.0,
+                    color: const Color(0xFF0284C7),
+                    borderColor: const Color(0xFF0369A1),
+                    borderStrokeWidth: 1.0,
+                  ),
+                ],
+              ),
             MarkerLayer(markers: markers),
           ],
         );
@@ -430,7 +578,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 255, 255, 0.95), // Warning fixed
+            color: const Color.fromRGBO(255, 255, 255, 0.95),
             borderRadius: BorderRadius.circular(16),
           ),
           child: _appState == AppState.initial
@@ -485,7 +633,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                       _selectedPlace = suggestion;
                       _suggestions = [];
                     });
-                    FocusScope.of(context).unfocus(); // Hide keyboard
+                    FocusScope.of(context).unfocus();
                   },
                 );
               },
