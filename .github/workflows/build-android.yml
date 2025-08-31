@@ -42,11 +42,12 @@ jobs:
       - name: Build App Bundle (AAB)
         run: flutter build appbundle --release
 
-      - name: Extract Version Name
+      - name: Extract version from pubspec.yaml
         id: extract_version
-        # This command now replaces '+' with '-' for a cleaner tag name
-        run: echo "VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | sed 's/+/-/g')" >> $GITHUB_ENV
-      
+        run: |
+          version=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr -d '\r')
+          echo "VERSION=$version" >> $GITHUB_ENV
+          
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
