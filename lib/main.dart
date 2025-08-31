@@ -368,7 +368,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           children: [
             TileLayer(
               urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-              userAgentPackageName: 'com.example.myapp',
+              userAgentPackageName: 'com.routemate.app',
             ),
             MarkerLayer(markers: markers),
           ],
@@ -430,7 +430,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.95),
+            color: const Color.fromRGBO(255, 255, 255, 0.95), // Warning fixed
             borderRadius: BorderRadius.circular(16),
           ),
           child: _appState == AppState.initial
@@ -657,3 +657,4 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     super.dispose();
   }
 }
+
