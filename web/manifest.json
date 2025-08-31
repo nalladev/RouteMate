@@ -1,6 +1,6 @@
 {
-    "name": "myapp",
-    "short_name": "myapp",
+    "name": "Route Mate",
+    "short_name": "routemate",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

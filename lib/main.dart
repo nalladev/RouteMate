@@ -218,7 +218,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         uri,
         headers: {
           'User-Agent':
-              'com.example.myapp', // Required by Nominatim's Usage Policy
+              'com.routemate.app', // Required by Nominatim's Usage Policy
         },
       );
 
