@@ -44,7 +44,8 @@ jobs:
 
       - name: Extract Version Name
         id: extract_version
-        run: echo "VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2)" >> $GITHUB_ENV
+        # This command now replaces '+' with '-' for a cleaner tag name
+        run: echo "VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | sed 's/+/ /g')" >> $GITHUB_ENV
       
       - name: Create Release
         uses: ncipollo/release-action@v1
