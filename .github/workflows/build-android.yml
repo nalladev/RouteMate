@@ -1,12 +1,11 @@
 # .github/workflows/build-android.yml
 
-name: Build Android APK
+name: Build and Release Android App
 
 on:
   push:
     branches:
-      - master
-      - main
+      - master # This workflow runs on every push to your master branch
 
 jobs:
   build:
@@ -40,8 +39,16 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Build App Bundle (AAB)
+        run: flutter build appbundle --release
+      
+      - name: Create Release
+        uses: ncipollo/release-action@v1
         with:
-          name: RouteMate-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          # A comma-separated list of files to attach to the release
+          artifacts: "build/app/outputs/flutter-apk/app-release.apk,build/app/outputs/bundle/release/app-release.aab"
+          # The token is automatically provided by GitHub for authentication
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This will create a Git tag from the version in your pubspec.yaml file
+          tag: v$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2)
+
