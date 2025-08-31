@@ -1,4 +1,4 @@
-# 🚀 Fast and efficient workflow for building and releasing a Flutter Android app
+# 🚀 Optimized Flutter Android build workflow (parallel APK + AAB)
 name: Build and Release Android App
 
 # Trigger only when pushing version tags like v1.2.3
@@ -11,9 +11,11 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  # Common setup steps as a reusable step list
+  setup:
     runs-on: ubuntu-latest
-
+    outputs:
+      cache-key: ${{ steps.cache-flutter.outputs.cache-key }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,6 +33,7 @@ jobs:
           cache: true
 
       - name: Cache Gradle Dependencies
+        id: cache-gradle
         uses: actions/cache@v4
         with:
           path: |
@@ -41,12 +44,16 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Cache Flutter Pub Dependencies
+        id: cache-flutter
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-pub-
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
 
       - name: Decode Keystore and Create Properties
         run: |
@@ -58,16 +65,104 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
-      - name: Get Flutter dependencies
-        run: flutter pub get
+  # Build APK job
+  build_apk:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Build universal APK (for sideloading/testing)
+      - name: Restore Flutter & Gradle Caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.pub-cache
+          key: ${{ runner.os }}-flutter-gradle-${{ github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
       - name: Build Universal APK
         run: flutter build apk --release
 
-      # Build App Bundle (for Play Store)
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  # Build AAB job
+  build_aab:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Flutter & Gradle Caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.pub-cache
+          key: ${{ runner.os }}-flutter-gradle-${{ github.ref }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
       - name: Build App Bundle
         run: flutter build appbundle --release
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+
+  # Release job
+  release:
+    needs: [build_apk, build_aab]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: app-release-apk
+          path: ./release
+
+      - name: Download AAB Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: app-release-aab
+          path: ./release
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v1
@@ -75,7 +170,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+            ./release/app-release.apk
+            ./release/app-release.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
