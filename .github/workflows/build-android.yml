@@ -41,6 +41,10 @@ jobs:
 
       - name: Build App Bundle (AAB)
         run: flutter build appbundle --release
+
+      - name: Extract Version Name
+        id: extract_version
+        run: echo "VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2)" >> $GITHUB_ENV
       
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -49,6 +53,6 @@ jobs:
           artifacts: "build/app/outputs/flutter-apk/app-release.apk,build/app/outputs/bundle/release/app-release.aab"
           # The token is automatically provided by GitHub for authentication
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This will create a Git tag from the version in your pubspec.yaml file
-          tag: v$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2)
+          # This creates a Git tag using the version from the previous step
+          tag: v${{ env.VERSION }}
 
