@@ -641,6 +641,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         if (_routePoints.isNotEmpty)
           PolylineLayer(
             polylines: [
+              // Main route line
               Polyline(
                 points: _routePoints,
                 strokeWidth: 5.0,
@@ -648,6 +649,30 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 borderColor: const Color(0xFF0369A1),
                 borderStrokeWidth: 1.0,
               ),
+              // Dotted line from user to route start
+              if (_currentLocation != null)
+                Polyline(
+                  points: [
+                    _currentLocation!,
+                    _routePoints.first,
+                  ],
+                  strokeWidth: 3.0,
+                  color: Colors.grey.shade600,
+                  isDotted: true,
+                  strokeCap: StrokeCap.round,
+                ),
+              // Dotted line from route end to destination
+              if (_selectedPlace != null)
+                Polyline(
+                  points: [
+                    _routePoints.last,
+                    latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude),
+                  ],
+                  strokeWidth: 3.0,
+                  color: Colors.grey.shade600,
+                  isDotted: true,
+                  strokeCap: StrokeCap.round,
+                ),
             ],
           ),
         MarkerLayer(markers: markers),
