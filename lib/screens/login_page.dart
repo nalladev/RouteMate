@@ -21,8 +21,11 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _sendOTP() async {
     setState(() { _loading = true; _error = null; });
+    // Add the '+' prefix to the phone number
+    final String phoneNumber = '+${_phoneController.text.trim()}';
+    
     await _auth.verifyPhoneNumber(
-      phoneNumber: _phoneController.text.trim(),
+      phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
         // Auto-detect OTP and sign in
         await _auth.signInWithCredential(credential);
@@ -56,7 +59,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() { _loading = true; _error = null; });
     if (_quotaExceeded && _otpController.text.trim() == '123456') {
       // Simulate successful login with fallback OTP
-      // Create a fake credential and sign in anonymously (or set a flag)
       await _auth.signInAnonymously();
       setState(() { _loading = false; });
       return;
