@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math'; // NEW import for distance calculation
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -442,9 +442,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   double _calculateDistanceInMeters(lat1, lon1, lat2, lon2) {
     var p = 0.017453292519943295; // Math.PI / 180
     var a = 0.5 -
-        cos((lat2 - lat1) * p) / 2 +
-        cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2;
-    return 12742 * 1000 * asin(sqrt(a)); // 2 * R * 1000; R = 6371 km
+        math.cos((lat2 - lat1) * p) / 2 +
+        math.cos(lat1 * p) * math.cos(lat2 * p) * (1 - math.cos((lon2 - lon1) * p)) / 2;
+    return 12742 * 1000 * math.asin(math.sqrt(a)); // 2 * R * 1000; R = 6371 km
   }
 
   void _listenForRideRequests() {
@@ -649,40 +649,28 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 borderColor: const Color(0xFF0369A1),
                 borderStrokeWidth: 1.0,
               ),
-              // Dotted line from user to route start - created with multiple short line segments
-              if (_currentLocation != null) {
-                // Create a series of short segments to simulate a dotted line
-                final start = _currentLocation!;
-                final end = _routePoints.first;
-                
-                // Calculate intermediate points
-                final points = _createDottedLine(start, end);
-                
-                // Add the regular polyline without any special parameters
+              // Dotted line from user to route start
+              if (_currentLocation != null)
                 Polyline(
-                  points: points,
+                  points: _createDottedLine(
+                    _currentLocation!,
+                    _routePoints.first
+                  ),
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
                   strokeCap: StrokeCap.round,
                 ),
-              },
-              // Dotted line from route end to destination - created with multiple short line segments
-              if (_selectedPlace != null) {
-                // Create a series of short segments to simulate a dotted line
-                final start = _routePoints.last;
-                final end = latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude);
-                
-                // Calculate intermediate points
-                final points = _createDottedLine(start, end);
-                
-                // Add the regular polyline without any special parameters
+              // Dotted line from route end to destination
+              if (_selectedPlace != null)
                 Polyline(
-                  points: points,
+                  points: _createDottedLine(
+                    _routePoints.last,
+                    latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude)
+                  ),
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
                   strokeCap: StrokeCap.round,
                 ),
-              },
             ],
           ),
         MarkerLayer(markers: markers),
@@ -986,27 +974,6 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         ),
       ),
     );
-  }
-
-  // Calculate distance between two points in meters using the Haversine formula
-  double _calculateDistanceInMeters(double lat1, double lon1, double lat2, double lon2) {
-    const double earthRadius = 6371000; // meters
-    final double dLat = _degreesToRadians(lat2 - lat1);
-    final double dLon = _degreesToRadians(lon2 - lon1);
-    
-    final double a = 
-      math.sin(dLat / 2) * math.sin(dLat / 2) +
-      math.cos(_degreesToRadians(lat1)) * math.cos(_degreesToRadians(lat2)) * 
-      math.sin(dLon / 2) * math.sin(dLon / 2);
-    
-    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    final double distance = earthRadius * c;
-    
-    return distance;
-  }
-  
-  double _degreesToRadians(double degrees) {
-    return degrees * (math.pi / 180);
   }
 
   void _showMessage(String message) {
