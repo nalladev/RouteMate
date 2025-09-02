@@ -10,8 +10,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _phoneNumberController = TextEditingController();
-  final PhoneEmailAuthController _auth = PhoneEmailAuthController();
+  @override
+  void initState() {
+    super.initState();
+    // IMPORTANT: Replace with your actual client ID
+    PhoneEmail.initializeApp(clientId: '11787517661743701617');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,45 +23,26 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: const Text('Login'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: _phoneNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-
-                bool success = await _auth.sendOtp(
-                  phone: _phoneNumberController.text,
-                  userType: UserType.user,
-                );
-
-                if (success) {
-                  navigator.push(
+            PhoneLoginButton(
+              borderRadius: 8,
+              buttonColor: Colors.blue,
+              label: 'Sign in with Phone',
+              onSuccess: (String accessToken, String jwtToken) {
+                if (mounted) {
+                  Navigator.push(
+                    context,
                     MaterialPageRoute(
-                      builder: (context) => OtpScreen(
-                        phone: _phoneNumberController.text,
+                      builder: (context) => OTPScreen(
+                        accessToken: accessToken,
                       ),
-                    ),
-                  );
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to send OTP. Please try again.'),
                     ),
                   );
                 }
               },
-              child: const Text('Send OTP'),
             ),
           ],
         ),

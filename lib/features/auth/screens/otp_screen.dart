@@ -1,66 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:phone_email_auth/phone_email_auth.dart';
-import 'package:routemate/screens/home_page.dart';
 
-class OtpScreen extends StatefulWidget {
-  final String phone;
-  const OtpScreen({super.key, required this.phone});
+class OTPScreen extends StatefulWidget {
+  const OTPScreen({super.key, required this.accessToken});
+  final String accessToken;
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  State<OTPScreen> createState() => _OTPScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
-  final TextEditingController _otpController = TextEditingController();
-  final PhoneEmailAuthController _auth = PhoneEmailAuthController();
+class _OTPScreenState extends State<OTPScreen> {
+  PhoneEmailUserModel? _phoneEmailUserModel;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _getUserInfo();
+  }
+
+  void _getUserInfo() {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      PhoneEmail.getUserInfo(
+        accessToken: widget.accessToken,
+        clientId: '11787517661743701617',
+        onSuccess: (userInfo) {
+          if (mounted) {
+            setState(() {
+              _phoneEmailUserModel = userInfo;
+              _isLoading = false;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to get user info: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify OTP'),
+        title: const Text('User Profile'),
       ),
-      body: Padding(
+      body: Center(
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const CircularProgressIndicator();
+    } else if (_error != null) {
+      return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: _otpController,
-              decoration: const InputDecoration(
-                labelText: 'OTP',
-              ),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-
-                bool success = await _auth.verifyOtp(
-                  phone: widget.phone,
-                  otp: _otpController.text,
-                );
-
-                if (success) {
-                  navigator.pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
-                    (route) => false,
-                  );
-                } else {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid OTP. Please try again.'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Verify OTP'),
+              onPressed: _getUserInfo, // Retry fetching user info
+              child: const Text('Retry'),
             ),
           ],
         ),
+      );
+    } else if (_phoneEmailUserModel != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildUserInfoTile('Country Code', _phoneEmailUserModel!.countryCode),
+            _buildUserInfoTile('Phone Number', _phoneEmailUserModel!.phoneNumber),
+            _buildUserInfoTile('First Name', _phoneEmailUserModel!.firstName),
+            _buildUserInfoTile('Last Name', _phoneEmailUserModel!.lastName),
+          ],
+        ),
+      );
+    } else {
+      return const Text('No user information available.');
+    }
+  }
+
+  Widget _buildUserInfoTile(String title, String? value) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(value ?? 'N/A', style: const TextStyle(fontSize: 16)),
       ),
     );
   }
