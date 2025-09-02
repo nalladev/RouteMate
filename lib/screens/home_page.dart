@@ -66,19 +66,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- CORE LOGIC & STATE MANAGEMENT ---
 
   Future<void> _initializeApp() async {
-    await _signInAnonymously();
+    _currentUser = _auth.currentUser;
     await _requestLocationPermission();
     _listenToLocationChanges();
     _fetchWalletPoints();
-  }
-
-  Future<void> _signInAnonymously() async {
-    try {
-      final userCredential = await _auth.signInAnonymously();
-      setState(() => _currentUser = userCredential.user);
-    } catch (e) {
-      _showMessage("Error signing in. Please restart the app.");
-    }
   }
 
   Future<void> _requestLocationPermission() async {
@@ -209,40 +200,52 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       }
     } catch (e) {
       _showMessage("Could not connect to location service.");
-    } finally {
-      if (mounted) setState(() => _isSearching = false);
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Route Mate'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () async {
+                await _auth.signOut();
+              },
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            MapView(
+              mapController: _mapController,
+              currentLocation: _currentLocation,
+              routePoints: _routePoints,
+              isMapReady: _isMapReady,
+              onMapReady: () => setState(() => _isMapReady = true),
+            ),
+            ControlPanel(
+              appState: _appState,
+              destinationController: _destinationController,
+              suggestions: _suggestions,
+              isSearching: _isSearching,
+              onSearchChanged: _onSearchChanged,
+              onSuggestionSelected: _onSuggestionSelected,
+              onRequestRide: _onRequestRide,
+              walletPoints: _walletPoints,
+              onWalletTap: _showWalletBottomSheet,
+            ),
+            Positioned(
+              top: 40,
+              right: 16,
+              child: ProfileButton(
+                onPressed: _showProfile,
+              ),
+            ),
+          ],
+        ),
+      );
     }
-  }
-
-  Future<void> _getRoute() async {
-    if (_currentLocation == null || _selectedPlace == null) return;
-    final start = _currentLocation!;
-    final end = latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude);
-    final url =
-        'http://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final geometry = data['routes'][0]['geometry']['coordinates'];
-        final points = geometry
-            .map<latlng.LatLng>((coord) => latlng.LatLng(coord[1], coord[0]))
-            .toList();
-        setState(() => _routePoints = points);
-        if (_routePoints.isNotEmpty && _isMapReady) {
-          final bounds = LatLngBounds.fromPoints(_routePoints);
-          _mapController.fitCamera(CameraFit.bounds(
-            bounds: bounds,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
-          ));
-        }
-      } else {
-        _showMessage("Could not get route.");
-      }
-    } catch (e) {
-      _showMessage("Error connecting to routing service.");
-    }
-  }
 
   Future<void> _startDriving() async {
     if (_selectedPlace == null || _currentUser == null) {

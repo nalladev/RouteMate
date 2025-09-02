@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_page.dart';
+import 'screens/login_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -23,8 +24,26 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Inter',
       ),
-      home: const RouteMateHomePage(),
+      home: AuthGate(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasData) {
+          return const RouteMateHomePage();
+        }
+        return const LoginPage();
+      },
     );
   }
 }
