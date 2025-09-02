@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math'; // NEW import for distance calculation
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map/plugin_api.dart'; // Added for PatternItem
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:location/location.dart';
@@ -658,7 +659,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   ],
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  dashArray: [8, 8], // <-- Use dashArray for dotted/dashed effect
+                  patterns: [PatternItem.dash(8), PatternItem.gap(8)], // <-- Using patterns for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
               // Dotted line from route end to destination
@@ -670,7 +671,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   ],
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  dashArray: [8, 8], // <-- Use dashArray for dotted/dashed effect
+                  patterns: [PatternItem.dash(8), PatternItem.gap(8)], // <-- Using patterns for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
             ],
