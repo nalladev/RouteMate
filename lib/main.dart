@@ -649,30 +649,40 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 borderColor: const Color(0xFF0369A1),
                 borderStrokeWidth: 1.0,
               ),
-              // Dotted line from user to route start
-              if (_currentLocation != null)
+              // Dotted line from user to route start - created with multiple short line segments
+              if (_currentLocation != null) {
+                // Create a series of short segments to simulate a dotted line
+                final start = _currentLocation!;
+                final end = _routePoints.first;
+                
+                // Calculate intermediate points
+                final points = _createDottedLine(start, end);
+                
+                // Add the regular polyline without any special parameters
                 Polyline(
-                  points: [
-                    _currentLocation!,
-                    _routePoints.first,
-                  ],
+                  points: points,
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  isDottedLine: true, // <-- Using isDottedLine parameter for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
-              // Dotted line from route end to destination
-              if (_selectedPlace != null)
+              },
+              // Dotted line from route end to destination - created with multiple short line segments
+              if (_selectedPlace != null) {
+                // Create a series of short segments to simulate a dotted line
+                final start = _routePoints.last;
+                final end = latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude);
+                
+                // Calculate intermediate points
+                final points = _createDottedLine(start, end);
+                
+                // Add the regular polyline without any special parameters
                 Polyline(
-                  points: [
-                    _routePoints.last,
-                    latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude),
-                  ],
+                  points: points,
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  isDottedLine: true, // <-- Using isDottedLine parameter for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
+              },
             ],
           ),
         MarkerLayer(markers: markers),
@@ -978,6 +988,27 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     );
   }
 
+  // Calculate distance between two points in meters using the Haversine formula
+  double _calculateDistanceInMeters(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371000; // meters
+    final double dLat = _degreesToRadians(lat2 - lat1);
+    final double dLon = _degreesToRadians(lon2 - lon1);
+    
+    final double a = 
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(_degreesToRadians(lat1)) * math.cos(_degreesToRadians(lat2)) * 
+      math.sin(dLon / 2) * math.sin(dLon / 2);
+    
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    final double distance = earthRadius * c;
+    
+    return distance;
+  }
+  
+  double _degreesToRadians(double degrees) {
+    return degrees * (math.pi / 180);
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -989,6 +1020,61 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
+
+  // NEW: Create a dotted line between two points by creating small segments with gaps
+  List<latlng.LatLng> _createDottedLine(latlng.LatLng start, latlng.LatLng end) {
+    final List<latlng.LatLng> points = [];
+    
+    // Calculate distance and direction
+    final double distance = _calculateDistanceInMeters(
+      start.latitude, start.longitude, 
+      end.latitude, end.longitude
+    );
+    
+    // We'll create a dot every 10 meters with a 10 meter gap
+    const double dotLength = 10; // meters
+    const double gapLength = 10; // meters
+    
+    if (distance <= dotLength) {
+      // If distance is very small, just return the start and end points
+      return [start, end];
+    }
+    
+    // Calculate the number of segments needed
+    final int segments = (distance / (dotLength + gapLength)).floor();
+    
+    // Add start point
+    points.add(start);
+    
+    for (int i = 0; i < segments; i++) {
+      // Calculate the fraction of the total distance for this dot's end
+      final double dotEndFraction = (i * (dotLength + gapLength) + dotLength) / distance;
+      
+      // Calculate the fraction of the total distance for the next dot's start
+      final double nextDotStartFraction = ((i + 1) * (dotLength + gapLength)) / distance;
+      
+      if (dotEndFraction < 1.0) {
+        // Add the end point of this dot
+        points.add(latlng.LatLng(
+          start.latitude + (end.latitude - start.latitude) * dotEndFraction,
+          start.longitude + (end.longitude - start.longitude) * dotEndFraction
+        ));
+      }
+      
+      if (nextDotStartFraction < 1.0) {
+        // Add the start point of the next dot
+        points.add(latlng.LatLng(
+          start.latitude + (end.latitude - start.latitude) * nextDotStartFraction,
+          start.longitude + (end.longitude - start.longitude) * nextDotStartFraction
+        ));
+      }
+    }
+    
+    // Add end point
+    points.add(end);
+    
+    return points;
   }
 
   @override
