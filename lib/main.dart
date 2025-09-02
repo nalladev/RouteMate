@@ -114,7 +114,7 @@ class _PulsingDotState extends State<PulsingDot>
               width: 50.0,
               height: 50.0,
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.5),
+                color: Colors.blue.withAlpha(128),
                 shape: BoxShape.circle,
               ),
             ),
@@ -1002,4 +1002,3 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     super.dispose();
   }
 }
-
