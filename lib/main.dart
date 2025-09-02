@@ -658,7 +658,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   ],
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  isDotted: true,
+                  dashArray: [8, 8], // <-- Use dashArray for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
               // Dotted line from route end to destination
@@ -670,7 +670,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   ],
                   strokeWidth: 3.0,
                   color: Colors.grey.shade600,
-                  isDotted: true,
+                  dashArray: [8, 8], // <-- Use dashArray for dotted/dashed effect
                   strokeCap: StrokeCap.round,
                 ),
             ],
