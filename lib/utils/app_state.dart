@@ -1,0 +1,1 @@
+enum AppState { initial, driving, searching }
