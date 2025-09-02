@@ -99,7 +99,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         _locationService.onLocationChanged.listen((LocationData newLocation) {
       if (!mounted ||
           newLocation.latitude == null ||
-          newLocation.longitude == null) return;
+          newLocation.longitude == null) {return;}
 
       final newPos = latlng.LatLng(newLocation.latitude!, newLocation.longitude!);
       setState(() => _currentLocation = newPos);
