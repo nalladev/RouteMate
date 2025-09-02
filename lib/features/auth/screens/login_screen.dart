@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phone_email_auth/phone_email_auth.dart';
-import 'package:routemate/features/auth/screens/otp_screen.dart';
+import 'package:routemate/screens/home_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,12 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
               label: 'Sign in with Phone',
               onSuccess: (String accessToken, String jwtToken) {
                 if (mounted) {
-                  Navigator.push(
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OTPScreen(
-                        accessToken: accessToken,
-                      ),
+                      builder: (context) => const RouteMateHomePage(),
                     ),
                   );
                 }
