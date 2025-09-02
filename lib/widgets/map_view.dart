@@ -38,7 +38,7 @@ class MapView extends StatelessWidget {
     return FlutterMap(
       mapController: mapController,
       options: MapOptions(
-        initialCenter: currentLocation!,
+        initialCenter: currentLocation ?? const latlng.LatLng(0, 0),
         initialZoom: 15.0,
         onMapReady: () => onMapReady(true),
       ),
