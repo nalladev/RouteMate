@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' show pi;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -79,6 +80,38 @@ class PulsingDot extends StatefulWidget {
 
   @override
   State<PulsingDot> createState() => _PulsingDotState();
+}
+
+// NEW WIDGET for rotation-aware markers
+class RotationAwareMarker extends StatelessWidget {
+  final Widget? child;
+  final MapController mapController;
+  final Color? color;
+  final double size;
+  final IconData icon;
+
+  const RotationAwareMarker({
+    super.key,
+    required this.mapController,
+    this.color,
+    this.size = 45,
+    this.icon = Icons.location_on,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Instead of listening to map events, use a simpler approach
+    return Transform.rotate(
+      // Apply the negative of the map's rotation to keep marker upright
+      angle: -mapController.camera.rotation * (pi / 180), 
+      child: child ?? Icon(
+        icon,
+        color: color ?? Colors.red.shade800,
+        size: size,
+      ),
+    );
+  }
 }
 
 class _PulsingDotState extends State<PulsingDot>
@@ -557,14 +590,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         // Add destination marker
         if (_selectedPlace != null) {
           markers.add(
-            Marker(
-              width: 80.0,
-              height: 80.0,
-              point: latlng.LatLng(
+            _createDestinationMarker(
+              latlng.LatLng(
                 _selectedPlace!.latitude,
                 _selectedPlace!.longitude,
               ),
-              child: Icon(Icons.location_on, color: Colors.red.shade800, size: 45),
             ),
           );
         }
@@ -592,14 +622,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         // Add destination marker
         if (_selectedPlace != null) {
           markers.add(
-            Marker(
-              width: 80.0,
-              height: 80.0,
-              point: latlng.LatLng(
+            _createDestinationMarker(
+              latlng.LatLng(
                 _selectedPlace!.latitude,
                 _selectedPlace!.longitude,
               ),
-              child: Icon(Icons.location_on, color: Colors.red.shade800, size: 45),
             ),
           );
         }
@@ -608,14 +635,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           final data = doc.data() as Map<String, dynamic>;
           final geoPoint = data['location'] as GeoPoint;
           markers.add(
-            Marker(
-              width: 80.0,
-              height: 80.0,
-              point: latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
-              child: Tooltip(
-                message: "To: ${data['destination_name']}",
-                child: Icon(Icons.drive_eta, color: Colors.orange.shade800, size: 40),
-              ),
+            _createDriverMarker(
+              latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
+              "To: ${data['destination_name']}",
             ),
           );
         }
@@ -985,6 +1007,39 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+  
+  // Helper method to create destination markers that always point down
+  Marker _createDestinationMarker(latlng.LatLng point) {
+    return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: point,
+      child: RotationAwareMarker(
+        mapController: _mapController,
+        color: Colors.red.shade800,
+        size: 45,
+        icon: Icons.location_on,
+      ),
+    );
+  }
+  
+  // Helper method to create driver markers that always point down
+  Marker _createDriverMarker(latlng.LatLng point, String tooltipMessage) {
+    return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: point,
+      child: Tooltip(
+        message: tooltipMessage,
+        child: RotationAwareMarker(
+          mapController: _mapController,
+          color: Colors.orange.shade800,
+          size: 40,
+          icon: Icons.drive_eta,
+        ),
       ),
     );
   }
