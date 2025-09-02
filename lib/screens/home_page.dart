@@ -17,7 +17,6 @@ import '../widgets/control_panel.dart';
 import '../widgets/profile_button.dart';
 import '../widgets/wallet_bottom_sheet.dart';
 
-
 class RouteMateHomePage extends StatefulWidget {
   const RouteMateHomePage({super.key});
 
@@ -63,6 +62,17 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _initializeApp();
   }
 
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    _destinationController.dispose();
+    _mapController.dispose();
+    _debounce?.cancel();
+    _rideRequestsSubscription?.cancel();
+    _driversSubscription?.cancel();
+    super.dispose();
+  }
+
   // --- CORE LOGIC & STATE MANAGEMENT ---
 
   Future<void> _initializeApp() async {
@@ -86,13 +96,19 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   void _listenToLocationChanges() {
-    _locationSubscription =
-        _locationService.onLocationChanged.listen((LocationData newLocation) {
+    _locationSubscription = _locationService.onLocationChanged.listen((
+      LocationData newLocation,
+    ) {
       if (!mounted ||
           newLocation.latitude == null ||
-          newLocation.longitude == null) {return;}
+          newLocation.longitude == null) {
+        return;
+      }
 
-      final newPos = latlng.LatLng(newLocation.latitude!, newLocation.longitude!);
+      final newPos = latlng.LatLng(
+        newLocation.latitude!,
+        newLocation.longitude!,
+      );
       setState(() => _currentLocation = newPos);
 
       if (_isMapReady && _appState != AppState.driving) {
@@ -105,26 +121,27 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   void _updateUserLocationInDb() {
     if (_currentUser == null || _currentLocation == null) return;
     _firestore.collection('users').doc(_currentUser!.uid).set({
-      'location':
-          GeoPoint(_currentLocation!.latitude, _currentLocation!.longitude),
+      'location': GeoPoint(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
+      ),
       'last_seen': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
   void _fetchWalletPoints() {
     if (_currentUser == null) return;
-    _firestore
-        .collection('users')
-        .doc(_currentUser!.uid)
-        .snapshots()
-        .listen((doc) {
+    _firestore.collection('users').doc(_currentUser!.uid).snapshots().listen((
+      doc,
+    ) {
       if (doc.exists && doc.data()!.containsKey('wallet_points')) {
-        if (mounted) setState(() => _walletPoints = doc.data()!['wallet_points']);
+        if (mounted) {
+          setState(() => _walletPoints = doc.data()!['wallet_points']);
+        }
       } else {
-        _firestore
-            .collection('users')
-            .doc(_currentUser!.uid)
-            .set({'wallet_points': 100}, SetOptions(merge: true));
+        _firestore.collection('users').doc(_currentUser!.uid).set({
+          'wallet_points': 100,
+        }, SetOptions(merge: true));
       }
     });
   }
@@ -181,71 +198,38 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _showMessage("Passenger picked up!");
   }
 
-
   // --- ASYNC OPERATIONS & API CALLS ---
 
   Future<void> _performSearch(String query) async {
     setState(() => _isSearching = true);
     try {
       final uri = Uri.parse(
-          'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5');
-      final response =
-          await http.get(uri, headers: {'User-Agent': 'com.routemate.app'});
+        'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'com.routemate.app'},
+      );
       if (response.statusCode == 200) {
         final List results = json.decode(response.body);
-        setState(() => _suggestions =
-            results.map((e) => PlaceSuggestion.fromJson(e)).toList());
+        setState(
+          () => _suggestions = results
+              .map((e) => PlaceSuggestion.fromJson(e))
+              .toList(),
+        );
       } else {
         _showMessage("Error fetching locations.");
       }
     } catch (e) {
       _showMessage("Could not connect to location service.");
-    @override
-    Widget build(BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Route Mate'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Logout',
-              onPressed: () async {
-                await _auth.signOut();
-              },
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            MapView(
-              mapController: _mapController,
-              currentLocation: _currentLocation,
-              routePoints: _routePoints,
-              isMapReady: _isMapReady,
-              onMapReady: () => setState(() => _isMapReady = true),
-            ),
-            ControlPanel(
-              appState: _appState,
-              destinationController: _destinationController,
-              suggestions: _suggestions,
-              isSearching: _isSearching,
-              onSearchChanged: _onSearchChanged,
-              onSuggestionSelected: _onSuggestionSelected,
-              onRequestRide: _onRequestRide,
-              walletPoints: _walletPoints,
-              onWalletTap: _showWalletBottomSheet,
-            ),
-            Positioned(
-              top: 40,
-              right: 16,
-              child: ProfileButton(
-                onPressed: _showProfile,
-              ),
-            ),
-          ],
-        ),
-      );
+    } finally {
+      setState(() => _isSearching = false);
     }
+  }
+
+  Future<void> _getRoute() async {
+    // Placeholder for route fetching logic
+  }
 
   Future<void> _startDriving() async {
     if (_selectedPlace == null || _currentUser == null) {
@@ -258,8 +242,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       await _firestore.collection('users').doc(_currentUser!.uid).update({
         'status': 'driving',
         'destination_name': _selectedPlace!.displayName,
-        'destination_location':
-            GeoPoint(_selectedPlace!.latitude, _selectedPlace!.longitude),
+        'destination_location': GeoPoint(
+          _selectedPlace!.latitude,
+          _selectedPlace!.longitude,
+        ),
       });
       setState(() => _appState = AppState.driving);
       _listenForRideRequests();
@@ -274,9 +260,15 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     }
     _firestore.collection('ride_requests').doc(_currentUser!.uid).set({
       'passenger_id': _currentUser!.uid,
-      'location': GeoPoint(_currentLocation!.latitude, _currentLocation!.longitude),
+      'location': GeoPoint(
+        _currentLocation!.latitude,
+        _currentLocation!.longitude,
+      ),
       'destination': _selectedPlace!.displayName,
-      'destination_location': GeoPoint(_selectedPlace!.latitude, _selectedPlace!.longitude),
+      'destination_location': GeoPoint(
+        _selectedPlace!.latitude,
+        _selectedPlace!.longitude,
+      ),
       'status': 'waiting',
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -295,16 +287,20 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         .where('status', isEqualTo: 'waiting')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted) return;
-      final driverDest = _selectedPlace!;
-      List<DocumentSnapshot> relevant = snapshot.docs.where((doc) {
-        final destPoint = doc.data()['destination_location'] as GeoPoint;
-        return _calculateDistance(driverDest.latitude, driverDest.longitude,
-                destPoint.latitude, destPoint.longitude) <=
-            proximityThreshold;
-      }).toList();
-      setState(() => _relevantRideRequests = relevant);
-    });
+          if (!mounted) return;
+          final driverDest = _selectedPlace!;
+          List<DocumentSnapshot> relevant = snapshot.docs.where((doc) {
+            final destPoint = doc.data()['destination_location'] as GeoPoint;
+            return _calculateDistance(
+                  driverDest.latitude,
+                  driverDest.longitude,
+                  destPoint.latitude,
+                  destPoint.longitude,
+                ) <=
+                proximityThreshold;
+          }).toList();
+          setState(() => _relevantRideRequests = relevant);
+        });
   }
 
   void _listenForDrivers() {
@@ -315,25 +311,80 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         .where('status', isEqualTo: 'driving')
         .snapshots()
         .listen((snapshot) {
-      if (!mounted) return;
-      final passengerDest = _selectedPlace!;
-      List<DocumentSnapshot> matched = snapshot.docs.where((doc) {
-        final data = doc.data();
-        if (data['destination_location'] == null) return false;
-        final destPoint = data['destination_location'] as GeoPoint;
-        return _calculateDistance(passengerDest.latitude,
-                passengerDest.longitude, destPoint.latitude, destPoint.longitude) <=
-            proximityThreshold;
-      }).toList();
-      setState(() => _availableDrivers = matched);
-    });
+          if (!mounted) return;
+          final passengerDest = _selectedPlace!;
+          List<DocumentSnapshot> matched = snapshot.docs.where((doc) {
+            final data = doc.data();
+            if (data['destination_location'] == null) return false;
+            final destPoint = data['destination_location'] as GeoPoint;
+            return _calculateDistance(
+                  passengerDest.latitude,
+                  passengerDest.longitude,
+                  destPoint.latitude,
+                  destPoint.longitude,
+                ) <=
+                proximityThreshold;
+          }).toList();
+          setState(() => _availableDrivers = matched);
+        });
   }
 
   // --- UI & HELPERS ---
 
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showWalletBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => WalletBottomSheet(
+        currentUser: _currentUser,
+        walletPoints: _walletPoints,
+      ),
+    );
+  }
+
+  void _showProfile() {
+    // Placeholder for showing profile
+  }
+
+  double _calculateDistance(lat1, lon1, lat2, lon2) {
+    var p = 0.017453292519943295;
+    var a =
+        0.5 -
+        math.cos((lat2 - lat1) * p) / 2 +
+        math.cos(lat1 * p) *
+            math.cos(lat2 * p) *
+            (1 - math.cos((lon2 - lon1) * p)) /
+            2;
+    return 12742 * 1000 * math.asin(math.sqrt(a));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Route Mate'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              await _auth.signOut();
+            },
+          ),
+        ],
+      ),
       body: _currentLocation == null
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -346,7 +397,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   appState: _appState,
                   relevantRideRequests: _relevantRideRequests,
                   availableDrivers: _availableDrivers,
-                  onMapReady: (isReady) => setState(() => _isMapReady = isReady),
+                  onMapReady: (isReady) =>
+                      setState(() => _isMapReady = isReady),
                   onPickupPassenger: _handlePassengerPickup,
                 ),
                 ControlPanel(
@@ -361,52 +413,21 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   onFindRide: _findRide,
                   onReset: _resetApp,
                 ),
-                ProfileButton(onPressed: _showWallet),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: ProfileButton(onPressed: _showProfile),
+                ),
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: FloatingActionButton(
+                    onPressed: _showWalletBottomSheet,
+                    child: const Icon(Icons.wallet),
+                  ),
+                ),
               ],
             ),
     );
-  }
-
-  void _showWallet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => WalletBottomSheet(
-        currentUser: _currentUser,
-        walletPoints: _walletPoints,
-      ),
-    );
-  }
-
-  double _calculateDistance(lat1, lon1, lat2, lon2) {
-    var p = 0.017453292519943295;
-    var a = 0.5 -
-        math.cos((lat2 - lat1) * p) / 2 +
-        math.cos(lat1 * p) *
-            math.cos(lat2 * p) *
-            (1 - math.cos((lon2 - lon1) * p)) /
-            2;
-    return 12742 * 1000 * math.asin(math.sqrt(a));
-  }
-
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.black87,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-    ));
-  }
-
-  @override
-  void dispose() {
-    _locationSubscription?.cancel();
-    _destinationController.dispose();
-    _mapController.dispose();
-    _debounce?.cancel();
-    _rideRequestsSubscription?.cancel();
-    _driversSubscription?.cancel();
-    super.dispose();
   }
 }

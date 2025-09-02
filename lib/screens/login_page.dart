@@ -81,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Login with Phone', style: Theme.of(context).textTheme.headline6),
+              Text('Login with Phone', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 24),
               TextField(
                 controller: _phoneController,
