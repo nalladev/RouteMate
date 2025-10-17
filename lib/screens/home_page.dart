@@ -16,6 +16,7 @@ import '../widgets/map_view.dart';
 import '../widgets/control_panel.dart';
 import '../widgets/profile_button.dart';
 import '../widgets/wallet_bottom_sheet.dart';
+import './rewards_page.dart';
 
 
 class RouteMateHomePage extends StatefulWidget {
@@ -28,6 +29,7 @@ class RouteMateHomePage extends StatefulWidget {
 class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // App State & Controllers
   AppState _appState = AppState.initial;
+  int _selectedIndex = 0;
   final TextEditingController _destinationController = TextEditingController();
   final MapController _mapController = MapController();
   bool _isMapReady = false;
@@ -328,39 +330,66 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   // --- UI & HELPERS ---
 
+  Widget _buildHomeContent() {
+    return _currentLocation == null
+        ? const Center(child: CircularProgressIndicator())
+        : Stack(
+            children: [
+              MapView(
+                mapController: _mapController,
+                currentLocation: _currentLocation,
+                routePoints: _routePoints,
+                selectedPlace: _selectedPlace,
+                appState: _appState,
+                relevantRideRequests: _relevantRideRequests,
+                availableDrivers: _availableDrivers,
+                onMapReady: (isReady) => setState(() => _isMapReady = isReady),
+                onPickupPassenger: _handlePassengerPickup,
+              ),
+              ControlPanel(
+                appState: _appState,
+                destinationController: _destinationController,
+                isSearching: _isSearching,
+                suggestions: _suggestions,
+                availableDrivers: _availableDrivers,
+                onSearchChanged: _onSearchChanged,
+                onSuggestionSelected: _handleSuggestionSelected,
+                onStartDriving: _startDriving,
+                onFindRide: _findRide,
+                onReset: _resetApp,
+              ),
+              ProfileButton(onPressed: _showWallet),
+            ],
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      _buildHomeContent(),
+      const RewardsPage(),
+    ];
+
     return Scaffold(
-      body: _currentLocation == null
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                MapView(
-                  mapController: _mapController,
-                  currentLocation: _currentLocation,
-                  routePoints: _routePoints,
-                  selectedPlace: _selectedPlace,
-                  appState: _appState,
-                  relevantRideRequests: _relevantRideRequests,
-                  availableDrivers: _availableDrivers,
-                  onMapReady: (isReady) => setState(() => _isMapReady = isReady),
-                  onPickupPassenger: _handlePassengerPickup,
-                ),
-                ControlPanel(
-                  appState: _appState,
-                  destinationController: _destinationController,
-                  isSearching: _isSearching,
-                  suggestions: _suggestions,
-                  availableDrivers: _availableDrivers,
-                  onSearchChanged: _onSearchChanged,
-                  onSuggestionSelected: _handleSuggestionSelected,
-                  onStartDriving: _startDriving,
-                  onFindRide: _findRide,
-                  onReset: _resetApp,
-                ),
-                ProfileButton(onPressed: _showWallet),
-              ],
-            ),
+      body: pages[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.map),
+            label: 'Map',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.stars),
+            label: 'Rewards',
+          ),
+        ],
+      ),
     );
   }
 
