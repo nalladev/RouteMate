@@ -68,7 +68,7 @@ class _RewardsPageState extends State<RewardsPage> {
           // Calculate total active points
           final totalPoints = rewards
               .where((doc) => doc['status'] == 'Active')
-              .fold<int>(0, (sum, doc) => sum + (doc['points'] as int));
+              .fold<int>(0, (total, doc) => total + (doc['points'] as int));
 
           return Column(
             children: [
@@ -202,10 +202,10 @@ class _RewardCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
+                      color: _getStatusColor().withAlpha((0.1 * 255).round()),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _getStatusColor().withOpacity(0.5),
+                        color: _getStatusColor().withAlpha((0.5 * 255).round()),
                       ),
                     ),
                     child: Text(
