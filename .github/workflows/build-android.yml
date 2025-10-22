@@ -13,7 +13,8 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      cache-key: ${{ steps.cache-flutter.outputs.cache-key }}
+      # --- ADDED: Makes the version name available to other jobs ---
+      version_name: ${{ steps.get_version.outputs.version_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,6 +54,11 @@ jobs:
 
       - name: Get Flutter dependencies
         run: flutter pub get
+
+      # --- ADDED: New step to extract version from the Git tag ---
+      - name: Get version from tag
+        id: get_version
+        run: echo "version_name=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Decode Keystore and Create Properties
         run: |
@@ -95,8 +101,12 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      # --- MODIFIED: Build command now includes version flags ---
       - name: Build Universal APK
-        run: flutter build apk --release
+        run: >
+          flutter build apk --release
+          --build-name=${{ needs.setup.outputs.version_name }}
+          --build-number=${{ github.run_number }}
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -135,8 +145,12 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      # --- MODIFIED: Build command now includes version flags ---
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: >
+          flutter build appbundle --release
+          --build-name=${{ needs.setup.outputs.version_name }}
+          --build-number=${{ github.run_number }}
 
       - name: Upload AAB Artifact
         uses: actions/upload-artifact@v4
