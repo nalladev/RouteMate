@@ -5,18 +5,20 @@ import java.io.FileInputStream
 // Use a direct relative path to avoid context issues in the runner
 val keyPropertiesFile = file("../key.properties")
 val keyProperties = Properties()
+var hasKeyProperties = false
 
-if (!keyPropertiesFile.exists()) {
-    // Updated error message for clarity
-    throw GradleException("Could not find 'key.properties' in the 'android' directory. The file was not found at the expected path: ${keyPropertiesFile.absolutePath}")
-}
-
-keyProperties.load(FileInputStream(keyPropertiesFile))
-
-listOf("storePassword", "keyPassword", "keyAlias", "storeFile").forEach {
-    if (keyProperties[it] == null || (keyProperties[it] as String).isBlank()) {
-        throw GradleException("'$it' is missing or empty in 'android/key.properties'. Please add it.")
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropertiesFile))
+    hasKeyProperties = true
+    // Validate required keys only when the file exists
+    listOf("storePassword", "keyPassword", "keyAlias", "storeFile").forEach {
+        if (keyProperties[it] == null || (keyProperties[it] as String).isBlank()) {
+            throw GradleException("'$it' is missing or empty in 'android/key.properties'. Please add it.")
+        }
     }
+} else {
+    // Don't fail the build for local debug runs. Emit a warning so the developer knows.
+    logger.warn("Could not find 'key.properties' in the 'android' directory. Release signing will be skipped for local builds. Expected path: ${keyPropertiesFile.absolutePath}")
 }
 
 // Main build script content
@@ -41,19 +43,21 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    // Add this signingConfigs block
-    signingConfigs {
-        create("release") {
-            keyAlias = keyProperties["keyAlias"] as String
-            keyPassword = keyProperties["keyPassword"] as String
-            storeFile = file(keyProperties["storeFile"] as String)
-            storePassword = keyProperties["storePassword"] as String
+    // Add signingConfigs only when key.properties exists (used for release builds)
+    if (hasKeyProperties) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keyProperties["keyAlias"] as String
+                keyPassword = keyProperties["keyPassword"] as String
+                storeFile = file(keyProperties["storeFile"] as String)
+                storePassword = keyProperties["storePassword"] as String
+            }
         }
     }
 
     defaultConfig {
         applicationId = "com.routemate.app"
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -61,8 +65,10 @@ android {
 
     buildTypes {
         release {
-            // Point to the signing config and add ProGuard rules
-            signingConfig = signingConfigs.getByName("release")
+            // Point to the signing config if available and add ProGuard rules
+            if (hasKeyProperties) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
