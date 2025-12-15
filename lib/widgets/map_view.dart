@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlng;
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../utils/app_state.dart';
 import '../models/place_suggestion.dart';
+import '../models/driver.dart';
+import '../models/ride_request.dart';
 import 'pulsing_dot.dart';
 import 'rotation_aware_marker.dart';
 
@@ -14,10 +15,10 @@ class MapView extends StatelessWidget {
   final List<latlng.LatLng> routePoints;
   final PlaceSuggestion? selectedPlace;
   final AppState appState;
-  final List<DocumentSnapshot> relevantRideRequests;
-  final List<DocumentSnapshot> availableDrivers;
+  final List<RideRequest> relevantRideRequests;
+  final List<Driver> availableDrivers;
   final Function(bool) onMapReady;
-  final Function(DocumentSnapshot) onPickupPassenger;
+  final Function(RideRequest) onPickupPassenger;
 
   const MapView({
     super.key,
@@ -85,17 +86,15 @@ class MapView extends StatelessWidget {
 
     // 3. Passenger (ride request) markers for drivers
     if (appState == AppState.driving) {
-      for (var doc in relevantRideRequests) {
-        final data = doc.data() as Map<String, dynamic>;
-        final geoPoint = data['location'] as GeoPoint;
+      for (var request in relevantRideRequests) {
         markers.add(Marker(
-          point: latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
+          point: request.location,
           width: 80,
           height: 80,
           child: GestureDetector(
-            onTap: () => _showPickupDialog(context, doc),
+            onTap: () => _showPickupDialog(context, request),
             child: Tooltip(
-              message: "To: ${data['destination']}",
+              message: "To: ${request.destination}",
               child: Icon(Icons.hail, color: Colors.purple.shade600, size: 40),
             ),
           ),
@@ -105,25 +104,23 @@ class MapView extends StatelessWidget {
 
     // 4. Driver markers for passengers
     if (appState == AppState.searching) {
-      for (var doc in availableDrivers) {
-        final data = doc.data() as Map<String, dynamic>;
-        final geoPoint = data['location'] as GeoPoint;
+      for (var driver in availableDrivers) {
         markers.add(_createDriverMarker(
-          latlng.LatLng(geoPoint.latitude, geoPoint.longitude),
-          "To: ${data['destination_name']}",
+          driver.location,
+          "To: ${driver.destinationName}",
         ));
       }
     }
     return markers;
   }
 
-  void _showPickupDialog(BuildContext context, DocumentSnapshot rideRequest) {
+  void _showPickupDialog(BuildContext context, RideRequest rideRequest) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Pick up passenger?"),
         content: Text(
-          "This passenger wants to go to ${rideRequest['destination']}.",
+          "This passenger wants to go to ${rideRequest.destination}.",
         ),
         actions: [
           TextButton(

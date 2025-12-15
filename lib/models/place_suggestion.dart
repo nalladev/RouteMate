@@ -9,11 +9,19 @@ class PlaceSuggestion {
     required this.longitude,
   });
 
-  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
+  factory PlaceSuggestion.fromNominatimJson(Map<String, dynamic> json) {
     return PlaceSuggestion(
       displayName: json['display_name'],
       latitude: double.parse(json['lat']),
       longitude: double.parse(json['lon']),
+    );
+  }
+
+  factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
+    return PlaceSuggestion(
+      displayName: json['displayName'],
+      latitude: json['latitude'],
+      longitude: json['longitude'],
     );
   }
 }

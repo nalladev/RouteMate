@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../models/user_model.dart';
 
 class WalletBottomSheet extends StatelessWidget {
-  final User? currentUser;
+  final UserModel? currentUser;
   final int walletPoints;
 
   const WalletBottomSheet({

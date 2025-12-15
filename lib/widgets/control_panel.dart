@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/driver.dart';
 import '../models/place_suggestion.dart';
 import '../utils/app_state.dart';
 
@@ -9,7 +9,7 @@ class ControlPanel extends StatelessWidget {
   final TextEditingController destinationController;
   final bool isSearching;
   final List<PlaceSuggestion> suggestions;
-  final List<DocumentSnapshot> availableDrivers;
+  final List<Driver> availableDrivers;
   final Function(String) onSearchChanged;
   final Function(PlaceSuggestion) onSuggestionSelected;
   final VoidCallback onStartDriving;
@@ -47,25 +47,25 @@ class ControlPanel extends StatelessWidget {
           ),
           child: AnimatedSize(
             duration: const Duration(milliseconds: 300),
-            child: _buildPanelContent(),
+            child: _buildPanelContent(context),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPanelContent() {
+  Widget _buildPanelContent(BuildContext context) {
     switch (appState) {
       case AppState.initial:
-        return _buildInitialStateUI();
+        return _buildInitialStateUI(context);
       case AppState.driving:
         return _buildActiveStateUI("You are driving");
       case AppState.searching:
-        return _buildSearchingStateUI();
+        return _buildSearchingStateUI(context);
     }
   }
 
-  Widget _buildInitialStateUI() {
+  Widget _buildInitialStateUI(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +141,7 @@ class ControlPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchingStateUI() {
+  Widget _buildSearchingStateUI(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -158,15 +158,14 @@ class ControlPanel extends StatelessWidget {
                   shrinkWrap: true,
                   itemCount: availableDrivers.length,
                   itemBuilder: (context, index) {
-                    final driver =
-                        availableDrivers[index].data() as Map<String, dynamic>;
+                    final driver = availableDrivers[index];
                     return Card(
                       child: ListTile(
                         leading:
                             Icon(Icons.drive_eta, color: Colors.orange.shade800),
                         title: const Text("Driver nearby"),
                         subtitle:
-                            Text("Heading to: ${driver['destination_name']}"),
+                            Text("Heading to: ${driver.destinationName}"),
                       ),
                     );
                   },

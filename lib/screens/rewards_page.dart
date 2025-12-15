@@ -1,7 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import '../models/reward.dart';
+import '../services/api_service.dart';
 
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
@@ -11,88 +13,84 @@ class RewardsPage extends StatefulWidget {
 }
 
 class _RewardsPageState extends State<RewardsPage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late Future<List<Reward>> _rewardsFuture;
   final _dateFormatter = DateFormat('MMM d, yyyy');
 
+  @override
+  void initState() {
+    super.initState();
+    _rewardsFuture = _fetchRewards();
+  }
+
+  Future<List<Reward>> _fetchRewards() {
+    // Access ApiService from the provider to fetch data.
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    return apiService.getRewards();
+  }
+
   Future<void> _refreshRewards() async {
-    // Trigger a rebuild of the StreamBuilder
-    setState(() {});
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Rewards refreshed'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-    }
+    setState(() {
+      _rewardsFuture = _fetchRewards();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) return const _ErrorDisplay(message: 'Not logged in');
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Rewards'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshRewards,
-          ),
-        ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('rewards')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _ErrorDisplay(message: 'Error: ${snapshot.error}');
-          }
+      body: RefreshIndicator(
+        onRefresh: _refreshRewards,
+        child: FutureBuilder<List<Reward>>(
+          future: _rewardsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const _LoadingDisplay();
+            }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _LoadingDisplay();
-          }
+            if (snapshot.hasError) {
+              final errorMessage = snapshot.error is ApiException
+                  ? (snapshot.error as ApiException).message
+                  : 'An unknown error occurred.';
+              return _ErrorDisplay(message: 'Error: $errorMessage');
+            }
 
-          final rewards = snapshot.data?.docs ?? [];
-          if (rewards.isEmpty) {
-            return const _EmptyDisplay();
-          }
+            final rewards = snapshot.data ?? [];
+            if (rewards.isEmpty) {
+              return const _EmptyDisplay();
+            }
 
-          // Calculate total active points
-          final totalPoints = rewards
-              .where((doc) => doc['status'] == 'Active')
-              .fold<int>(0, (total, doc) => total + (doc['points'] as int));
+            // Calculate total active points from the fetched list of rewards.
+            final totalPoints = rewards
+                .where((reward) => reward.status == 'Active')
+                .fold<int>(0, (total, reward) => total + reward.points);
 
-          return Column(
-            children: [
-              _TotalPointsHeader(points: totalPoints),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: rewards.length,
-                  itemBuilder: (context, index) {
-                    final reward = rewards[index];
-                    return _RewardCard(
-                      title: reward['title'] as String,
-                      points: reward['points'] as int,
-                      description: reward['description'] as String,
-                      dateEarned: (reward['dateEarned'] as Timestamp).toDate(),
-                      status: reward['status'] as String,
-                      dateFormatter: _dateFormatter,
-                    );
-                  },
+            return Column(
+              children: [
+                _TotalPointsHeader(points: totalPoints),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: rewards.length,
+                    itemBuilder: (context, index) {
+                      final reward = rewards[index];
+                      // The _RewardCard now receives data from the Reward model.
+                      return _RewardCard(
+                        title: reward.title,
+                        points: reward.points,
+                        description: reward.description,
+                        dateEarned: reward.dateEarned,
+                        status: reward.status,
+                        dateFormatter: _dateFormatter,
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pop(context),
@@ -102,7 +100,7 @@ class _RewardsPageState extends State<RewardsPage> {
   }
 }
 
-// Helper Widgets
+// Helper Widgets (No changes needed for these)
 
 class _TotalPointsHeader extends StatelessWidget {
   final int points;
