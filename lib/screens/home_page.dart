@@ -65,7 +65,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<AuthService>(context, listen: false);
     _currentUser = _authService.user;
-    
+
     _initializeApp();
   }
 
@@ -91,12 +91,19 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   void _listenToLocationChanges() {
-    _locationSubscription =
-        _locationService.onLocationChanged.listen((LocationData newLocation) {
-      if (!mounted || newLocation.latitude == null || newLocation.longitude == null) return;
+    _locationSubscription = _locationService.onLocationChanged.listen((
+      LocationData newLocation,
+    ) {
+      if (!mounted ||
+          newLocation.latitude == null ||
+          newLocation.longitude == null)
+        return;
 
-      final newPos = latlng.LatLng(newLocation.latitude!, newLocation.longitude!);
-      if(mounted) setState(() => _currentLocation = newPos);
+      final newPos = latlng.LatLng(
+        newLocation.latitude!,
+        newLocation.longitude!,
+      );
+      if (mounted) setState(() => _currentLocation = newPos);
 
       if (_isMapReady && _appState != AppState.driving) {
         _mapController.move(newPos, _mapController.camera.zoom);
@@ -109,7 +116,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     if (_currentUser == null) return;
     try {
       await _apiService.updateUserLocation(location);
-    } on ApiException catch(e) {
+    } on ApiException catch (e) {
       // Silently fail or show a non-intrusive notification
       debugPrint("Failed to update location: ${e.message}");
     }
@@ -131,13 +138,13 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       if (query.length > 2) {
         _performSearch(query);
       } else {
-        if(mounted) setState(() => _suggestions = []);
+        if (mounted) setState(() => _suggestions = []);
       }
     });
   }
 
   void _handleSuggestionSelected(PlaceSuggestion suggestion) {
-    if(!mounted) return;
+    if (!mounted) return;
     setState(() {
       _destinationController.text = suggestion.displayName;
       _selectedPlace = suggestion;
@@ -158,7 +165,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       _showMessage("Error: ${e.message}");
     } finally {
       _stopPolling();
-      if(mounted) {
+      if (mounted) {
         setState(() {
           _appState = AppState.initial;
           _destinationController.clear();
@@ -177,7 +184,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       await _apiService.acceptRide(rideRequest.id);
       _showMessage("Passenger picked up! Route is being updated.");
       // In a real app, you might re-calculate the route to the passenger's destination
-    } on ApiException catch(e) {
+    } on ApiException catch (e) {
       _showMessage("Error picking up passenger: ${e.message}");
     }
   }
@@ -185,11 +192,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- ASYNC OPERATIONS & API CALLS ---
 
   Future<void> _performSearch(String query) async {
-    if(!mounted) return;
+    if (!mounted) return;
     setState(() => _isSearching = true);
     try {
       final results = await _apiService.searchPlaces(query);
-      if(mounted) setState(() => _suggestions = results);
+      if (mounted) setState(() => _suggestions = results);
     } on ApiException catch (e) {
       _showMessage(e.message);
     } finally {
@@ -200,21 +207,26 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   Future<void> _getRoute() async {
     if (_currentLocation == null || _selectedPlace == null) return;
     final start = _currentLocation!;
-    final end = latlng.LatLng(_selectedPlace!.latitude, _selectedPlace!.longitude);
+    final end = latlng.LatLng(
+      _selectedPlace!.latitude,
+      _selectedPlace!.longitude,
+    );
 
     try {
       final points = await _apiService.getRoute(start, end);
-      if(mounted) {
+      if (mounted) {
         setState(() => _routePoints = points);
         if (_routePoints.isNotEmpty && _isMapReady) {
-          final bounds = latlng.LatLngBounds.fromPoints(_routePoints);
-          _mapController.fitCamera(CameraFit.bounds(
-            bounds: bounds,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
-          ));
+          final bounds = LatLngBounds.fromPoints(_routePoints);
+          _mapController.fitCamera(
+            CameraFit.bounds(
+              bounds: bounds,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+            ),
+          );
         }
       }
-    } on ApiException catch(e) {
+    } on ApiException catch (e) {
       _showMessage("Could not get route: ${e.message}");
     }
   }
@@ -228,7 +240,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     try {
       await _apiService.startDriving(_selectedPlace!);
       await _getRoute(); // Also fetch the route for the driver
-      if(mounted) {
+      if (mounted) {
         setState(() => _appState = AppState.driving);
         _startPollingForRideRequests();
         _showMessage("You are now driving.");
@@ -246,12 +258,12 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _showMessage("Requesting a ride...");
     try {
       await _apiService.createRideRequest(_selectedPlace!, _currentLocation!);
-       if(mounted) {
-         setState(() => _appState = AppState.searching);
-         _startPollingForDrivers();
-       }
+      if (mounted) {
+        setState(() => _appState = AppState.searching);
+        _startPollingForDrivers();
+      }
     } on ApiException catch (e) {
-        _showMessage("Failed to request ride: ${e.message}");
+      _showMessage("Failed to request ride: ${e.message}");
     }
   }
 
@@ -259,7 +271,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   void _startPollingForRideRequests() {
     _rideRequestsPoller?.cancel();
-    _rideRequestsPoller = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _rideRequestsPoller = Timer.periodic(const Duration(seconds: 10), (
+      timer,
+    ) async {
       if (!mounted || _appState != AppState.driving) {
         timer.cancel();
         return;
@@ -267,7 +281,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       try {
         final requests = await _apiService.getRelevantRideRequests();
         if (mounted) setState(() => _relevantRideRequests = requests);
-      } on ApiException catch(e) {
+      } on ApiException catch (e) {
         debugPrint("Failed to poll for ride requests: ${e.message}");
       }
     });
@@ -280,10 +294,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         timer.cancel();
         return;
       }
-       try {
+      try {
         final drivers = await _apiService.getAvailableDrivers();
         if (mounted) setState(() => _availableDrivers = drivers);
-      } on ApiException catch(e) {
+      } on ApiException catch (e) {
         debugPrint("Failed to poll for drivers: ${e.message}");
       }
     });
@@ -309,8 +323,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 appState: _appState,
                 relevantRideRequests: _relevantRideRequests,
                 availableDrivers: _availableDrivers,
-                onMapReady: (isReady) { if(mounted) setState(() => _isMapReady = isReady);},
-                onPickupPassenger: (rideRequest) => _handlePassengerPickup(rideRequest),
+                onMapReady: (isReady) {
+                  if (mounted) setState(() => _isMapReady = isReady);
+                },
+                onPickupPassenger: (rideRequest) =>
+                    _handlePassengerPickup(rideRequest),
               ),
               ControlPanel(
                 appState: _appState,
@@ -331,17 +348,14 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      _buildHomeContent(),
-      const RewardsPage(),
-    ];
+    final List<Widget> pages = [_buildHomeContent(), const RewardsPage()];
 
     return Scaffold(
       body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (int index) {
-          if(mounted) setState(() => _selectedIndex = index);
+          if (mounted) setState(() => _selectedIndex = index);
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.map), label: 'Map'),
@@ -363,13 +377,15 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.black87,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.black87,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
