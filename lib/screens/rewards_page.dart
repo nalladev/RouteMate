@@ -92,10 +92,6 @@ class _RewardsPageState extends State<RewardsPage> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Icon(Icons.arrow_back),
-      ),
     );
   }
 }

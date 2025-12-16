@@ -96,8 +96,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     ) {
       if (!mounted ||
           newLocation.latitude == null ||
-          newLocation.longitude == null)
+          newLocation.longitude == null) {
         return;
+      }
 
       final newPos = latlng.LatLng(
         newLocation.latitude!,
