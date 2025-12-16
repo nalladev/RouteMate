@@ -29,15 +29,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // Format phone number to E.164 format (e.g., +11234567890)
+      final phoneNumber = _formatPhoneNumber(_phoneController.text);
+
       // The AuthService will call the backend API.
       // For this refactor, we assume a simplified login that will be expanded
       // in the backend to handle OTPs.
-      await Provider.of<AuthService>(context, listen: false)
-          .login(_phoneController.text);
-      
+      await Provider.of<AuthService>(context, listen: false).login(phoneNumber);
+
       // On success, the AuthGate's Consumer will automatically rebuild and navigate
       // to the home page. No manual navigation is needed here.
-
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {
@@ -50,8 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _errorMessage = 'An unexpected error occurred.';
         });
       }
-    }
-    finally {
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -59,7 +59,29 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
-  
+
+  /// Formats phone number to E.164 format (e.g., +11234567890)
+  String _formatPhoneNumber(String phone) {
+    // Remove all non-digit characters
+    String digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
+
+    // If the number doesn't start with a country code (doesn't start with 1-9),
+    // assume it's a US number and prepend +1
+    if (digitsOnly.length == 10) {
+      return '+1$digitsOnly';
+    } else if (digitsOnly.length == 11 && digitsOnly.startsWith('1')) {
+      return '+$digitsOnly';
+    } else if (!digitsOnly.startsWith('+') && digitsOnly.length > 10) {
+      return '+$digitsOnly';
+    }
+
+    // If it already looks valid, just add + if missing
+    if (!digitsOnly.startsWith('+')) {
+      return '+$digitsOnly';
+    }
+    return digitsOnly;
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -69,9 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: const Text('Login')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -81,7 +101,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'Welcome to RouteMate',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -116,7 +138,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     child: const Text('Sign In'),
                   ),
@@ -126,4 +151,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
