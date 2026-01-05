@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
@@ -30,7 +31,8 @@ class ApiService {
         headers: _getHeaders(),
       );
       return _handleResponse(response);
-    } catch (e) {
+    } catch (e, st) {
+      _logError('GET $endpoint failed', e, st);
       throw ApiException('Failed to connect to the server. Please check your network connection.');
     }
   }
@@ -43,7 +45,8 @@ class ApiService {
         body: json.encode(data),
       );
       return _handleResponse(response);
-    } catch (e) {
+    } catch (e, st) {
+      _logError('POST $endpoint failed', e, st, payload: data);
       throw ApiException('Failed to connect to the server. Please check your network connection.');
     }
   }
@@ -56,7 +59,8 @@ class ApiService {
         body: data != null ? json.encode(data) : null,
       );
       return _handleResponse(response);
-    } catch (e) {
+    } catch (e, st) {
+      _logError('PUT $endpoint failed', e, st, payload: data);
       throw ApiException('Failed to connect to the server. Please check your network connection.');
     }
   }
@@ -68,7 +72,8 @@ class ApiService {
         headers: _getHeaders(),
       );
       return _handleResponse(response);
-    } catch (e) {
+    } catch (e, st) {
+      _logError('DELETE $endpoint failed', e, st);
       throw ApiException('Failed to connect to the server. Please check your network connection.');
     }
   }
@@ -84,14 +89,36 @@ class ApiService {
     final dynamic body;
     try {
       body = json.decode(response.body);
-    } catch(e) {
+    } catch(e, st) {
+      _logError('Response decode failed (${response.statusCode})', e, st, rawBody: response.body);
       throw ApiException('Invalid response from server.');
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
+      _logError(
+        'Request failed (${response.statusCode})',
+        body,
+        null,
+        rawBody: response.body,
+      );
       throw ApiException(body['message'] ?? 'An unknown server error occurred.');
+    }
+  }
+
+  /// Logs detailed errors only in debug mode to avoid leaking in release builds.
+  void _logError(String context, Object error, StackTrace? stackTrace, {Object? payload, String? rawBody}) {
+    if (!kDebugMode) return;
+
+    final buffer = StringBuffer('[$context] $error');
+    if (payload != null) buffer.write(' | payload: $payload');
+    if (rawBody != null) buffer.write(' | rawBody: $rawBody');
+
+    // Use debugPrint to avoid truncated logs.
+    debugPrint(buffer.toString());
+    if (stackTrace != null) {
+      debugPrint(stackTrace.toString());
     }
   }
 
