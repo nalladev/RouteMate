@@ -132,6 +132,17 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
         _updateUserLocationInDb(newPos);
+      }, onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Location stream error: $error');
+        debugPrint(stackTrace.toString());
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showMessage(
+              'Location updates unavailable in this browser. Please allow location access or try another device.',
+            );
+          });
+        }
+        _locationSubscription?.cancel();
       });
     } catch (e, st) {
       debugPrint('Location listener failed to start: $e');
