@@ -8,6 +8,8 @@ import '../models/driver.dart';
 import '../models/ride_request.dart';
 import 'pulsing_dot.dart';
 import 'rotation_aware_marker.dart';
+import 'map_performance_monitor.dart';
+import '../screens/map_diagnostics_screen.dart';
 
 class MapView extends StatelessWidget {
   final MapController mapController;
@@ -19,6 +21,7 @@ class MapView extends StatelessWidget {
   final List<Driver> availableDrivers;
   final Function(bool) onMapReady;
   final Function(RideRequest) onPickupPassenger;
+  final bool showPerformanceMonitor;
 
   const MapView({
     super.key,
@@ -31,36 +34,56 @@ class MapView extends StatelessWidget {
     required this.availableDrivers,
     required this.onMapReady,
     required this.onPickupPassenger,
+    this.showPerformanceMonitor = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FlutterMap(
-      mapController: mapController,
-      options: MapOptions(
-        initialCenter: currentLocation ?? const latlng.LatLng(0, 0),
-        initialZoom: 15.0,
-        onMapReady: () => onMapReady(true),
-      ),
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-          userAgentPackageName: 'com.routemate.app',
-        ),
-        if (routePoints.isNotEmpty)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: routePoints,
-                strokeWidth: 5.0,
-                color: const Color(0xFF0284C7),
-                borderColor: const Color(0xFF0369A1),
-                borderStrokeWidth: 1.0,
-              ),
-            ],
+        FlutterMap(
+          mapController: mapController,
+          options: MapOptions(
+            initialCenter: currentLocation ?? const latlng.LatLng(0, 0),
+            initialZoom: 15.0,
+            onMapReady: () => onMapReady(true),
           ),
-        MarkerLayer(markers: _buildMarkers(context)),
+          children: [
+            TileLayer(
+              urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              userAgentPackageName: 'com.routemate.app',
+            ),
+            if (routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: routePoints,
+                    strokeWidth: 5.0,
+                    color: const Color(0xFF0284C7),
+                    borderColor: const Color(0xFF0369A1),
+                    borderStrokeWidth: 1.0,
+                  ),
+                ],
+              ),
+            MarkerLayer(markers: _buildMarkers(context)),
+          ],
+        ),
+        if (showPerformanceMonitor)
+          MapPerformanceMonitor(
+            isMapLoaded: currentLocation != null,
+            showOverlay: true,
+            onDiagnosticsTap: () => _showDiagnosticsScreen(context),
+          ),
       ],
+    );
+  }
+
+  void _showDiagnosticsScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MapDiagnosticsScreen(),
+      ),
     );
   }
 

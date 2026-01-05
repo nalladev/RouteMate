@@ -415,6 +415,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 onReset: _resetApp,
               ),
               ProfileButton(onPressed: _showWallet),
+              DebugFab(showDebugOptions: true),
             ],
           );
   }
