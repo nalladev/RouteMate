@@ -18,6 +18,7 @@ import '../widgets/map_view.dart';
 import '../widgets/control_panel.dart';
 import '../widgets/profile_button.dart';
 import '../widgets/wallet_bottom_sheet.dart';
+import '../widgets/debug_fab.dart';
 import './rewards_page.dart';
 
 class RouteMateHomePage extends StatefulWidget {

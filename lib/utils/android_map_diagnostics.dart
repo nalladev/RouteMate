@@ -294,6 +294,9 @@ class AndroidMapDiagnostics {
       cpuStopwatch.stop();
       performanceMetrics.cpuIntensiveTaskTime = cpuStopwatch.elapsedMilliseconds;
       
+      // Use result to prevent optimization
+      developer.log('CPU test completed with result: $result', name: _logName);
+      
       // UI rendering test
       final renderStopwatch = Stopwatch()..start();
       for (int i = 0; i < 1000; i++) {

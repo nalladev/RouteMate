@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
 import '../utils/map_diagnostics.dart';
 
 /// Real-time performance monitor widget for map loading
@@ -23,7 +23,6 @@ class MapPerformanceMonitor extends StatefulWidget {
 
 class _MapPerformanceMonitorState extends State<MapPerformanceMonitor> {
   Timer? _monitoringTimer;
-  final List<TileLoadMetric> _tileMetrics = [];
   bool _isMonitoring = false;
   MapLoadStatus _currentStatus = MapLoadStatus.initializing;
   String _statusMessage = 'Initializing...';
@@ -222,8 +221,8 @@ class _MapPerformanceMonitorState extends State<MapPerformanceMonitor> {
             borderRadius: BorderRadius.circular(12),
             gradient: LinearGradient(
               colors: [
-                _getStatusColor().withOpacity(0.1),
-                _getStatusColor().withOpacity(0.05),
+                _getStatusColor().withValues(alpha: 0.1),
+                _getStatusColor().withValues(alpha: 0.05),
               ],
             ),
           ),

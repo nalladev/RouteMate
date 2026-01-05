@@ -221,10 +221,8 @@ class MapDiagnostics {
       final buildStopwatch = Stopwatch()..start();
       for (int i = 0; i < 1000; i++) {
         // Simulate widget creation overhead
-        Container(
-          child: Column(
-            children: List.generate(10, (index) => Text('Test $index')),
-          ),
+        Column(
+          children: List.generate(10, (index) => Text('Test $index')),
         );
       }
       buildStopwatch.stop();
@@ -324,7 +322,7 @@ class MapDiagnostics {
       child: FloatingActionButton.small(
         onPressed: onTap,
         tooltip: 'Map Diagnostics',
-        backgroundColor: Colors.orange.withOpacity(0.8),
+        backgroundColor: Colors.orange.withValues(alpha: 0.8),
         child: const Icon(Icons.analytics, size: 20),
       ),
     );

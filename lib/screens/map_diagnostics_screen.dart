@@ -360,7 +360,7 @@ class _MapDiagnosticsScreenState extends State<MapDiagnosticsScreen> {
         children.add(Padding(
           padding: const EdgeInsets.only(left: 16),
           child: _buildTestItem(
-            title: test.tileUrl.split('/').takeLast(3).join('/'),
+            title: test.tileUrl.split('/').skip(test.tileUrl.split('/').length - 3).join('/'),
             success: test.success,
             details: test.success
               ? '${test.sizeBytes}B • ${test.loadTime}ms'
