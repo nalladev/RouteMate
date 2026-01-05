@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlng;
@@ -72,45 +73,70 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- CORE LOGIC & STATE MANAGEMENT ---
 
   Future<void> _initializeApp() async {
-    await _requestLocationPermission();
-    _listenToLocationChanges();
+    final hasLocation = await _requestLocationPermission();
+    if (hasLocation) {
+      _listenToLocationChanges();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showMessage('Location unavailable. Some map features may be limited.');
+      });
+    }
     _fetchWalletPoints();
   }
 
-  Future<void> _requestLocationPermission() async {
-    bool serviceEnabled = await _locationService.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await _locationService.requestService();
-      if (!serviceEnabled) return;
+  Future<bool> _requestLocationPermission() async {
+    if (kIsWeb) {
+      // location_web can throw obscure TypeErrors when the Permissions API
+      // is unavailable; skip the request and rely on browser prompt.
+      debugPrint('Skipping explicit location permission flow on web.');
+      return true;
     }
-    PermissionStatus permission = await _locationService.hasPermission();
-    if (permission == PermissionStatus.denied) {
-      permission = await _locationService.requestPermission();
-      if (permission != PermissionStatus.granted) return;
+
+    try {
+      bool serviceEnabled = await _locationService.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await _locationService.requestService();
+        if (!serviceEnabled) return false;
+      }
+      PermissionStatus permission = await _locationService.hasPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await _locationService.requestPermission();
+        if (permission != PermissionStatus.granted) return false;
+      }
+      return true;
+    } catch (e, st) {
+      debugPrint('Location permission flow failed: $e');
+      debugPrint(st.toString());
+      return false;
     }
   }
 
   void _listenToLocationChanges() {
-    _locationSubscription = _locationService.onLocationChanged.listen((
-      LocationData newLocation,
-    ) {
-      if (!mounted ||
-          newLocation.latitude == null ||
-          newLocation.longitude == null) {
-        return;
-      }
+    try {
+      _locationSubscription = _locationService.onLocationChanged.listen((
+        LocationData newLocation,
+      ) {
+        if (!mounted ||
+            newLocation.latitude == null ||
+            newLocation.longitude == null) {
+          return;
+        }
 
-      final newPos = latlng.LatLng(
-        newLocation.latitude!,
-        newLocation.longitude!,
-      );
-      if (mounted) setState(() => _currentLocation = newPos);
+        final newPos = latlng.LatLng(
+          newLocation.latitude!,
+          newLocation.longitude!,
+        );
+        if (mounted) setState(() => _currentLocation = newPos);
 
-      if (_isMapReady && _appState != AppState.driving) {
-        _mapController.move(newPos, _mapController.camera.zoom);
-      }
-      _updateUserLocationInDb(newPos);
-    });
+        if (_isMapReady && _appState != AppState.driving) {
+          _mapController.move(newPos, _mapController.camera.zoom);
+        }
+        _updateUserLocationInDb(newPos);
+      });
+    } catch (e, st) {
+      debugPrint('Location listener failed to start: $e');
+      debugPrint(st.toString());
+    }
   }
 
   Future<void> _updateUserLocationInDb(latlng.LatLng location) async {
