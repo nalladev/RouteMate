@@ -34,6 +34,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   final _destinationController = TextEditingController();
   final _mapController = MapController();
   bool _isMapReady = false;
+  bool _loggedFirstLocation = false;
 
   // Services
   late ApiService _apiService;
@@ -73,46 +74,74 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- CORE LOGIC & STATE MANAGEMENT ---
 
   Future<void> _initializeApp() async {
-    final hasLocation = await _requestLocationPermission();
-    if (hasLocation) {
+    _log('Initializing home page...');
+    final permission = await _requestLocationPermission();
+    if (permission.granted) {
       _listenToLocationChanges();
-    } else {
+    } else if (permission.warning != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showMessage('Location unavailable. Some map features may be limited.');
+        _showMessage(permission.warning!);
       });
     }
     _fetchWalletPoints();
   }
 
-  Future<bool> _requestLocationPermission() async {
+  Future<_LocationCheckResult> _requestLocationPermission() async {
     if (kIsWeb) {
       // location_web can throw obscure TypeErrors when the Permissions API
       // is unavailable; skip the request and rely on browser prompt.
-      debugPrint('Skipping explicit location permission flow on web.');
-      return true;
+      _log('Skipping explicit location permission flow on web.');
+      return const _LocationCheckResult(true);
     }
 
     try {
       bool serviceEnabled = await _locationService.serviceEnabled();
       if (!serviceEnabled) {
         serviceEnabled = await _locationService.requestService();
-        if (!serviceEnabled) return false;
+        if (!serviceEnabled) {
+          _log('Location services disabled.');
+          return const _LocationCheckResult(
+            false,
+            'Location services are disabled. Please enable GPS to see your position.',
+          );
+        }
       }
+
       PermissionStatus permission = await _locationService.hasPermission();
       if (permission == PermissionStatus.denied) {
         permission = await _locationService.requestPermission();
-        if (permission != PermissionStatus.granted) return false;
       }
-      return true;
+
+      if (permission == PermissionStatus.denied) {
+        _log('Location permission denied by user.');
+        return const _LocationCheckResult(
+          false,
+          'Location permission denied. Enable it to show your position.',
+        );
+      }
+
+      if (permission == PermissionStatus.deniedForever) {
+        _log('Location permission denied forever.');
+        return const _LocationCheckResult(
+          false,
+          'Location permission is blocked. Enable it from system settings.',
+        );
+      }
+
+      return const _LocationCheckResult(true);
     } catch (e, st) {
-      debugPrint('Location permission flow failed: $e');
-      debugPrint(st.toString());
-      return false;
+      _log('Location permission flow failed: $e');
+      _log(st.toString());
+      return const _LocationCheckResult(
+        false,
+        'Location unavailable right now. Please retry or check device settings.',
+      );
     }
   }
 
   void _listenToLocationChanges() {
     try {
+      _log('Starting location stream...');
       _locationSubscription = _locationService.onLocationChanged.listen((
         LocationData newLocation,
       ) {
@@ -126,6 +155,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           newLocation.latitude!,
           newLocation.longitude!,
         );
+        if (!_loggedFirstLocation) {
+          _loggedFirstLocation = true;
+          _log('First location fix: ${newPos.latitude}, ${newPos.longitude}');
+        }
         if (mounted) setState(() => _currentLocation = newPos);
 
         if (_isMapReady && _appState != AppState.driving) {
@@ -133,8 +166,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         }
         _updateUserLocationInDb(newPos);
       }, onError: (Object error, StackTrace stackTrace) {
-        debugPrint('Location stream error: $error');
-        debugPrint(stackTrace.toString());
+        _log('Location stream error: $error');
+        _log(stackTrace.toString());
         if (mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showMessage(
@@ -145,8 +178,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         _locationSubscription?.cancel();
       });
     } catch (e, st) {
-      debugPrint('Location listener failed to start: $e');
-      debugPrint(st.toString());
+      _log('Location listener failed to start: $e');
+      _log(st.toString());
     }
   }
 
@@ -254,6 +287,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       final points = await _apiService.getRoute(start, end);
       if (mounted) {
         setState(() => _routePoints = points);
+        _log('Route received with ${points.length} points.');
         if (_routePoints.isNotEmpty && _isMapReady) {
           final bounds = LatLngBounds.fromPoints(_routePoints);
           _mapController.fitCamera(
@@ -362,6 +396,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                 relevantRideRequests: _relevantRideRequests,
                 availableDrivers: _availableDrivers,
                 onMapReady: (isReady) {
+                  _log('Map ready: $isReady');
                   if (mounted) setState(() => _isMapReady = isReady);
                 },
                 onPickupPassenger: (rideRequest) =>
@@ -435,4 +470,16 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _stopPolling();
     super.dispose();
   }
+
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint('[Home] $message');
+    }
+  }
+}
+
+class _LocationCheckResult {
+  final bool granted;
+  final String? warning;
+  const _LocationCheckResult(this.granted, [this.warning]);
 }
