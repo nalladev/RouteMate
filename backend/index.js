@@ -23,7 +23,7 @@ app.use((req, res, next) => {
     console.log(`   Path: ${req.path}`);
     console.log(`   Query: ${JSON.stringify(req.query)}`);
     
-    if (Object.keys(req.body).length > 0) {
+    if (req.body && Object.keys(req.body).length > 0) {
         console.log(`   Payload: ${JSON.stringify(req.body, null, 2)}`);
     }
     
@@ -79,6 +79,15 @@ const authenticateToken = (req, res, next) => {
 
 // --- API Routes ---
 const apiRouter = express.Router();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
 
 // --- Authentication Routes ---
 const authRouter = express.Router();
