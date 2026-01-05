@@ -166,6 +166,36 @@ userRouter.get('/rewards', async (req, res) => {
     }
 });
 
+userRouter.get('/profile', async (req, res) => {
+    const { uid } = req.user;
+    try {
+        const userRef = db.collection('users').doc(uid);
+        const doc = await userRef.get();
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+        const userData = doc.data();
+        // Convert GeoPoint to plain object for JSON serialization
+        const profile = {
+            uid: uid,
+            status: userData.status || 'idle',
+            location: userData.location ? {
+                latitude: userData.location.latitude,
+                longitude: userData.location.longitude
+            } : null,
+            destination: userData.destination ? {
+                displayName: userData.destination.displayName,
+                latitude: userData.destination.location.latitude,
+                longitude: userData.destination.location.longitude
+            } : null,
+            walletPoints: userData.walletPoints || 0
+        };
+        res.status(200).json({ profile });
+    } catch (error) {
+        res.status(500).json({ message: `Error fetching profile: ${error.message}` });
+    }
+});
+
 apiRouter.use('/user', userRouter);
 
 
@@ -246,6 +276,73 @@ driverRouter.put('/ride-requests/:id/accept', async (req, res) => {
     }
 });
 
+driverRouter.put('/ride-requests/:id/complete', async (req, res) => {
+    const { uid } = req.user;
+    const { id } = req.params;
+    try {
+        const requestRef = db.collection('ride_requests').doc(id);
+        const requestDoc = await requestRef.get();
+        
+        if (!requestDoc.exists) {
+            return res.status(404).json({ message: 'Ride request not found.' });
+        }
+        
+        const requestData = requestDoc.data();
+        if (requestData.driverId !== uid) {
+            return res.status(403).json({ message: 'Unauthorized to complete this ride.' });
+        }
+        
+        await requestRef.update({
+            status: 'completed',
+            completedAt: new Date(),
+        });
+        
+        // Award points to both driver and passenger
+        const pointsToAward = 10; // Base points for completing a ride
+        
+        // Award points to driver
+        const driverRef = db.collection('users').doc(uid);
+        const driverDoc = await driverRef.get();
+        const currentDriverPoints = driverDoc.data()?.walletPoints || 0;
+        await driverRef.update({
+            walletPoints: currentDriverPoints + pointsToAward
+        });
+        
+        // Add reward record for driver
+        await driverRef.collection('rewards').add({
+            title: 'Ride Completed',
+            description: 'Completed a ride as a driver',
+            points: pointsToAward,
+            dateEarned: new Date(),
+            status: 'Active'
+        });
+        
+        // Award points to passenger
+        const passengerRef = db.collection('users').doc(requestData.passengerId);
+        const passengerDoc = await passengerRef.get();
+        const currentPassengerPoints = passengerDoc.data()?.walletPoints || 0;
+        await passengerRef.update({
+            walletPoints: currentPassengerPoints + pointsToAward
+        });
+        
+        // Add reward record for passenger
+        await passengerRef.collection('rewards').add({
+            title: 'Ride Completed',
+            description: 'Completed a ride as a passenger',
+            points: pointsToAward,
+            dateEarned: new Date(),
+            status: 'Active'
+        });
+        
+        res.status(200).json({ 
+            message: 'Ride completed successfully.',
+            pointsAwarded: pointsToAward
+        });
+    } catch (error) {
+        res.status(500).json({ message: `Error completing ride: ${error.message}` });
+    }
+});
+
 apiRouter.use('/driver', driverRouter);
 
 
@@ -290,6 +387,41 @@ passengerRouter.delete('/ride-request', async (req, res) => {
         res.status(200).json({ message: 'Ride request cancelled.' });
     } catch (error) {
         res.status(500).json({ message: `Error cancelling ride request: ${error.message}` });
+    }
+});
+
+passengerRouter.get('/ride-request/status', async (req, res) => {
+    const { uid } = req.user;
+    try {
+        const snapshot = await db.collection('ride_requests')
+            .where('passengerId', '==', uid)
+            .where('status', 'in', ['waiting', 'picked_up'])
+            .get();
+        
+        if (snapshot.empty) {
+            return res.status(404).json({ message: 'No active ride request found.' });
+        }
+        
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        const rideRequest = {
+            id: doc.id,
+            status: data.status,
+            destination: {
+                displayName: data.destination.displayName,
+                latitude: data.destination.location.latitude,
+                longitude: data.destination.location.longitude
+            },
+            pickup: {
+                latitude: data.pickup.location.latitude,
+                longitude: data.pickup.location.longitude
+            },
+            driverId: data.driverId || null
+        };
+        
+        res.status(200).json({ rideRequest });
+    } catch (error) {
+        res.status(500).json({ message: `Error fetching ride request status: ${error.message}` });
     }
 });
 

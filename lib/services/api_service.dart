@@ -8,10 +8,12 @@ import '../models/place_suggestion.dart';
 import '../models/driver.dart';
 import '../models/ride_request.dart';
 import '../models/reward.dart';
+import '../config/api_config.dart';
 
 
 class ApiService {
-  static const String _baseUrl = 'https://routemate-backend-25zp.onrender.com/api';
+  // Use the centralized API configuration
+  String get _baseUrl => ApiConfig.baseUrl;
   String? _token;
 
   // Sets the authentication token for all subsequent requests.
@@ -119,6 +121,11 @@ class ApiService {
      return (result['rewards'] as List).map((r) => Reward.fromJson(r)).toList();
   }
 
+  Future<Map<String, dynamic>> getUserProfile() async {
+    final result = await _get('user/profile');
+    return result['profile'] as Map<String, dynamic>;
+  }
+
   // Driving
   Future<void> startDriving(PlaceSuggestion destination) async {
     await _post('driver/session', {
@@ -143,6 +150,11 @@ class ApiService {
     await _put('driver/ride-requests/$rideRequestId/accept');
   }
 
+  Future<Map<String, dynamic>> completeRide(String rideRequestId) async {
+    final result = await _put('driver/ride-requests/$rideRequestId/complete');
+    return result as Map<String, dynamic>;
+  }
+
   // Passenger
   Future<void> createRideRequest(PlaceSuggestion destination, LatLng pickup) async {
     await _post('passenger/ride-request', {
@@ -160,6 +172,19 @@ class ApiService {
 
   Future<void> cancelRideRequest() async {
     await _delete('passenger/ride-request');
+  }
+
+  Future<Map<String, dynamic>?> getRideRequestStatus() async {
+    try {
+      final result = await _get('passenger/ride-request/status');
+      return result['rideRequest'] as Map<String, dynamic>;
+    } on ApiException catch (e) {
+      // Return null if no active ride request found
+      if (e.message.contains('No active ride request')) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   Future<List<Driver>> getAvailableDrivers() async {
