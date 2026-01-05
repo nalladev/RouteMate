@@ -3,7 +3,8 @@ name: Build and Deploy Flutter Web
 
 on:
   push:
-    branches: [master]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
