@@ -88,13 +88,13 @@ class MapView extends StatelessWidget {
     if (appState == AppState.driving) {
       for (var request in relevantRideRequests) {
         markers.add(Marker(
-          point: request.location,
+          point: request.pickupLocation,
           width: 80,
           height: 80,
           child: GestureDetector(
             onTap: () => _showPickupDialog(context, request),
             child: Tooltip(
-              message: "To: ${request.destination}",
+              message: "To: ${request.destinationName}",
               child: Icon(Icons.hail, color: Colors.purple.shade600, size: 40),
             ),
           ),
@@ -120,7 +120,7 @@ class MapView extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text("Pick up passenger?"),
         content: Text(
-          "This passenger wants to go to ${rideRequest.destination}.",
+          "This passenger wants to go to ${rideRequest.destinationName}.",
         ),
         actions: [
           TextButton(
