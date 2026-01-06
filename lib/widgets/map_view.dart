@@ -84,9 +84,11 @@ class MapView extends StatelessWidget {
       )));
     }
 
-    // 3. Passenger (ride request) markers for drivers
+    // 3. Passenger (ride request) markers for drivers - limit to nearby ones for performance
     if (appState == AppState.driving) {
-      for (var request in relevantRideRequests) {
+      // Limit to first 20 requests to avoid rendering too many markers
+      final limitedRequests = relevantRideRequests.take(20).toList();
+      for (var request in limitedRequests) {
         markers.add(Marker(
           point: request.pickupLocation,
           width: 80,
@@ -102,9 +104,11 @@ class MapView extends StatelessWidget {
       }
     }
 
-    // 4. Driver markers for passengers
+    // 4. Driver markers for passengers - limit to nearby ones for performance
     if (appState == AppState.searching) {
-      for (var driver in availableDrivers) {
+      // Limit to first 15 drivers to avoid rendering too many markers
+      final limitedDrivers = availableDrivers.take(15).toList();
+      for (var driver in limitedDrivers) {
         markers.add(_createDriverMarker(
           driver.location,
           "To: ${driver.destinationName}",

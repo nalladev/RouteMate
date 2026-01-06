@@ -45,7 +45,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // App Data
   UserModel? _currentUser;
   int _walletPoints = 0;
-  latlng.LatLng? _currentLocation;
+  final _locationNotifier = ValueNotifier<latlng.LatLng?>(null);
   List<latlng.LatLng> _routePoints = [];
 
   // Search-specific state
@@ -95,9 +95,21 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     }
 
     try {
-      bool serviceEnabled = await _locationService.serviceEnabled();
+      bool serviceEnabled = await _locationService.serviceEnabled().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _log('Location service check timed out');
+          return false;
+        },
+      );
       if (!serviceEnabled) {
-        serviceEnabled = await _locationService.requestService();
+        serviceEnabled = await _locationService.requestService().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            _log('Location service request timed out');
+            return false;
+          },
+        );
         if (!serviceEnabled) {
           _log('Location services disabled.');
           return const _LocationCheckResult(
@@ -159,7 +171,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _loggedFirstLocation = true;
           _log('First location fix: ${newPos.latitude}, ${newPos.longitude}');
         }
-        if (mounted) setState(() => _currentLocation = newPos);
+        
+        // Update location notifier without triggering full widget rebuild
+        _locationNotifier.value = newPos;
 
         if (_isMapReady && _appState != AppState.driving) {
           _mapController.move(newPos, _mapController.camera.zoom);
@@ -276,8 +290,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Future<void> _getRoute() async {
-    if (_currentLocation == null || _selectedPlace == null) return;
-    final start = _currentLocation!;
+    if (_locationNotifier.value == null || _selectedPlace == null) return;
+    final start = _locationNotifier.value!;
     final end = latlng.LatLng(
       _selectedPlace!.latitude,
       _selectedPlace!.longitude,
@@ -323,13 +337,13 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Future<void> _findRide() async {
-    if (_selectedPlace == null || _currentLocation == null) {
+    if (_selectedPlace == null || _locationNotifier.value == null) {
       _showMessage("Please select a destination.");
       return;
     }
     _showMessage("Requesting a ride...");
     try {
-      await _apiService.createRideRequest(_selectedPlace!, _currentLocation!);
+      await _apiService.createRideRequest(_selectedPlace!, _locationNotifier.value!);
       if (mounted) {
         setState(() => _appState = AppState.searching);
         _startPollingForDrivers();
@@ -383,40 +397,45 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- UI & HELPERS ---
 
   Widget _buildHomeContent() {
-    return _currentLocation == null
-        ? const Center(child: CircularProgressIndicator())
-        : Stack(
-            children: [
-              MapView(
-                mapController: _mapController,
-                currentLocation: _currentLocation,
-                routePoints: _routePoints,
-                selectedPlace: _selectedPlace,
-                appState: _appState,
-                relevantRideRequests: _relevantRideRequests,
-                availableDrivers: _availableDrivers,
-                onMapReady: (isReady) {
-                  _log('Map ready: $isReady');
-                  if (mounted) setState(() => _isMapReady = isReady);
-                },
-                onPickupPassenger: (rideRequest) =>
-                    _handlePassengerPickup(rideRequest),
-              ),
-              ControlPanel(
-                appState: _appState,
-                destinationController: _destinationController,
-                isSearching: _isSearching,
-                suggestions: _suggestions,
-                availableDrivers: _availableDrivers,
-                onSearchChanged: _onSearchChanged,
-                onSuggestionSelected: _handleSuggestionSelected,
-                onStartDriving: _startDriving,
-                onFindRide: _findRide,
-                onReset: _resetApp,
-              ),
-              ProfileButton(onPressed: _showWallet),
-            ],
-          );
+    return ValueListenableBuilder<latlng.LatLng?>(
+      valueListenable: _locationNotifier,
+      builder: (context, currentLocation, _) {
+        return currentLocation == null
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
+                children: [
+                  MapView(
+                    mapController: _mapController,
+                    currentLocation: currentLocation,
+                    routePoints: _routePoints,
+                    selectedPlace: _selectedPlace,
+                    appState: _appState,
+                    relevantRideRequests: _relevantRideRequests,
+                    availableDrivers: _availableDrivers,
+                    onMapReady: (isReady) {
+                      _log('Map ready: $isReady');
+                      if (mounted) setState(() => _isMapReady = isReady);
+                    },
+                    onPickupPassenger: (rideRequest) =>
+                        _handlePassengerPickup(rideRequest),
+                  ),
+                  ControlPanel(
+                    appState: _appState,
+                    destinationController: _destinationController,
+                    isSearching: _isSearching,
+                    suggestions: _suggestions,
+                    availableDrivers: _availableDrivers,
+                    onSearchChanged: _onSearchChanged,
+                    onSuggestionSelected: _handleSuggestionSelected,
+                    onStartDriving: _startDriving,
+                    onFindRide: _findRide,
+                    onReset: _resetApp,
+                  ),
+                  ProfileButton(onPressed: _showWallet),
+                ],
+              );
+      },
+    );
   }
 
   @override
@@ -468,6 +487,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _mapController.dispose();
     _debounce?.cancel();
     _stopPolling();
+    _locationNotifier.dispose();
     super.dispose();
   }
 
