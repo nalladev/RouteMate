@@ -29,7 +29,7 @@ class RouteMateHomePage extends StatefulWidget {
 
 class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // App State & Controllers
-  AppState _appState = AppState.idle;
+  AppState _appState = AppState.initial;
   int _selectedIndex = 0;
   final _destinationController = TextEditingController();
   final _mapController = MapController();
@@ -241,11 +241,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   Future<void> _resetApp() async {
     try {
-      if (_appState == AppState.searchingForRide) {
+      if (_appState == AppState.searching) {
         await _apiService.cancelRideRequest();
       }
       if (_appState == AppState.driving) {
-        await _apiService.endDrivingSession();
+        await _apiService.stopDriving();
       }
     } on ApiException catch (e) {
       _showMessage("Error: ${e.message}");
@@ -253,7 +253,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       _stopPolling();
       if (mounted) {
         setState(() {
-          _appState = AppState.idle;
+          _appState = AppState.initial;
           _destinationController.clear();
           _suggestions = [];
           _selectedPlace = null;
@@ -267,7 +267,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   Future<void> _handlePassengerPickup(RideRequest rideRequest) async {
     try {
-      await _apiService.matchRide(requestId: rideRequest.id, sessionId: '');
+      await _apiService.acceptRide(rideRequest.id);
       _showMessage("Passenger picked up! Route is being updated.");
       // In a real app, you might re-calculate the route to the passenger's destination
     } on ApiException catch (e) {
@@ -325,10 +325,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     }
     _showMessage('Setting you as "driving"...');
     try {
-      await _apiService.startDrivingSession(
-        startLocation: _locationNotifier.value!,
-        destination: _selectedPlace!,
-      );
+      await _apiService.startDriving(_selectedPlace!);
       await _getRoute(); // Also fetch the route for the driver
       if (mounted) {
         setState(() => _appState = AppState.driving);
@@ -348,11 +345,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _showMessage("Requesting a ride...");
     try {
       await _apiService.createRideRequest(
-        pickup: _locationNotifier.value!,
-        destination: _selectedPlace!,
+        _selectedPlace!,
+        _locationNotifier.value!,
       );
       if (mounted) {
-        setState(() => _appState = AppState.searchingForRide);
+        setState(() => _appState = AppState.searching);
         _startPollingForDrivers();
       }
     } on ApiException catch (e) {
@@ -372,7 +369,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         return;
       }
       try {
-        final requests = await _apiService.getNearbyRideRequests();
+        final requests = await _apiService.getRelevantRideRequests();
         if (mounted) setState(() => _relevantRideRequests = requests);
       } on ApiException catch (e) {
         debugPrint("Failed to poll for ride requests: ${e.message}");
@@ -383,12 +380,12 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   void _startPollingForDrivers() {
     _driversPoller?.cancel();
     _driversPoller = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (!mounted || _appState != AppState.searchingForRide) {
+      if (!mounted || _appState != AppState.searching) {
         timer.cancel();
         return;
       }
       try {
-        final drivers = await _apiService.getNearbyDrivers();
+        final drivers = await _apiService.getAvailableDrivers();
         if (mounted) setState(() => _availableDrivers = drivers);
       } on ApiException catch (e) {
         debugPrint("Failed to poll for drivers: ${e.message}");

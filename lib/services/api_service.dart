@@ -165,6 +165,20 @@ class ApiService {
 
   // --- Driver API ---
 
+  Future<void> startDriving(PlaceSuggestion destination) async {
+    await _post('driver/session', {
+      'destination': {
+        'displayName': destination.displayName,
+        'latitude': destination.latitude,
+        'longitude': destination.longitude,
+      }
+    });
+  }
+
+  Future<void> stopDriving() async {
+    await _delete('driver/session');
+  }
+
   Future<String> startDrivingSession({
     required LatLng startLocation,
     required PlaceSuggestion destination,
@@ -203,6 +217,11 @@ class ApiService {
     });
   }
 
+  Future<List<RideRequest>> getRelevantRideRequests() async {
+    final result = await _get('driver/ride-requests');
+    return (result['rideRequests'] as List).map((r) => RideRequest.fromJson(r)).toList();
+  }
+
   Future<List<RideRequest>> getNearbyRideRequests() async {
     final result = await _get('driver/nearby-requests');
     return (result['requests'] as List).map((r) => RideRequest.fromJson(r)).toList();
@@ -214,7 +233,21 @@ class ApiService {
 
   // --- Passenger API ---
 
-  Future<String> createRideRequest({
+  Future<void> createRideRequest(PlaceSuggestion destination, LatLng pickup) async {
+    await _post('passenger/ride-request', {
+      'destination': {
+        'displayName': destination.displayName,
+        'latitude': destination.latitude,
+        'longitude': destination.longitude,
+      },
+      'pickup': {
+         'latitude': pickup.latitude,
+         'longitude': pickup.longitude,
+      }
+    });
+  }
+
+  Future<String> createRideRequestNew({
     required LatLng pickup,
     required PlaceSuggestion destination,
     String? pickupName,
@@ -240,15 +273,20 @@ class ApiService {
     return result['requestId'] as String;
   }
 
+  Future<List<Driver>> getAvailableDrivers() async {
+    final result = await _get('passenger/drivers');
+    return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
+  }
+
   Future<List<Driver>> getNearbyDrivers() async {
     final result = await _get('passenger/nearby-drivers');
     return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
   }
 
-  Future<RideRequest?> getRideRequestStatus() async {
+  Future<Map<String, dynamic>?> getRideRequestStatus() async {
     try {
-      final result = await _get('passenger/request-status');
-      return RideRequest.fromJson(result['request'] as Map<String, dynamic>);
+      final result = await _get('passenger/ride-request/status');
+      return result['rideRequest'] as Map<String, dynamic>;
     } on ApiException catch (e) {
       // Return null if no active ride request found
       if (e.message.contains('No active ride request')) {
@@ -259,10 +297,19 @@ class ApiService {
   }
 
   Future<void> cancelRideRequest() async {
-    await _delete('passenger/cancel-request');
+    await _delete('passenger/ride-request');
   }
 
   // --- Ride Management API ---
+
+  Future<void> acceptRide(String rideRequestId) async {
+    await _put('driver/ride-requests/$rideRequestId/accept');
+  }
+
+  Future<Map<String, dynamic>> completeRide(String rideRequestId) async {
+    final result = await _put('driver/ride-requests/$rideRequestId/complete');
+    return result as Map<String, dynamic>;
+  }
 
   Future<String> matchRide({required String requestId, required String sessionId}) async {
     final result = await _post('rides/match', {

@@ -56,14 +56,12 @@ class ControlPanel extends StatelessWidget {
 
   Widget _buildPanelContent(BuildContext context) {
     switch (appState) {
-      case AppState.idle:
+      case AppState.initial:
         return _buildInitialStateUI(context);
       case AppState.driving:
         return _buildActiveStateUI("You are driving");
-      case AppState.searchingForRide:
+      case AppState.searching:
         return _buildSearchingStateUI(context);
-      default:
-        return _buildInitialStateUI(context);
     }
   }
 
@@ -167,7 +165,7 @@ class ControlPanel extends StatelessWidget {
                             Icon(Icons.drive_eta, color: Colors.orange.shade800),
                         title: const Text("Driver nearby"),
                         subtitle:
-                            Text("Heading to: ${driver.destination.name}"),
+                            Text("Heading to: ${driver.destinationName}"),
                       ),
                     );
                   },
