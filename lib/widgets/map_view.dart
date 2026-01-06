@@ -94,7 +94,7 @@ class MapView extends StatelessWidget {
       for (var request in limitedRequests) {
         markers.add(
           Marker(
-            point: LatLng(request.pickup.latitude, request.pickup.longitude),
+            point: latlng.LatLng(request.pickup.latitude, request.pickup.longitude),
             width: 80,
             height: 80,
             child: GestureDetector(
@@ -119,7 +119,7 @@ class MapView extends StatelessWidget {
       final limitedDrivers = availableDrivers.take(15).toList();
       for (var driver in limitedDrivers) {
         markers.add(
-          _createDriverMarker(LatLng(driver.currentLocation.latitude, driver.currentLocation.longitude), "To: ${driver.destination.name}"),
+          _createDriverMarker(latlng.LatLng(driver.currentLocation.latitude, driver.currentLocation.longitude), "To: ${driver.destination.name}"),
         );
       }
     }

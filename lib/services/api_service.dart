@@ -10,7 +10,7 @@ import '../models/driver.dart';
 import '../models/ride_request.dart';
 import '../models/reward.dart';
 import '../models/user_model.dart';
-import '../models/driver_session.dart';
+
 import '../models/active_ride.dart';
 import '../config/api_config.dart';
 
@@ -300,25 +300,6 @@ class ApiService {
 
   // --- Helper Methods ---
 
-  /// Converts a LatLng to a location map for API requests
-  Map<String, double> _locationToMap(LatLng location) {
-    return {
-      'latitude': location.latitude,
-      'longitude': location.longitude,
-    };
-  }
-
-  /// Converts a PlaceSuggestion to a location map for API requests
-  Map<String, dynamic> _placeToMap(PlaceSuggestion place, {String? customName}) {
-    return {
-      'name': customName ?? place.displayName,
-      'latitude': place.latitude,
-      'longitude': place.longitude,
-      'placeId': place.placeId,
-    };
-  }
-
-  // --- Real-time Location Updates ---
 
   /// Stream for real-time location updates (would use WebSocket in production)
   Stream<UserLocation> startLocationTracking() async* {
@@ -339,8 +320,7 @@ class ApiService {
     // Implementation would close WebSocket connection
   }
 
-  // --- Health Check ---
-
+  /// Health check endpoint
   Future<bool> checkHealth() async {
     try {
       await _get('health');

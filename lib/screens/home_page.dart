@@ -383,7 +383,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   void _startPollingForDrivers() {
     _driversPoller?.cancel();
     _driversPoller = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (!mounted || _appState != AppState.searching) {
+      if (!mounted || _appState != AppState.searchingForRide) {
         timer.cancel();
         return;
       }
