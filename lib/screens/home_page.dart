@@ -154,43 +154,44 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   void _listenToLocationChanges() {
     try {
       _log('Starting location stream...');
-      _locationSubscription = _locationService.onLocationChanged.listen((
-        LocationData newLocation,
-      ) {
-        if (!mounted ||
-            newLocation.latitude == null ||
-            newLocation.longitude == null) {
-          return;
-        }
+      _locationSubscription = _locationService.onLocationChanged.listen(
+        (LocationData newLocation) {
+          if (!mounted ||
+              newLocation.latitude == null ||
+              newLocation.longitude == null) {
+            return;
+          }
 
-        final newPos = latlng.LatLng(
-          newLocation.latitude!,
-          newLocation.longitude!,
-        );
-        if (!_loggedFirstLocation) {
-          _loggedFirstLocation = true;
-          _log('First location fix: ${newPos.latitude}, ${newPos.longitude}');
-        }
-        
-        // Update location notifier without triggering full widget rebuild
-        _locationNotifier.value = newPos;
+          final newPos = latlng.LatLng(
+            newLocation.latitude!,
+            newLocation.longitude!,
+          );
+          if (!_loggedFirstLocation) {
+            _loggedFirstLocation = true;
+            _log('First location fix: ${newPos.latitude}, ${newPos.longitude}');
+          }
 
-        if (_isMapReady && _appState != AppState.driving) {
-          _mapController.move(newPos, _mapController.camera.zoom);
-        }
-        _updateUserLocationInDb(newPos);
-      }, onError: (Object error, StackTrace stackTrace) {
-        _log('Location stream error: $error');
-        _log(stackTrace.toString());
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showMessage(
-              'Location updates unavailable in this browser. Please allow location access or try another device.',
-            );
-          });
-        }
-        _locationSubscription?.cancel();
-      });
+          // Update location notifier without triggering full widget rebuild
+          _locationNotifier.value = newPos;
+
+          if (_isMapReady && _appState != AppState.driving) {
+            _mapController.move(newPos, _mapController.camera.zoom);
+          }
+          _updateUserLocationInDb(newPos);
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          _log('Location stream error: $error');
+          _log(stackTrace.toString());
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showMessage(
+                'Location updates unavailable in this browser. Please allow location access or try another device.',
+              );
+            });
+          }
+          _locationSubscription?.cancel();
+        },
+      );
     } catch (e, st) {
       _log('Location listener failed to start: $e');
       _log(st.toString());
@@ -343,7 +344,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     }
     _showMessage("Requesting a ride...");
     try {
-      await _apiService.createRideRequest(_selectedPlace!, _locationNotifier.value!);
+      await _apiService.createRideRequest(
+        _selectedPlace!,
+        _locationNotifier.value!,
+      );
       if (mounted) {
         setState(() => _appState = AppState.searching);
         _startPollingForDrivers();

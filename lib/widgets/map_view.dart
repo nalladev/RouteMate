@@ -69,19 +69,22 @@ class MapView extends StatelessWidget {
     if (currentLocation == null) return markers;
 
     // 1. User's current location
-    markers.add(Marker(
-      point: currentLocation!,
-      width: 80,
-      height: 80,
-      child: const PulsingDot(),
-    ));
+    markers.add(
+      Marker(
+        point: currentLocation!,
+        width: 80,
+        height: 80,
+        child: const PulsingDot(),
+      ),
+    );
 
     // 2. Destination marker
     if (selectedPlace != null) {
-      markers.add(_createDestinationMarker(latlng.LatLng(
-        selectedPlace!.latitude,
-        selectedPlace!.longitude,
-      )));
+      markers.add(
+        _createDestinationMarker(
+          latlng.LatLng(selectedPlace!.latitude, selectedPlace!.longitude),
+        ),
+      );
     }
 
     // 3. Passenger (ride request) markers for drivers - limit to nearby ones for performance
@@ -89,18 +92,24 @@ class MapView extends StatelessWidget {
       // Limit to first 20 requests to avoid rendering too many markers
       final limitedRequests = relevantRideRequests.take(20).toList();
       for (var request in limitedRequests) {
-        markers.add(Marker(
-          point: request.pickupLocation,
-          width: 80,
-          height: 80,
-          child: GestureDetector(
-            onTap: () => _showPickupDialog(context, request),
-            child: Tooltip(
-              message: "To: ${request.destinationName}",
-              child: Icon(Icons.hail, color: Colors.purple.shade600, size: 40),
+        markers.add(
+          Marker(
+            point: request.pickupLocation,
+            width: 80,
+            height: 80,
+            child: GestureDetector(
+              onTap: () => _showPickupDialog(context, request),
+              child: Tooltip(
+                message: "To: ${request.destinationName}",
+                child: Icon(
+                  Icons.hail,
+                  color: Colors.purple.shade600,
+                  size: 40,
+                ),
+              ),
             ),
           ),
-        ));
+        );
       }
     }
 
@@ -109,10 +118,9 @@ class MapView extends StatelessWidget {
       // Limit to first 15 drivers to avoid rendering too many markers
       final limitedDrivers = availableDrivers.take(15).toList();
       for (var driver in limitedDrivers) {
-        markers.add(_createDriverMarker(
-          driver.location,
-          "To: ${driver.destinationName}",
-        ));
+        markers.add(
+          _createDriverMarker(driver.location, "To: ${driver.destinationName}"),
+        );
       }
     }
     return markers;
