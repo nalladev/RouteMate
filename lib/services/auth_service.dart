@@ -22,7 +22,13 @@ class AuthService with ChangeNotifier {
     
     // In a real app, you would decode the JWT to get the user ID and other claims.
     // For this example, we'll use a placeholder ID.
-    _user = UserModel(uid: 'user_from_backend_token'); 
+    _user = UserModel(
+      uid: 'user_from_backend_token',
+      phone: '',
+      walletPoints: 0,
+      createdAt: DateTime.now(),
+      stats: UserStats.empty(),
+    ); 
     
     _apiService.setAuthToken(token);
     notifyListeners();
@@ -43,7 +49,13 @@ class AuthService with ChangeNotifier {
     if (prefs.containsKey(_tokenKey)) {
       final token = prefs.getString(_tokenKey)!;
       // In a real app, you should add token validation logic here to check for expiry.
-      _user = UserModel(uid: 'user_from_backend_token');
+      _user = UserModel(
+        uid: 'user_from_backend_token',
+        phone: '',
+        walletPoints: 0,
+        createdAt: DateTime.now(),
+        stats: UserStats.empty(),
+      );
       _apiService.setAuthToken(token);
       notifyListeners();
     }

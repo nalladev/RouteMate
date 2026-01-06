@@ -94,13 +94,13 @@ class MapView extends StatelessWidget {
       for (var request in limitedRequests) {
         markers.add(
           Marker(
-            point: request.pickupLocation,
+            point: LatLng(request.pickup.latitude, request.pickup.longitude),
             width: 80,
             height: 80,
             child: GestureDetector(
               onTap: () => _showPickupDialog(context, request),
               child: Tooltip(
-                message: "To: ${request.destinationName}",
+                message: "To: ${request.destination.name}",
                 child: Icon(
                   Icons.hail,
                   color: Colors.purple.shade600,
@@ -114,12 +114,12 @@ class MapView extends StatelessWidget {
     }
 
     // 4. Driver markers for passengers - limit to nearby ones for performance
-    if (appState == AppState.searching) {
+    if (appState == AppState.searchingForRide) {
       // Limit to first 15 drivers to avoid rendering too many markers
       final limitedDrivers = availableDrivers.take(15).toList();
       for (var driver in limitedDrivers) {
         markers.add(
-          _createDriverMarker(driver.location, "To: ${driver.destinationName}"),
+          _createDriverMarker(LatLng(driver.currentLocation.latitude, driver.currentLocation.longitude), "To: ${driver.destination.name}"),
         );
       }
     }
@@ -132,7 +132,7 @@ class MapView extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text("Pick up passenger?"),
         content: Text(
-          "This passenger wants to go to ${rideRequest.destinationName}.",
+          "This passenger wants to go to ${rideRequest.destination.name}.",
         ),
         actions: [
           TextButton(

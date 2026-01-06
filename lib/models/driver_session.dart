@@ -57,8 +57,8 @@ class DriverSession {
       'capacity': capacity,
       'status': status.toString(),
       'preferences': preferences.toJson(),
-      'createdAt': createdAt.toISOString(),
-      'updatedAt': updatedAt.toISOString(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
       'currentPassengers': currentPassengers,
     };
   }

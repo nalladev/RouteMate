@@ -134,7 +134,7 @@ class LocationPoint {
       'latitude': latitude,
       'longitude': longitude,
       'placeId': placeId,
-      'estimatedArrival': estimatedArrival?.toISOString(),
+      'estimatedArrival': estimatedArrival?.toIso8601String(),
     };
   }
 
@@ -237,10 +237,10 @@ class RideTimestamps {
 
   Map<String, dynamic> toJson() {
     return {
-      'matched': matched?.toISOString(),
-      'pickup': pickup?.toISOString(),
-      'started': started?.toISOString(),
-      'completed': completed?.toISOString(),
+      'matched': matched?.toIso8601String(),
+      'pickup': pickup?.toIso8601String(),
+      'started': started?.toIso8601String(),
+      'completed': completed?.toIso8601String(),
     };
   }
 

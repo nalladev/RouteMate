@@ -42,7 +42,7 @@ class UserModel {
       'uid': uid,
       'phone': phone,
       'walletPoints': walletPoints,
-      'createdAt': createdAt.toISOString(),
+      'createdAt': createdAt.toIso8601String(),
       'profile': profile?.toJson(),
       'stats': stats.toJson(),
       'location': location?.toJson(),
@@ -198,7 +198,7 @@ class UserLocation {
       'speed': speed,
       'accuracy': accuracy,
       'isActive': isActive,
-      'updatedAt': updatedAt.toISOString(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

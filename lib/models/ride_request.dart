@@ -56,8 +56,8 @@ class RideRequest {
       'preferences': preferences.toJson(),
       'status': status.toString(),
       'estimatedDistance': estimatedDistance,
-      'createdAt': createdAt.toISOString(),
-      'expiresAt': expiresAt.toISOString(),
+      'createdAt': createdAt.toIso8601String(),
+      'expiresAt': expiresAt.toIso8601String(),
       'rideId': rideId,
       'driverId': driverId,
     };
