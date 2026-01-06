@@ -4,13 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-// These models will be created in the next steps.
+// Updated models for new structure
 import '../models/place_suggestion.dart';
 import '../models/driver.dart';
 import '../models/ride_request.dart';
 import '../models/reward.dart';
+import '../models/user_model.dart';
+import '../models/driver_session.dart';
+import '../models/active_ride.dart';
 import '../config/api_config.dart';
-
 
 class ApiService {
   // Use the centralized API configuration
@@ -122,9 +124,8 @@ class ApiService {
     }
   }
 
-  // --- API Methods ---
+  // --- Authentication API ---
 
-  // Auth
   Future<String> login(String phone) async {
     final result = await _post('auth/login', {'phone': phone});
     if (result['token'] is! String) {
@@ -132,10 +133,24 @@ class ApiService {
     }
     return result['token'];
   }
-  
-  // User
-  Future<void> updateUserLocation(LatLng location) async {
-    await _put('user/location', {'location': {'latitude': location.latitude, 'longitude': location.longitude}});
+
+  // --- User API ---
+
+  Future<void> updateUserLocation(LatLng location, {double? heading, double? speed, double? accuracy}) async {
+    await _put('user/location', {
+      'location': {
+        'latitude': location.latitude,
+        'longitude': location.longitude
+      },
+      'heading': heading,
+      'speed': speed,
+      'accuracy': accuracy,
+    });
+  }
+
+  Future<UserModel> getUserProfile() async {
+    final result = await _get('user/profile');
+    return UserModel.fromJson(result['profile'] as Map<String, dynamic>);
   }
 
   Future<int> getWalletPoints() async {
@@ -144,67 +159,96 @@ class ApiService {
   }
 
   Future<List<Reward>> getRewards() async {
-     final result = await _get('user/rewards');
-     return (result['rewards'] as List).map((r) => Reward.fromJson(r)).toList();
+    final result = await _get('user/rewards');
+    return (result['rewards'] as List).map((r) => Reward.fromJson(r)).toList();
   }
 
-  Future<Map<String, dynamic>> getUserProfile() async {
-    final result = await _get('user/profile');
-    return result['profile'] as Map<String, dynamic>;
-  }
+  // --- Driver API ---
 
-  // Driving
-  Future<void> startDriving(PlaceSuggestion destination) async {
-    await _post('driver/session', {
-      'destination': {
-        'displayName': destination.displayName,
-        'latitude': destination.latitude,
-        'longitude': destination.longitude,
-      }
-    });
-  }
-
-  Future<void> stopDriving() async {
-    await _delete('driver/session');
-  }
-  
-  Future<List<RideRequest>> getRelevantRideRequests() async {
-    final result = await _get('driver/ride-requests');
-    return (result['rideRequests'] as List).map((r) => RideRequest.fromJson(r)).toList();
-  }
-
-  Future<void> acceptRide(String rideRequestId) async {
-    await _put('driver/ride-requests/$rideRequestId/accept');
-  }
-
-  Future<Map<String, dynamic>> completeRide(String rideRequestId) async {
-    final result = await _put('driver/ride-requests/$rideRequestId/complete');
-    return result as Map<String, dynamic>;
-  }
-
-  // Passenger
-  Future<void> createRideRequest(PlaceSuggestion destination, LatLng pickup) async {
-    await _post('passenger/ride-request', {
-      'destination': {
-        'displayName': destination.displayName,
-        'latitude': destination.latitude,
-        'longitude': destination.longitude,
+  Future<String> startDrivingSession({
+    required LatLng startLocation,
+    required PlaceSuggestion destination,
+    int capacity = 4,
+    Map<String, dynamic>? preferences,
+  }) async {
+    final result = await _post('driver/start-session', {
+      'startLocation': {
+        'latitude': startLocation.latitude,
+        'longitude': startLocation.longitude,
       },
-      'pickup': {
-         'latitude': pickup.latitude,
-         'longitude': pickup.longitude,
-      }
+      'destination': {
+        'name': destination.displayName,
+        'latitude': destination.latitude,
+        'longitude': destination.longitude,
+        'placeId': destination.placeId,
+      },
+      'capacity': capacity,
+      'preferences': preferences ?? {
+        'allowDetours': true,
+        'maxDetourDistance': 5.0,
+        'passengerTypes': ['any']
+      },
+    });
+    return result['sessionId'] as String;
+  }
+
+  Future<void> updateDriverLocation(LatLng location, {double? heading, double? speed}) async {
+    await _put('driver/update-location', {
+      'location': {
+        'latitude': location.latitude,
+        'longitude': location.longitude
+      },
+      'heading': heading,
+      'speed': speed,
     });
   }
 
-  Future<void> cancelRideRequest() async {
-    await _delete('passenger/ride-request');
+  Future<List<RideRequest>> getNearbyRideRequests() async {
+    final result = await _get('driver/nearby-requests');
+    return (result['requests'] as List).map((r) => RideRequest.fromJson(r)).toList();
   }
 
-  Future<Map<String, dynamic>?> getRideRequestStatus() async {
+  Future<void> endDrivingSession() async {
+    await _delete('driver/end-session');
+  }
+
+  // --- Passenger API ---
+
+  Future<String> createRideRequest({
+    required LatLng pickup,
+    required PlaceSuggestion destination,
+    String? pickupName,
+    Map<String, dynamic>? preferences,
+  }) async {
+    final result = await _post('passenger/request-ride', {
+      'pickup': {
+        'name': pickupName ?? 'Pickup Location',
+        'latitude': pickup.latitude,
+        'longitude': pickup.longitude,
+      },
+      'destination': {
+        'name': destination.displayName,
+        'latitude': destination.latitude,
+        'longitude': destination.longitude,
+        'placeId': destination.placeId,
+      },
+      'preferences': preferences ?? {
+        'maxWaitTime': 10,
+        'maxWalkDistance': 500,
+      },
+    });
+    return result['requestId'] as String;
+  }
+
+  Future<List<Driver>> getNearbyDrivers() async {
+    final result = await _get('passenger/nearby-drivers');
+    return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
+  }
+
+  Future<RideRequest?> getRideRequestStatus() async {
     try {
-      final result = await _get('passenger/ride-request/status');
-      return result['rideRequest'] as Map<String, dynamic>;
+      final result = await _get('passenger/request-status');
+      return RideRequest.fromJson(result['request'] as Map<String, dynamic>);
     } on ApiException catch (e) {
       // Return null if no active ride request found
       if (e.message.contains('No active ride request')) {
@@ -214,14 +258,33 @@ class ApiService {
     }
   }
 
-  Future<List<Driver>> getAvailableDrivers() async {
-    final result = await _get('passenger/drivers');
-    return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
+  Future<void> cancelRideRequest() async {
+    await _delete('passenger/cancel-request');
   }
-  
-  // Proxied Services
+
+  // --- Ride Management API ---
+
+  Future<String> matchRide({required String requestId, required String sessionId}) async {
+    final result = await _post('rides/match', {
+      'requestId': requestId,
+      'sessionId': sessionId,
+    });
+    return result['rideId'] as String;
+  }
+
+  Future<void> updateRideStatus(String rideId, String status) async {
+    await _put('rides/$rideId/status', {'status': status});
+  }
+
+  Future<ActiveRide> getRideDetails(String rideId) async {
+    final result = await _get('rides/$rideId');
+    return ActiveRide.fromJson(result['ride'] as Map<String, dynamic>);
+  }
+
+  // --- Proxy Services ---
+
   Future<List<PlaceSuggestion>> searchPlaces(String query) async {
-    final results = await _get('proxy/search-places?q=$query');
+    final results = await _get('proxy/search-places?q=${Uri.encodeQueryComponent(query)}');
     return (results['places'] as List)
         .map((p) => PlaceSuggestion.fromNominatimJson(p))
         .toList();
@@ -234,13 +297,109 @@ class ApiService {
         .toList();
     return points;
   }
+
+  // --- Helper Methods ---
+
+  /// Converts a LatLng to a location map for API requests
+  Map<String, double> _locationToMap(LatLng location) {
+    return {
+      'latitude': location.latitude,
+      'longitude': location.longitude,
+    };
+  }
+
+  /// Converts a PlaceSuggestion to a location map for API requests
+  Map<String, dynamic> _placeToMap(PlaceSuggestion place, {String? customName}) {
+    return {
+      'name': customName ?? place.displayName,
+      'latitude': place.latitude,
+      'longitude': place.longitude,
+      'placeId': place.placeId,
+    };
+  }
+
+  // --- Real-time Location Updates ---
+
+  /// Stream for real-time location updates (would use WebSocket in production)
+  Stream<UserLocation> startLocationTracking() async* {
+    // This would typically use WebSocket or Server-Sent Events
+    // For now, we'll simulate with periodic API calls
+    yield* Stream.periodic(const Duration(seconds: 5), (_) async {
+      try {
+        final profile = await getUserProfile();
+        return profile.location;
+      } catch (e) {
+        return null;
+      }
+    }).asyncMap((future) => future).where((location) => location != null).cast<UserLocation>();
+  }
+
+  /// Stop location tracking
+  void stopLocationTracking() {
+    // Implementation would close WebSocket connection
+  }
+
+  // --- Health Check ---
+
+  Future<bool> checkHealth() async {
+    try {
+      await _get('health');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 /// Custom exception for API-related errors.
 class ApiException implements Exception {
   final String message;
-  ApiException(this.message);
+  final int? statusCode;
+  final String? errorCode;
+
+  ApiException(this.message, [this.statusCode, this.errorCode]);
 
   @override
   String toString() => message;
+
+  bool get isNetworkError => message.contains('network') || message.contains('connection');
+  bool get isServerError => statusCode != null && statusCode! >= 500;
+  bool get isClientError => statusCode != null && statusCode! >= 400 && statusCode! < 500;
+  bool get isUnauthorized => statusCode == 401;
+  bool get isForbidden => statusCode == 403;
+  bool get isNotFound => statusCode == 404;
+}
+
+/// Response wrapper for paginated results
+class PaginatedResponse<T> {
+  final List<T> data;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final bool hasMore;
+
+  PaginatedResponse({
+    required this.data,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.hasMore,
+  });
+
+  factory PaginatedResponse.fromJson(
+    Map<String, dynamic> json,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final data = (json['data'] as List)
+        .map((item) => fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    return PaginatedResponse(
+      data: data,
+      totalCount: json['totalCount'] ?? data.length,
+      page: json['page'] ?? 1,
+      pageSize: json['pageSize'] ?? data.length,
+      hasMore: json['hasMore'] ?? false,
+    );
+  }
 }
