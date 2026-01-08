@@ -134,6 +134,14 @@ class ApiService {
   }
   
   // User
+  Future<String> setRole(String role) async {
+    final result = await _post('user/set-role', {'role': role});
+    if (result['token'] is! String) {
+      throw ApiException('Invalid token received from server after setting role.');
+    }
+    return result['token'];
+  }
+
   Future<void> updateUserLocation(LatLng location) async {
     await _put('user/location', {'location': {'latitude': location.latitude, 'longitude': location.longitude}});
   }

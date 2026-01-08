@@ -44,6 +44,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   // App Data
   UserModel? _currentUser;
+  String? _currentRole;
   int _walletPoints = 0;
   final _locationNotifier = ValueNotifier<latlng.LatLng?>(null);
   List<latlng.LatLng> _routePoints = [];
@@ -63,12 +64,34 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   @override
   void initState() {
     super.initState();
-    // Services are fetched from the Provider, not instantiated directly.
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<AuthService>(context, listen: false);
-    _currentUser = _authService.user;
-
+    
     _initializeApp();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Remove existing listener before adding a new one
+    _authService.removeListener(_onAuthChanged);
+    _authService.addListener(_onAuthChanged);
+    // Update current user details when dependencies change
+    _currentUser = _authService.user;
+    _currentRole = _authService.activeRole;
+  }
+
+  void _onAuthChanged() {
+    // If the role has changed, reset the app state
+    if (_authService.activeRole != null &&
+        _authService.activeRole != _currentRole) {
+      _log('Role changed from $_currentRole to ${_authService.activeRole}, resetting app state.');
+      _resetApp();
+      setState(() {
+        _currentUser = _authService.user;
+        _currentRole = _authService.activeRole;
+      });
+    }
   }
 
   // --- CORE LOGIC & STATE MANAGEMENT ---
@@ -486,6 +509,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   @override
   void dispose() {
+    _authService.removeListener(_onAuthChanged);
     _locationSubscription?.cancel();
     _destinationController.dispose();
     _mapController.dispose();

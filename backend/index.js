@@ -236,6 +236,39 @@ userRouter.get('/profile', async (req, res) => {
     }
 });
 
+userRouter.post('/set-role', async (req, res) => {
+    const { uid } = req.user;
+    const { role } = req.body;
+
+    if (!role || !['DRIVER', 'PASSENGER'].includes(role.toUpperCase())) {
+        return res.status(400).json({ message: 'Invalid role specified. Must be DRIVER or PASSENGER.' });
+    }
+
+    const roleLower = role.toLowerCase();
+
+    try {
+        const userRef = db.collection('users').doc(uid);
+        const admin = require('firebase-admin');
+
+        // Update Firestore
+        await userRef.update({
+            activeRole: roleLower,
+            roles: admin.firestore.FieldValue.arrayUnion(roleLower)
+        });
+
+        // Generate a new JWT with the updated role
+        const newToken = jwt.sign({ uid: uid, role: roleLower }, process.env.JWT_SECRET_KEY);
+
+        res.status(200).json({
+            message: `Role successfully set to ${roleLower}.`,
+            token: newToken
+        });
+
+    } catch (error) => {
+        res.status(500).json({ message: `Error setting role: ${error.message}` });
+    }
+});
+
 apiRouter.use('/user', userRouter);
 
 
