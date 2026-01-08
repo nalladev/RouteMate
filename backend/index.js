@@ -62,6 +62,34 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     return R * 2 * Math.asin(Math.sqrt(a));
 };
 
+/**
+ * Initializes a user's document with default roles and verification if they don't exist.
+ * This ensures backward compatibility for existing users.
+ * @param {string} uid The user's unique ID from Firebase Auth.
+ * @param {string} phone The user's phone number.
+ */
+const initializeUser = async (uid, phone) => {
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists || !userDoc.data().roles || !userDoc.data().verification) {
+        const userData = userDoc.data() || {};
+        
+        const updateData = {
+            phone: phone,
+            activeRole: userData.activeRole || 'passenger',
+            roles: userData.roles || ['passenger'],
+            verification: userData.verification || {
+                passenger: { verified: true },
+                driver: { verified: false }
+            }
+        };
+
+        await userRef.set(updateData, { merge: true });
+        console.log(`Initialized or updated roles for user ${uid}`);
+    }
+};
+
 
 // Authentication Middleware
 const authenticateToken = (req, res, next) => {
@@ -109,6 +137,9 @@ authRouter.post('/login', async (req, res) => {
                 throw error;
             }
         }
+        
+        // Ensure user document is initialized with roles
+        await initializeUser(userRecord.uid, userRecord.phoneNumber);
 
         const token = jwt.sign({ uid: userRecord.uid }, process.env.JWT_SECRET_KEY); // Replace with a real secret
         res.status(200).json({ token });
