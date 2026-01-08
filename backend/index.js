@@ -8,6 +8,26 @@ const { GeoPoint } = require('firebase-admin/firestore');
 const https = require('https');
 
 const app = express();
+
+// Self-ping mechanism to keep server awake on Render
+const PING_INTERVAL = 13 * 60 * 1000; // 13 minutes in milliseconds
+const SERVER_URL = 'https://routemate-jpsc.onrender.com/health';
+
+function selfPing() {
+    https.get(SERVER_URL, (res) => {
+        console.log(`[${new Date().toISOString()}] 🏓 Self-ping successful - Status: ${res.statusCode}`);
+    }).on('error', (err) => {
+        console.error(`[${new Date().toISOString()}] ❌ Self-ping failed:`, err.message);
+    });
+}
+
+// Start self-ping after server is running
+function startSelfPing() {
+    console.log(`[${new Date().toISOString()}] 🚀 Starting self-ping mechanism - pinging every 13 minutes`);
+    selfPing(); // Initial ping
+    setInterval(selfPing, PING_INTERVAL);
+}
+
 const port = 3000;
 
 // Middleware
@@ -534,4 +554,8 @@ app.use('/api', apiRouter);
 
 app.listen(port, () => {
     console.log(`RouteMate backend listening at http://localhost:${port}`);
+    console.log(`Health check: http://localhost:${port}/health`);
+    
+    // Start self-ping mechanism after server is ready
+    setTimeout(startSelfPing, 5000); // Wait 5 seconds for server to be fully ready
 });
