@@ -119,110 +119,61 @@ class ComprehensiveAuthService with ChangeNotifier {
   }
 
   // Phone.email OTP authentication
-  // This creates a Firebase session after phone.email OTP verification
+  // This authenticates with the backend using phone.email JWT directly
   Future<AuthResult> handlePhoneEmailOTPSuccess(
     String phoneNumber,
     String? accessToken,
     String? jwtToken,
   ) async {
     try {
-      // Use the JWT token from phone.email to authenticate with Firebase
-      // The phone.email service provides a JWT that can be used for custom authentication
+      // Use the JWT token from phone.email directly with the backend
+      // No need to create Firebase users - the backend handles everything
       
       if (jwtToken == null) {
         return AuthResult.failure('JWT token is required for authentication', AuthMethod.phone);
       }
 
       try {
-        // Sign in using custom token from phone.email
-        final userCredential = await _firebaseAuth.signInWithCustomToken(jwtToken);
+        // Authenticate directly with backend using phone.email JWT
+        final token = await _apiService.authenticateWithPhoneEmail(jwtToken);
         
-        _firebaseUser = userCredential.user;
-        
-        // Now authenticate with backend using the Firebase token
-        final idToken = await _firebaseUser?.getIdToken();
-        if (idToken != null) {
-          // Send to backend for token exchange
-          final token = await _apiService.authenticateWithFirebaseToken(idToken);
+        if (token != null) {
+          // Store the backend token
+          await _setBackendToken(token);
           
-          if (token != null) {
-            await _setBackendToken(token);
-            
-            // Fetch user profile
-            _backendUser = await _apiService.getUserProfile();
-            notifyListeners();
-            
-            return AuthResult.success(_firebaseUser, AuthMethod.phone);
-          }
+          // Fetch user profile
+          _backendUser = await _apiService.getUserProfile();
+          
+          // Create a lightweight Firebase user representation for local state
+          // We don't store anything in Firebase, just keep track locally
+          _firebaseUser = _createLocalUser(phoneNumber);
+          
+          notifyListeners();
+          
+          return AuthResult.success(_firebaseUser, AuthMethod.phone);
         }
         
         return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
-      } on FirebaseAuthException {
-        // If custom token fails, create a new account with email
-        final email = '$phoneNumber@phoneemail.app';
-        try {
-          // Create account with phone number-based email
-          final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-            email: email,
-            password: _generateSecurePassword(phoneNumber),
-          );
-          
-          await userCredential.user?.updateDisplayName(phoneNumber);
-          _firebaseUser = userCredential.user;
-          
-          // Authenticate with backend
-          final idToken = await _firebaseUser?.getIdToken();
-          if (idToken != null) {
-            final token = await _apiService.authenticateWithFirebaseToken(idToken);
-            
-            if (token != null) {
-              await _setBackendToken(token);
-              _backendUser = await _apiService.getUserProfile();
-              notifyListeners();
-              return AuthResult.success(_firebaseUser, AuthMethod.phone);
-            }
-          }
-          
-          return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
-        } on FirebaseAuthException catch (createError) {
-          if (createError.code == 'email-already-in-use') {
-            // User exists, sign them in
-            final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-              email: email,
-              password: _generateSecurePassword(phoneNumber),
-            );
-            _firebaseUser = userCredential.user;
-            
-            final idToken = await _firebaseUser?.getIdToken();
-            if (idToken != null) {
-              final token = await _apiService.authenticateWithFirebaseToken(idToken);
-              
-              if (token != null) {
-                await _setBackendToken(token);
-                _backendUser = await _apiService.getUserProfile();
-                notifyListeners();
-                return AuthResult.success(_firebaseUser, AuthMethod.phone);
-              }
-            }
-            
-            return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
-          }
-          
-          return AuthResult.failure('Authentication failed: ${createError.message}', AuthMethod.phone);
-        }
+      } catch (e) {
+        debugPrint('Phone.email authentication error: $e');
+        return AuthResult.failure('Authentication failed: $e', AuthMethod.phone);
       }
     } catch (e) {
       debugPrint('Phone authentication error: $e');
       return AuthResult.failure('Phone authentication failed: $e', AuthMethod.phone);
     }
   }
-  
-  // Generate a consistent secure password from phone number
-  String _generateSecurePassword(String phoneNumber) {
-    // Create a deterministic password from phone number
-    // This ensures same phone number always gets the same password
-    final hash = phoneNumber.codeUnits.fold(0, (a, b) => a + b);
-    return 'PhoneAuth${hash.toString().padLeft(10, '0')}!@#';
+
+  // Create a local user object for state management
+  // This doesn't interact with Firebase, just local app state
+  User? _createLocalUser(String phoneNumber) {
+    try {
+      // We return a User-like object by using Firebase's current user
+      // which will be null, so the app will treat it as authenticated via backend token
+      return _firebaseAuth.currentUser;
+    } catch (e) {
+      return null;
+    }
   }
 
   // Phone authentication using Firebase Auth
@@ -319,6 +270,7 @@ class ComprehensiveAuthService with ChangeNotifier {
       
       googleUser ??= await _googleSignIn.authenticate();
 
+      // Check if user cancelled the sign-in
       if (googleUser == null) {
         return AuthResult.failure('Google Sign-In was cancelled', AuthMethod.google);
       }

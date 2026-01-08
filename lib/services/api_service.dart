@@ -147,6 +147,19 @@ class ApiService {
     }
   }
 
+  Future<String?> authenticateWithPhoneEmail(String jwtToken) async {
+    try {
+      final result = await _post('auth/phone-email', {'jwtToken': jwtToken});
+      if (result['token'] is String) {
+        return result['token'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Phone.email authentication failed: $e');
+      return null;
+    }
+  }
+
   // --- User API ---
 
   Future<void> updateUserLocation(LatLng location, {double? heading, double? speed, double? accuracy}) async {

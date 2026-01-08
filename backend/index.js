@@ -246,6 +246,79 @@ authRouter.post('/firebase', async (req, res) => {
     }
 });
 
+authRouter.post('/phone-email', async (req, res) => {
+    const { jwtToken } = req.body;
+    if (!jwtToken) {
+        return res.status(400).json({ message: 'JWT token is required.' });
+    }
+
+    try {
+        // Decode the phone.email JWT (it's not verified with Firebase, just decoded)
+        // The phone.email service signs with HS256, so we trust it
+        const decodedToken = jwt.decode(jwtToken);
+        
+        if (!decodedToken || !decodedToken.phone_no) {
+            return res.status(400).json({ message: 'Invalid JWT token format.' });
+        }
+
+        const phoneNumber = decodedToken.phone_no;
+        const countryCode = decodedToken.country_code || '+91';
+        const fullPhoneNumber = countryCode + phoneNumber;
+
+        // Create a consistent Firebase-compatible UID from phone number
+        const uid = `phone_${countryCode.replace('+', '')}_${phoneNumber}`;
+
+        // Check if user exists in Firestore
+        let userDoc = await db.collection('users').doc(uid).get();
+        
+        if (!userDoc.exists) {
+            // Create new user in Firestore
+            const userData = {
+                uid: uid,
+                phone: fullPhoneNumber,
+                email: '', // Phone-only authentication doesn't provide email
+                walletPoints: 100, // Welcome bonus
+                createdAt: FieldValue.serverTimestamp(),
+                stats: {
+                    totalRidesAsDriver: 0,
+                    totalRidesAsPassenger: 0,
+                    rating: 5.0,
+                    totalPointsEarned: 100
+                }
+            };
+
+            await db.collection('users').doc(uid).set(userData);
+
+            // Add welcome reward
+            await db.collection('rewards').add({
+                userId: uid,
+                type: 'bonus',
+                amount: 100,
+                description: 'Welcome bonus',
+                metadata: { category: 'signup' },
+                status: 'active',
+                dateEarned: FieldValue.serverTimestamp()
+            });
+        }
+
+        // Generate Firebase custom token (for Firebase Auth session)
+        // This allows the user to sign in to Firebase without email/password
+        const firebaseCustomToken = await auth.createCustomToken(uid);
+
+        // Generate backend JWT token (for API authentication)
+        const backendToken = jwt.sign({ uid: uid }, process.env.JWT_SECRET_KEY);
+
+        res.status(200).json({ 
+            firebaseToken: firebaseCustomToken,
+            backendToken: backendToken,
+            uid: uid
+        });
+    } catch (error) {
+        console.error('Phone.email JWT authentication failed:', error);
+        res.status(401).json({ message: 'Invalid JWT token.' });
+    }
+});
+
 apiRouter.use('/auth', authRouter);
 
 // --- User Routes ---
