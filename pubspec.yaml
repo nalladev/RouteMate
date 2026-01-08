@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  location: any
+  location: ^7.0.0
   flutter_map: any
   latlong2: any
   http: any
@@ -20,9 +20,9 @@ dependencies:
   intl: any
   shared_preferences: any
   firebase_core: any
-  firebase_auth: any
-  google_sign_in: any
-  phone_email_auth: any
+  firebase_auth: ^4.16.0
+  phone_email_auth: ^0.0.6
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:

@@ -33,7 +33,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   static const String _backendTokenKey = 'backend_auth_token';
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn;
   final ApiService _apiService;
 
   // Current user state
@@ -41,7 +41,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   UserModel? _backendUser;
   bool _isInitialized = false;
 
-  ComprehensiveAuthService(this._apiService) {
+  ComprehensiveAuthService(this._apiService) : _googleSignIn = GoogleSignIn() {
     _initializePhoneEmail();
     _setupAuthListener();
   }
@@ -152,9 +152,6 @@ class ComprehensiveAuthService with ChangeNotifier {
   // Google Sign-In
   Future<AuthResult> signInWithGoogle() async {
     try {
-      // Sign out first to ensure account picker shows
-      await _googleSignIn.signOut();
-
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
@@ -163,7 +160,7 @@ class ComprehensiveAuthService with ChangeNotifier {
       }
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
