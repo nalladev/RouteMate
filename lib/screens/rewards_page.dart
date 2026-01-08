@@ -4,6 +4,23 @@ import 'package:provider/provider.dart';
 import 'package:routemate/models/reward.dart';
 import 'package:routemate/services/api_service.dart';
 
+// A new class to hold data for redeemable rewards
+class RedeemableReward {
+  final String title;
+  final String description;
+  final int points;
+  final IconData icon;
+  final bool isLocked;
+
+  RedeemableReward({
+    required this.title,
+    required this.description,
+    required this.points,
+    required this.icon,
+    this.isLocked = false,
+  });
+}
+
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
@@ -11,10 +28,75 @@ class RewardsPage extends StatefulWidget {
   State<RewardsPage> createState() => _RewardsPageState();
 }
 
+
+enum RewardFilter { all, redeemable, locked }
+
 class _RewardsPageState extends State<RewardsPage> {
   late Future<void> _rewardsFuture;
   int _walletPoints = 0;
   List<Reward> _rewards = [];
+  RewardFilter _filter = RewardFilter.all;
+  final Set<String> _redeemedRewards = {};
+
+  void _showRewardDetailsDialog(BuildContext context, RedeemableReward reward) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(reward.title),
+          content: Text(reward.description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // List of redeemable rewards
+  final List<RedeemableReward> _redeemableRewards = [
+    RedeemableReward(
+      title: 'Free Ride Coupon',
+      description: 'Enjoy a completely free ride up to a distance of 10km. This coupon is valid for 30 days after redemption.',
+      points: 1000,
+      icon: Icons.directions_car,
+    ),
+    RedeemableReward(
+      title: 'Fuel Cashback',
+      description: 'Get \$5 cashback on your next fuel purchase at any partner station. Cashback will be credited to your wallet.',
+      points: 1500,
+      icon: Icons.local_gas_station,
+    ),
+    RedeemableReward(
+      title: 'Food / Coffee Discount',
+      description: 'A voucher for 20% off at participating cafes and restaurants. A list of partners is available in the app.',
+      points: 1800,
+      icon: Icons.coffee,
+      isLocked: true,
+    ),
+    RedeemableReward(
+      title: '20% Off Next Airport Trip',
+      description: 'Get a 20% discount on your next ride to or from the airport. The discount is capped at \$10.',
+      points: 2200,
+      icon: Icons.airport_shuttle,
+    ),
+    RedeemableReward(
+      title: 'Free Car Wash Voucher',
+      description: 'Redeem this for a free basic car wash at any of our partner car wash centers. Valid for 60 days.',
+      points: 2500,
+      icon: Icons.local_car_wash,
+    ),
+    RedeemableReward(
+      title: 'Priority Customer Support',
+      description: 'Jump the queue and get instant access to our support agents whenever you need help.',
+      points: 3000,
+      icon: Icons.support_agent,
+      isLocked: true,
+    ),
+  ];
 
   @override
   void initState() {
@@ -31,10 +113,12 @@ class _RewardsPageState extends State<RewardsPage> {
         apiService.getRewards(),
       ]);
       
-      setState(() {
-        _walletPoints = results[0] as int;
-        _rewards = results[1] as List<Reward>;
-      });
+      if (mounted) {
+        setState(() {
+          _walletPoints = results[0] as int;
+          _rewards = results[1] as List<Reward>;
+        });
+      }
     } catch (e) {
       // Propagate error to be handled by the FutureBuilder
       throw Exception('Failed to load rewards data: ${e.toString()}');
@@ -46,10 +130,6 @@ class _RewardsPageState extends State<RewardsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         title: const Text('Rewards Dashboard'),
         backgroundColor: Colors.white,
         elevation: 1,
@@ -76,69 +156,118 @@ class _RewardsPageState extends State<RewardsPage> {
           const int nextTierPoints = 2000;
           final double progress = _walletPoints / nextTierPoints;
 
-          return ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              _PointsCard(points: _walletPoints),
-              const SizedBox(height: 24),
-              _TierProgressBar(
-                progress: progress,
-                currentTier: 'Gold Rider',
-                nextTier: 'Platinum',
-                nextTierPoints: nextTierPoints,
-              ),
-              const SizedBox(height: 32),
-              _SectionHeader(title: 'Redeemable Rewards'),
-              const SizedBox(height: 16),
-              _RewardCard(
-                icon: Icons.directions_car,
-                title: 'Free Ride Coupon',
-                points: 1000,
-                isRedeemable: _walletPoints >= 1000,
-              ),
-              _RewardCard(
-                icon: Icons.local_gas_station,
-                title: 'Fuel Cashback',
-                points: 1500,
-                isRedeemable: _walletPoints >= 1500,
-              ),
-              _RewardCard(
-                icon: Icons.coffee,
-                title: 'Food / Coffee Discount',
-                points: 1800,
-                isLocked: true,
-              ),
-              _RewardCard(
-                icon: Icons.airport_shuttle,
-                title: '20% Off Next Airport Trip',
-                points: 2200,
-                isRedeemable: _walletPoints >= 2200,
-              ),
-               _RewardCard(
-                icon: Icons.local_car_wash,
-                title: 'Free Car Wash Voucher',
-                points: 2500,
-                isRedeemable: _walletPoints >= 2500,
-              ),
-              _RewardCard(
-                icon: Icons.support_agent,
-                title: 'Priority Customer Support',
-                points: 3000,
-                isLocked: true,
-              ),
-              const SizedBox(height: 32),
-              _SectionHeader(title: 'Points History'),
-              const SizedBox(height: 16),
-              if (_rewards.isEmpty)
-                const Center(
-                  child: Text('No reward history yet.'),
-                )
-              else
-                ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
-            ],
+          final filteredRewards = _redeemableRewards.where((reward) {
+            final isRedeemable = _walletPoints >= reward.points;
+            switch (_filter) {
+              case RewardFilter.all:
+                return true;
+              case RewardFilter.redeemable:
+                return isRedeemable && !reward.isLocked;
+              case RewardFilter.locked:
+                return reward.isLocked || !isRedeemable;
+            }
+          }).toList();
+
+          return RefreshIndicator(
+            onRefresh: _fetchData,
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                _PointsCard(points: _walletPoints),
+                const SizedBox(height: 24),
+                _TierProgressBar(
+                  progress: progress,
+                  currentTier: 'Gold Rider',
+                  nextTier: 'Platinum',
+                  nextTierPoints: nextTierPoints,
+                ),
+                const SizedBox(height: 32),
+                _SectionHeader(title: 'Redeemable Rewards'),
+                const SizedBox(height: 16),
+                _FilterChips(
+                  selectedFilter: _filter,
+                  onFilterChanged: (filter) {
+                    setState(() {
+                      _filter = filter;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                ...filteredRewards.map((reward) {
+                  final isRedeemed = _redeemedRewards.contains(reward.title);
+                  return InkWell(
+                    onTap: () => _showRewardDetailsDialog(context, reward),
+                    child: _RewardCard(
+                      reward: reward,
+                      isRedeemable: _walletPoints >= reward.points,
+                      isRedeemed: isRedeemed,
+                      onRedeem: () {
+                        if (!isRedeemed) {
+                          setState(() {
+                            _redeemedRewards.add(reward.title);
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${reward.title} redeemed!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+                const SizedBox(height: 32),
+                _SectionHeader(title: 'Points History'),
+                const SizedBox(height: 16),
+                if (_rewards.isEmpty)
+                  const Center(
+                    child: Text('No reward history yet.'),
+                  )
+                else
+                  ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
+              ],
+            ),
           );
         },
       ),
+    );
+  }
+}
+
+class _FilterChips extends StatelessWidget {
+  final RewardFilter selectedFilter;
+  final ValueChanged<RewardFilter> onFilterChanged;
+
+  const _FilterChips({required this.selectedFilter, required this.onFilterChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8.0,
+      children: [
+        FilterChip(
+          label: const Text('All'),
+          selected: selectedFilter == RewardFilter.all,
+          onSelected: (selected) => onFilterChanged(RewardFilter.all),
+          selectedColor: Colors.orange.shade100,
+          checkmarkColor: Colors.orange.shade800,
+        ),
+        FilterChip(
+          label: const Text('Redeemable'),
+          selected: selectedFilter == RewardFilter.redeemable,
+          onSelected: (selected) => onFilterChanged(RewardFilter.redeemable),
+          selectedColor: Colors.orange.shade100,
+          checkmarkColor: Colors.orange.shade800,
+        ),
+        FilterChip(
+          label: const Text('Locked'),
+          selected: selectedFilter == RewardFilter.locked,
+          onSelected: (selected) => onFilterChanged(RewardFilter.locked),
+          selectedColor: Colors.orange.shade100,
+          checkmarkColor: Colors.orange.shade800,
+        ),
+      ],
     );
   }
 }
@@ -275,23 +404,21 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _RewardCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final int points;
+  final RedeemableReward reward;
   final bool isRedeemable;
-  final bool isLocked;
+  final bool isRedeemed;
+  final VoidCallback onRedeem;
 
   const _RewardCard({
-    required this.icon,
-    required this.title,
-    required this.points,
-    this.isRedeemable = false,
-    this.isLocked = false,
+    required this.reward,
+    required this.isRedeemable,
+    required this.isRedeemed,
+    required this.onRedeem,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool canRedeem = isRedeemable && !isLocked;
+    final bool canRedeem = isRedeemable && !reward.isLocked && !isRedeemed;
     return Card(
       elevation: 2,
       shadowColor: const Color(0x1A000000),
@@ -304,9 +431,9 @@ class _RewardCard extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  icon,
+                  reward.icon,
                   size: 40,
-                  color: isLocked ? Colors.grey[400] : Colors.orange.shade600,
+                  color: reward.isLocked ? Colors.grey[400] : Colors.orange.shade600,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -314,19 +441,19 @@ class _RewardCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        reward.title,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isLocked ? Colors.grey[500] : Colors.black87,
+                          color: reward.isLocked ? Colors.grey[500] : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$points pts',
+                        '${reward.points} pts',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isLocked
+                          color: reward.isLocked
                               ? Colors.grey[400]
                               : Colors.orange.shade800,
                           fontWeight: FontWeight.w600,
@@ -337,10 +464,10 @@ class _RewardCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: canRedeem ? () {} : null,
+                  onPressed: canRedeem ? onRedeem : null,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: Colors.orange.shade600,
+                    backgroundColor: isRedeemed ? Colors.grey.shade400 : Colors.orange.shade600,
                     disabledBackgroundColor: Colors.grey.shade300,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -350,12 +477,12 @@ class _RewardCard extends StatelessWidget {
                       vertical: 10,
                     ),
                   ),
-                  child: const Text('Redeem'),
+                  child: Text(isRedeemed ? 'Redeemed' : 'Redeem'),
                 ),
               ],
             ),
           ),
-          if (isLocked)
+          if (reward.isLocked)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
