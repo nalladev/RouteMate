@@ -1,7 +1,6 @@
 {
-  "required_extensions": ["dart"],
   "auto_install_extensions": {
-    "dart": true,
+    "dart": true
   },
   "languages": {
     "Dart": {
@@ -9,8 +8,8 @@
       "format_on_save": "on",
       "formatter": "language_server",
       "tab_size": 2,
-      "hard_tabs": false,
-    },
+      "hard_tabs": false
+    }
   },
   "lsp": {
     "dart": {
@@ -19,8 +18,8 @@
         "suggestFromUnimportedLibraries": true,
         "closingLabels": true,
         "outline": true,
-        "flutterOutline": true,
-      },
-    },
-  },
+        "flutterOutline": true
+      }
+    }
+  }
 }
