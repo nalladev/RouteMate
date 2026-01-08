@@ -52,8 +52,8 @@ class _WalletBottomSheetState extends State<WalletBottomSheet> {
     });
 
     try {
-      final newToken = await _apiService.setRole(
-        role == UserRole.driver ? 'DRIVER' : 'PASSENGER',
+      final newToken = await _apiService.setUserRole(
+        role == UserRole.driver ? 'driver' : 'passenger',
       );
       await _authService.updateTokenAndRole(newToken);
       

@@ -91,5 +91,22 @@ class AuthService with ChangeNotifier {
     // In a real app, you might want to notify the backend to invalidate the token.
     await _clearToken();
   }
-}
 
+  /// Sets the user's role by calling the API and updates the token.
+  /// This is used during the initial role selection.
+  Future<void> setRole(String role) async {
+    try {
+      // Calls the API to set the role and receives a new, updated JWT.
+      final newToken = await _apiService.setUserRole(role);
+      
+      // How the role is refreshed in state:
+      // The new token, which contains the updated role claim, is saved.
+      // _saveToken decodes the JWT, extracts the new role, and updates the
+      // user model in the app's state, triggering a UI refresh.
+      await _saveToken(newToken);
+    } catch (e) {
+      debugPrint("Failed to set role: $e");
+      rethrow; // Re-throw to be handled by the UI layer.
+    }
+  }
+}

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:routemate/services/auth_service.dart';
 import 'package:routemate/features/auth/screens/login_screen.dart';
 import 'package:routemate/screens/home_page.dart';
+import 'package:routemate/features/auth/screens/role_selection_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -39,8 +40,17 @@ class _AuthGateState extends State<AuthGate> {
         return Consumer<AuthService>(
           builder: (context, authService, child) {
             if (authService.isLoggedIn) {
-              return const RouteMateHomePage();
+              // If user is logged in, check if they have a role.
+              final role = authService.currentUserRole;
+              if (role == null || role.isEmpty) {
+                // If no role is assigned, direct to RoleSelectionScreen.
+                return const RoleSelectionScreen();
+              } else {
+                // If a role exists, proceed to the main app homepage.
+                return const RouteMateHomePage();
+              }
             } else {
+              // If user is not logged in, show the LoginScreen.
               return const LoginScreen();
             }
           },

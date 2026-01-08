@@ -134,7 +134,7 @@ class ApiService {
   }
   
   // User
-  Future<String> setRole(String role) async {
+  Future<String> setUserRole(String role) async {
     final result = await _post('user/set-role', {'role': role});
     if (result['token'] is! String) {
       throw ApiException('Invalid token received from server after setting role.');
