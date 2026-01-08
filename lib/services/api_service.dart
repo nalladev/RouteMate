@@ -210,7 +210,9 @@ class ApiService {
   // --- Driver API ---
 
   Future<void> startDriving(PlaceSuggestion destination) async {
-    await _post('driver/session', {
+    // Get current location from location service (you may need to inject this)
+    // For now, we'll send the destination with a placeholder for current location
+    await _post('driver/start-session', {
       'destination': {
         'displayName': destination.displayName,
         'latitude': destination.latitude,

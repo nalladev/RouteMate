@@ -513,6 +513,124 @@ driverRouter.post('/start-session', async (req, res) => {
     }
 });
 
+// Simplified endpoint for starting a driving session (used by mobile app)
+driverRouter.post('/session', async (req, res) => {
+    const { uid } = req.user;
+    const { destination } = req.body;
+    
+    if (!destination || !destination.latitude || !destination.longitude) {
+        return res.status(400).json({ message: 'Destination location is required.' });
+    }
+
+    try {
+        // Check if user already has an active session
+        const existingSession = await db.collection('driver_sessions')
+            .where('driverId', '==', uid)
+            .where('status', '==', 'active')
+            .get();
+        
+        if (!existingSession.empty) {
+            return res.status(400).json({ message: 'You already have an active driving session.' });
+        }
+
+        // Get current user location from user_locations collection
+        const userLocDoc = await db.collection('user_locations').doc(uid).get();
+        let startLocation = { latitude: 0, longitude: 0 };
+        
+        if (userLocDoc.exists) {
+            const locData = userLocDoc.data();
+            if (locData.location) {
+                startLocation = {
+                    latitude: locData.location.latitude,
+                    longitude: locData.location.longitude
+                };
+            }
+        }
+
+        // Create a simple route (just two points for now)
+        const distance = getDistance(
+            startLocation.latitude, 
+            startLocation.longitude,
+            destination.latitude, 
+            destination.longitude
+        );
+
+        const sessionData = {
+            driverId: uid,
+            startLocation: new GeoPoint(startLocation.latitude, startLocation.longitude),
+            destination: {
+                name: destination.displayName || 'Destination',
+                location: new GeoPoint(destination.latitude, destination.longitude)
+            },
+            route: {
+                distance: distance,
+                estimatedDuration: Math.ceil(distance * 2) // Rough estimate: ~2 minutes per km
+            },
+            capacity: 4,
+            status: 'active',
+            preferences: {
+                allowDetours: true,
+                maxDetourDistance: 5,
+                passengerTypes: ['any']
+            },
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        const sessionRef = await db.collection('driver_sessions').add(sessionData);
+        
+        // Update user location as active
+        await db.collection('user_locations').doc(uid).set({
+            userId: uid,
+            location: new GeoPoint(startLocation.latitude, startLocation.longitude),
+            heading: 0,
+            speed: 0,
+            isActive: true,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
+        res.status(201).json({ 
+            message: 'Driving session started successfully.',
+            sessionId: sessionRef.id
+        });
+    } catch (error) {
+        res.status(500).json({ message: `Error starting session: ${error.message}` });
+    }
+});
+
+driverRouter.delete('/session', async (req, res) => {
+    const { uid } = req.user;
+    
+    try {
+        // Find active session for this driver
+        const activeSession = await db.collection('driver_sessions')
+            .where('driverId', '==', uid)
+            .where('status', '==', 'active')
+            .get();
+        
+        if (activeSession.empty) {
+            return res.status(404).json({ message: 'No active driving session found.' });
+        }
+
+        // Update session status to inactive
+        const sessionDoc = activeSession.docs[0];
+        await sessionDoc.ref.update({
+            status: 'inactive',
+            endedAt: FieldValue.serverTimestamp()
+        });
+
+        // Update user location as inactive
+        await db.collection('user_locations').doc(uid).update({
+            isActive: false,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
+        res.status(200).json({ message: 'Driving session ended successfully.' });
+    } catch (error) {
+        res.status(500).json({ message: `Error ending session: ${error.message}` });
+    }
+});
+
 driverRouter.put('/update-location', async (req, res) => {
     const { uid } = req.user;
     const { location, heading, speed } = req.body;
