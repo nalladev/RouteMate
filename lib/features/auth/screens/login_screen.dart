@@ -275,7 +275,6 @@ class _PhoneNumberFormatter extends TextInputFormatter {
     }
 
     final buffer = StringBuffer();
-    int index = 0;
 
     // Format as (XXX) XXX-XXXX
     for (int i = 0; i < text.length && i < 10; i++) {
@@ -289,7 +288,6 @@ class _PhoneNumberFormatter extends TextInputFormatter {
         buffer.write('-');
       }
       buffer.write(text[i]);
-      index++;
     }
 
     final formattedText = buffer.toString();

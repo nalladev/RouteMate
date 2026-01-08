@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../models/user_model.dart';
@@ -29,7 +28,6 @@ class AuthResult {
 }
 
 class ComprehensiveAuthService with ChangeNotifier {
-  static const String _phoneEmailClientId = '11787517661743701617';
   static const String _backendTokenKey = 'backend_auth_token';
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -42,7 +40,6 @@ class ComprehensiveAuthService with ChangeNotifier {
   bool _isInitialized = false;
 
   ComprehensiveAuthService(this._apiService) : _googleSignIn = GoogleSignIn() {
-    _initializePhoneEmail();
     _setupAuthListener();
   }
 
@@ -51,10 +48,6 @@ class ComprehensiveAuthService with ChangeNotifier {
   UserModel? get backendUser => _backendUser;
   bool get isLoggedIn => _firebaseUser != null && _backendUser != null;
   bool get isInitialized => _isInitialized;
-
-  void _initializePhoneEmail() {
-    // Phone email initialization removed - using Firebase Auth directly
-  }
 
   void _setupAuthListener() {
     _firebaseAuth.authStateChanges().listen((User? user) async {
@@ -118,30 +111,89 @@ class ComprehensiveAuthService with ChangeNotifier {
     _apiService.setAuthToken(null);
   }
 
-  // Phone.email authentication
-  Future<AuthResult> signInWithPhone() async {
+  // Phone authentication using Firebase Auth
+  Future<AuthResult> signInWithPhone(String phoneNumber) async {
     try {
-      // Use phone.email service for phone authentication
-      // This will handle OTP flow internally
-      // Note: In a real implementation, you'd integrate with phone.email's callback
-      // For now, we'll assume the phone login is handled by PhoneLoginButton widget
+      final completer = Completer<AuthResult>();
 
-      return AuthResult.success(_firebaseUser, AuthMethod.phone);
+      await _firebaseAuth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          try {
+            final userCredential = await _firebaseAuth.signInWithCredential(credential);
+            completer.complete(AuthResult.success(userCredential.user, AuthMethod.phone));
+          } catch (e) {
+            completer.complete(AuthResult.failure('Auto-verification failed: $e', AuthMethod.phone));
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          completer.complete(AuthResult.failure('Verification failed: ${e.message}', AuthMethod.phone));
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          // Store verification ID for later use in verifyOTP
+          _storeVerificationId(verificationId);
+          completer.complete(AuthResult.success(null, AuthMethod.phone));
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          // Auto-retrieval timed out
+          debugPrint('Code auto-retrieval timeout');
+        },
+      );
+
+      return completer.future;
     } catch (e) {
       return AuthResult.failure('Phone authentication failed: $e', AuthMethod.phone);
     }
   }
 
-  Future<AuthResult> signInWithEmail() async {
-    try {
-      // Use phone.email service for email authentication
-      // This will handle OTP flow internally
-      // Note: In a real implementation, you'd integrate with phone.email's callback
-      // For now, we'll assume the email login is handled by EmailLoginButton widget
+  Future<void> _storeVerificationId(String verificationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('verification_id', verificationId);
+  }
 
-      return AuthResult.success(_firebaseUser, AuthMethod.email);
+  Future<AuthResult> verifyOTP(String otp) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final verificationId = prefs.getString('verification_id');
+
+      if (verificationId == null) {
+        return AuthResult.failure('No verification ID found', AuthMethod.phone);
+      }
+
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      return AuthResult.success(userCredential.user, AuthMethod.phone);
+    } catch (e) {
+      return AuthResult.failure('OTP verification failed: $e', AuthMethod.phone);
+    }
+  }
+
+  // Email authentication (using Firebase Auth email/password)
+  Future<AuthResult> signInWithEmail(String email, String password) async {
+    try {
+      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return AuthResult.success(userCredential.user, AuthMethod.email);
     } catch (e) {
       return AuthResult.failure('Email authentication failed: $e', AuthMethod.email);
+    }
+  }
+
+  Future<AuthResult> createAccountWithEmail(String email, String password) async {
+    try {
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return AuthResult.success(userCredential.user, AuthMethod.email);
+    } catch (e) {
+      return AuthResult.failure('Account creation failed: $e', AuthMethod.email);
     }
   }
 
@@ -173,52 +225,6 @@ class ComprehensiveAuthService with ChangeNotifier {
     }
   }
 
-  // Handle phone.email authentication success
-  Future<void> handlePhoneEmailSuccess(String accessToken, String jwtToken) async {
-    try {
-      // Get user info from phone.email
-      PhoneEmailUserModel? userInfo;
-
-      // Phone email integration removed - handled by Firebase Auth directly
-    } catch (e) {
-      debugPrint('Failed to handle phone.email success: $e');
-    }
-  }
-
-  Future<void> _createFirebaseUserFromPhoneEmail(PhoneEmailUserModel userInfo) async {
-    try {
-      // For phone.email integration, we'll create a custom Firebase user
-      // In a production app, you'd typically use Firebase's phone auth or custom tokens
-
-      // Create a custom token using your backend if needed
-      // For now, we'll use email/password as a fallback
-
-      final email = '${userInfo.phoneNumber}@phoneemail.app';
-      final password = 'phoneEmailAuth123!'; // In production, use secure token-based auth
-
-      try {
-        // Try to sign in first
-        await _firebaseAuth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } catch (e) {
-        // If sign in fails, create new account
-        await _firebaseAuth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-
-        // Update user profile
-        await _firebaseAuth.currentUser?.updateDisplayName(
-          '${userInfo.firstName ?? ''} ${userInfo.lastName ?? ''}'.trim(),
-        );
-      }
-    } catch (e) {
-      debugPrint('Failed to create Firebase user from phone.email: $e');
-    }
-  }
-
   // Sign out
   Future<void> signOut() async {
     try {
@@ -228,8 +234,10 @@ class ComprehensiveAuthService with ChangeNotifier {
         _googleSignIn.signOut(),
       ]);
 
-      // Clear backend token
+      // Clear backend token and verification ID
       await _clearBackendToken();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('verification_id');
 
       _firebaseUser = null;
       _backendUser = null;
@@ -263,5 +271,4 @@ class ComprehensiveAuthService with ChangeNotifier {
       notifyListeners();
     }
   }
-
 }
