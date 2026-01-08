@@ -141,7 +141,12 @@ authRouter.post('/login', async (req, res) => {
         // Ensure user document is initialized with roles
         await initializeUser(userRecord.uid, userRecord.phoneNumber);
 
-        const token = jwt.sign({ uid: userRecord.uid }, process.env.JWT_SECRET_KEY); // Replace with a real secret
+        // Fetch user data to get the active role
+        const userDoc = await db.collection('users').doc(userRecord.uid).get();
+        const activeRole = userDoc.data()?.activeRole || 'passenger';
+
+        // Generate a token with uid and role
+        const token = jwt.sign({ uid: userRecord.uid, role: activeRole }, process.env.JWT_SECRET_KEY);
         res.status(200).json({ token });
     } catch (error) {
         res.status(500).json({ message: `Error processing login: ${error.message}` });
@@ -268,6 +273,17 @@ userRouter.post('/set-role', async (req, res) => {
         res.status(500).json({ message: `Error setting role: ${error.message}` });
     }
 });
+
+userRouter.get('/test-role', (req, res) => {
+    const { uid, role } = req.user;
+    res.status(200).json({
+        message: 'Role test successful.',
+        uid,
+        role: role || 'No role assigned in token'
+    });
+});
+
+
 
 apiRouter.use('/user', userRouter);
 
