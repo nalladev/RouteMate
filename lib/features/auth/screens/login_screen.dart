@@ -73,9 +73,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Future<bool> _sendPhoneOTP(String phone) async {
     try {
-      // Format phone number
-      final formattedPhone = _formatPhoneNumber(phone);
-
       // This is a simplified implementation - in a real app you'd use phone.email's API
       // For now, we'll use the PhoneLoginButton's underlying functionality
       return true;
@@ -184,6 +181,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     setState(() {
       _errorMessage = message;
     });
+  }
+
+  void _showEmailAuthDialog() {
+    // This is a placeholder for phone.email service integration
+    // In a real implementation, you would integrate with their email auth flow
+    _showError('Email authentication via phone.email service not yet implemented');
   }
 
   Widget _buildPhoneTab() {
@@ -300,23 +303,21 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
                 ),
           const SizedBox(height: 16),
-          // Fallback to phone.email widget
-          EmailLoginButton(
-            borderRadius: 8,
-            buttonColor: Colors.green.shade300,
-            label: 'Use Phone.email Service',
-            onSuccess: (String accessToken, String jwtToken) {
-              if (mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OTPScreen(
-                      accessToken: accessToken,
-                    ),
-                  ),
-                );
-              }
+          // Alternative email authentication using phone.email service
+          ElevatedButton(
+            onPressed: () {
+              // Show dialog or navigate to email input for phone.email service
+              _showEmailAuthDialog();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade300,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Use Phone.Email Service for Email'),
           ),
         ],
       ),

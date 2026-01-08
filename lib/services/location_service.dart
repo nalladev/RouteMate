@@ -146,12 +146,6 @@ class LocationService with ChangeNotifier {
             status: LocationStatus.deniedForever,
             errorMessage: 'Location permission permanently denied. Enable it in system settings.',
           );
-
-        default:
-          return const LocationResult(
-            status: LocationStatus.error,
-            errorMessage: 'Unknown permission status.',
-          );
       }
     } on TimeoutException {
       return const LocationResult(

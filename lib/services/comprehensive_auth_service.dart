@@ -88,12 +88,18 @@ class ComprehensiveAuthService with ChangeNotifier {
       // Authenticate with backend using Firebase token
       final backendToken = await _apiService.authenticateWithFirebaseToken(idToken);
 
-      if (backendToken != null) {
+      if (backendToken != null && backendToken.isNotEmpty) {
         await _saveBackendToken(backendToken);
         _apiService.setAuthToken(backendToken);
 
         // Get user profile from backend
-        _backendUser = await _apiService.getUserProfile();
+        try {
+          _backendUser = await _apiService.getUserProfile();
+        } catch (e) {
+          debugPrint('Failed to get user profile: $e');
+          // Clear invalid token
+          await _clearBackendToken();
+        }
       }
     } catch (e) {
       debugPrint('Backend authentication failed: $e');
