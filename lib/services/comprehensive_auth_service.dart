@@ -45,12 +45,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   }
 
   void _initializeGoogleSignIn() {
-    _googleSignIn = GoogleSignIn(
-      scopes: [
-        'email',
-        'profile',
-      ],
-    );
+    _googleSignIn = GoogleSignIn.instance;
   }
 
   // Getters
@@ -83,6 +78,7 @@ class ComprehensiveAuthService with ChangeNotifier {
 
       // Get Firebase ID token
       final idToken = await _firebaseUser!.getIdToken();
+      if (idToken == null) return;
 
       // Authenticate with backend using Firebase token
       final backendToken = await _apiService.authenticateWithFirebaseToken(idToken);
@@ -110,10 +106,123 @@ class ComprehensiveAuthService with ChangeNotifier {
     await prefs.setString(_backendTokenKey, token);
   }
 
+  Future<void> _setBackendToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_backendTokenKey, token);
+    _apiService.setAuthToken(token);
+  }
+
   Future<void> _clearBackendToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_backendTokenKey);
     _apiService.setAuthToken(null);
+  }
+
+  // Phone.email OTP authentication
+  // This creates a Firebase session after phone.email OTP verification
+  Future<AuthResult> handlePhoneEmailOTPSuccess(
+    String phoneNumber,
+    String? accessToken,
+    String? jwtToken,
+  ) async {
+    try {
+      // Use the JWT token from phone.email to authenticate with Firebase
+      // The phone.email service provides a JWT that can be used for custom authentication
+      
+      if (jwtToken == null) {
+        return AuthResult.failure('JWT token is required for authentication', AuthMethod.phone);
+      }
+
+      try {
+        // Sign in using custom token from phone.email
+        final userCredential = await _firebaseAuth.signInWithCustomToken(jwtToken);
+        
+        _firebaseUser = userCredential.user;
+        
+        // Now authenticate with backend using the Firebase token
+        final idToken = await _firebaseUser?.getIdToken();
+        if (idToken != null) {
+          // Send to backend for token exchange
+          final token = await _apiService.authenticateWithFirebaseToken(idToken);
+          
+          if (token != null) {
+            await _setBackendToken(token);
+            
+            // Fetch user profile
+            _backendUser = await _apiService.getUserProfile();
+            notifyListeners();
+            
+            return AuthResult.success(_firebaseUser, AuthMethod.phone);
+          }
+        }
+        
+        return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
+      } on FirebaseAuthException {
+        // If custom token fails, create a new account with email
+        final email = '$phoneNumber@phoneemail.app';
+        try {
+          // Create account with phone number-based email
+          final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+            email: email,
+            password: _generateSecurePassword(phoneNumber),
+          );
+          
+          await userCredential.user?.updateDisplayName(phoneNumber);
+          _firebaseUser = userCredential.user;
+          
+          // Authenticate with backend
+          final idToken = await _firebaseUser?.getIdToken();
+          if (idToken != null) {
+            final token = await _apiService.authenticateWithFirebaseToken(idToken);
+            
+            if (token != null) {
+              await _setBackendToken(token);
+              _backendUser = await _apiService.getUserProfile();
+              notifyListeners();
+              return AuthResult.success(_firebaseUser, AuthMethod.phone);
+            }
+          }
+          
+          return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
+        } on FirebaseAuthException catch (createError) {
+          if (createError.code == 'email-already-in-use') {
+            // User exists, sign them in
+            final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+              email: email,
+              password: _generateSecurePassword(phoneNumber),
+            );
+            _firebaseUser = userCredential.user;
+            
+            final idToken = await _firebaseUser?.getIdToken();
+            if (idToken != null) {
+              final token = await _apiService.authenticateWithFirebaseToken(idToken);
+              
+              if (token != null) {
+                await _setBackendToken(token);
+                _backendUser = await _apiService.getUserProfile();
+                notifyListeners();
+                return AuthResult.success(_firebaseUser, AuthMethod.phone);
+              }
+            }
+            
+            return AuthResult.failure('Failed to authenticate with backend', AuthMethod.phone);
+          }
+          
+          return AuthResult.failure('Authentication failed: ${createError.message}', AuthMethod.phone);
+        }
+      }
+    } catch (e) {
+      debugPrint('Phone authentication error: $e');
+      return AuthResult.failure('Phone authentication failed: $e', AuthMethod.phone);
+    }
+  }
+  
+  // Generate a consistent secure password from phone number
+  String _generateSecurePassword(String phoneNumber) {
+    // Create a deterministic password from phone number
+    // This ensures same phone number always gets the same password
+    final hash = phoneNumber.codeUnits.fold(0, (a, b) => a + b);
+    return 'PhoneAuth${hash.toString().padLeft(10, '0')}!@#';
   }
 
   // Phone authentication using Firebase Auth
@@ -205,30 +314,30 @@ class ComprehensiveAuthService with ChangeNotifier {
   // Google Sign-In - Simplified implementation
   Future<AuthResult> signInWithGoogle() async {
     try {
-      // Check if Google Sign-In is available
-      if (!await _googleSignIn.isSignedIn()) {
-        // Sign out any existing user first
-        await _googleSignIn.signOut();
-      }
-
-      // Attempt to sign in
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Attempt to sign in (try lightweight first, then interactive)
+      var googleUser = await _googleSignIn.attemptLightweightAuthentication();
+      
+      googleUser ??= await _googleSignIn.authenticate();
 
       if (googleUser == null) {
         return AuthResult.failure('Google Sign-In was cancelled', AuthMethod.google);
       }
 
-      // Get authentication details
+      // Get authentication details (idToken)
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
+      // Get access token via authorization client
+      final authClient = googleUser.authorizationClient;
+      final clientAuth = await authClient.authorizeScopes([]);
+
       // Check if we have valid tokens
-      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+      if (googleAuth.idToken == null) {
         return AuthResult.failure('Failed to get Google authentication tokens', AuthMethod.google);
       }
 
       // Create Firebase credential
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: clientAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 

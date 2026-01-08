@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:routemate/features/auth/screens/otp_screen.dart';
+import 'package:phone_email_auth/phone_email_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:routemate/services/comprehensive_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,76 +13,20 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocusNode = FocusNode();
-  bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize phone.email with your client ID
+    PhoneEmail.initializeApp(clientId: '11787517661743701617');
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
     _phoneFocusNode.dispose();
     super.dispose();
-  }
-
-  String _formatPhoneNumber(String input) {
-    // Remove all non-digit characters
-    String digits = input.replaceAll(RegExp(r'[^\d]'), '');
-
-    // Add country code if not present
-    if (digits.isNotEmpty && !digits.startsWith('1')) {
-      digits = '1$digits';
-    }
-
-    // Format as +1XXXXXXXXXX
-    return '+$digits';
-  }
-
-  bool _isValidPhoneNumber(String phone) {
-    // Remove all non-digit characters
-    String digits = phone.replaceAll(RegExp(r'[^\d]'), '');
-
-    // Check if it's a valid US phone number (10 digits) or with country code (11 digits starting with 1)
-    return digits.length == 10 || (digits.length == 11 && digits.startsWith('1'));
-  }
-
-  void _sendOTP() {
-    String phoneNumber = _phoneController.text.trim();
-
-    if (phoneNumber.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter your phone number';
-      });
-      return;
-    }
-
-    if (!_isValidPhoneNumber(phoneNumber)) {
-      setState(() {
-        _errorMessage = 'Please enter a valid phone number';
-      });
-      return;
-    }
-
-    // Format the phone number
-    String formattedPhone = _formatPhoneNumber(phoneNumber);
-
-    setState(() {
-      _errorMessage = null;
-      _isLoading = true;
-    });
-
-    // Navigate to OTP screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OTPScreen(phoneNumber: formattedPhone),
-      ),
-    ).then((_) {
-      // Reset loading state when returning from OTP screen
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
   }
 
   @override
@@ -116,13 +61,40 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Subtitle
               Text(
-                'Enter your phone number to get started',
+                'Sign in with your phone number',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 48),
+
+              // Phone Login Button (opens native phone.email UI)
+              PhoneLoginButton(
+                borderRadius: 12,
+                buttonColor: Theme.of(context).primaryColor,
+                label: 'Sign in with Phone',
+                onSuccess: (String accessToken, String jwtToken) {
+                  // Handle successful phone authentication
+                  if (mounted) {
+                    _handlePhoneAuthSuccess(accessToken, jwtToken);
+                  }
+                },
+              ),
+              const SizedBox(height: 32),
+
+              // Divider
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey[300])),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR', style: TextStyle(color: Colors.grey[600])),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey[300])),
+                ],
+              ),
+              const SizedBox(height: 32),
 
               // Error Message
               if (_errorMessage != null)
@@ -164,88 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-              // Phone Number Input
-              TextField(
-                controller: _phoneController,
-                focusNode: _phoneFocusNode,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.done,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  hintText: '(555) 123-4567',
-                  prefixIcon: const Icon(Icons.phone),
-                  prefixText: '+1 ',
-                  prefixStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).primaryColor,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  enabled: !_isLoading,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                  _PhoneNumberFormatter(),
-                ],
-                onSubmitted: (_) => _sendOTP(),
-              ),
-              const SizedBox(height: 32),
-
-              // Get OTP Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _sendOTP,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Get OTP',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-              const SizedBox(height: 24),
-
               // Terms and Privacy
+              const Spacer(),
               Text(
                 'By continuing, you agree to our Terms of Service and Privacy Policy',
                 textAlign: TextAlign.center,
@@ -259,42 +151,40 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
 
-// Custom formatter for phone numbers
-class _PhoneNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
+  Future<void> _handlePhoneAuthSuccess(String accessToken, String jwtToken) async {
+    // Create Firebase session from phone.email authentication
+    final authService = Provider.of<ComprehensiveAuthService>(context, listen: false);
+    
+    setState(() {
+      _errorMessage = null;
+    });
 
-    if (text.isEmpty) {
-      return newValue;
+    try {
+      // Use the phone.email tokens to create a Firebase session
+      final result = await authService.handlePhoneEmailOTPSuccess(
+        _phoneController.text,
+        accessToken,
+        jwtToken,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        // Navigate to home page
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        setState(() {
+          _errorMessage = result.message;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Authentication failed: $e';
+        });
+      }
     }
-
-    final buffer = StringBuffer();
-
-    // Format as (XXX) XXX-XXXX
-    for (int i = 0; i < text.length && i < 10; i++) {
-      if (i == 0) {
-        buffer.write('(');
-      }
-      if (i == 3) {
-        buffer.write(') ');
-      }
-      if (i == 6) {
-        buffer.write('-');
-      }
-      buffer.write(text[i]);
-    }
-
-    final formattedText = buffer.toString();
-
-    return TextEditingValue(
-      text: formattedText,
-      selection: TextSelection.collapsed(offset: formattedText.length),
-    );
   }
 }
+

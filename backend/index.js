@@ -194,7 +194,7 @@ authRouter.post('/login', async (req, res) => {
 });
 
 authRouter.post('/firebase', async (req, res) => {
-    const { firebaseToken } = req.body;
+    const { firebaseToken, phoneNumber } = req.body;
     if (!firebaseToken) {
         return res.status(400).json({ message: 'Firebase token is required.' });
     }
@@ -202,7 +202,7 @@ authRouter.post('/firebase', async (req, res) => {
     try {
         // Verify Firebase token
         const decodedToken = await auth.verifyIdToken(firebaseToken);
-        const { uid, phone_number, email } = decodedToken;
+        const { uid } = decodedToken;
 
         // Check if user exists in Firestore
         let userDoc = await db.collection('users').doc(uid).get();
@@ -211,8 +211,8 @@ authRouter.post('/firebase', async (req, res) => {
             // Create new user in Firestore
             const userData = {
                 uid: uid,
-                phone: phone_number || '',
-                email: email || '',
+                phone: phoneNumber || '',
+                email: '', // Phone-only authentication doesn't provide email
                 walletPoints: 100, // Welcome bonus
                 createdAt: FieldValue.serverTimestamp(),
                 stats: {
