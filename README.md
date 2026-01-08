@@ -1,8 +1,8 @@
 # RouteMate
 
-A new Flutter project.
+A new Flutter project. RouteMate is a ridesharing application.
 
-## Getting Started
+## Getting Started 
 
 This project is a starting point for a Flutter application.
 

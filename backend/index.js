@@ -27,6 +27,7 @@ function startSelfPing() {
     selfPing(); // Initial ping
     setInterval(selfPing, PING_INTERVAL);
 }
+
 const port = 3000;
 
 // Middleware
