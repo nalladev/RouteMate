@@ -403,12 +403,19 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
                   TextButton(
                     onPressed: () async {
                       final result = await _locationService.retryPermission();
-                      if (result.isSuccess) {
+                      if (result.isSuccess && result.position != null) {
                         setState(() {
                           _currentLocation = result.position;
+                          _loggedFirstLocation = false;
                         });
+                        // Restart location updates and listening
                         await _locationService.startLocationUpdates();
+                        if (_locationSubscription != null) {
+                          await _locationSubscription!.cancel();
+                        }
                         _listenToLocationChanges();
+                      } else {
+                        setState(() {}); // Force UI update even if permission was denied
                       }
                     },
                     child: const Text('Retry'),

@@ -410,6 +410,10 @@ userRouter.get('/wallet', async (req, res) => {
 userRouter.get('/rewards', async (req, res) => {
     const { uid } = req.user;
     try {
+        // Fetch rewards ordered by dateEarned descending
+        // Note: This query requires a composite index in Firestore:
+        // Index on: rewards collection, userId (Ascending), dateEarned (Descending)
+        // You can create this index at: https://console.firebase.google.com
         const rewardsSnapshot = await db.collection('rewards')
             .where('userId', '==', uid)
             .orderBy('dateEarned', 'desc')
@@ -428,6 +432,7 @@ userRouter.get('/rewards', async (req, res) => {
         
         res.status(200).json({ rewards });
     } catch (error) {
+        console.error('Error fetching rewards:', error);
         res.status(500).json({ message: `Error fetching rewards: ${error.message}` });
     }
 });

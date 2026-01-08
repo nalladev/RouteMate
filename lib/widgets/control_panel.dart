@@ -91,17 +91,21 @@ class ControlPanel extends StatelessWidget {
           ),
         ),
         if (suggestions.isNotEmpty)
-          SizedBox(
-            height: 150,
-            child: ListView.builder(
-              itemCount: suggestions.length,
-              itemBuilder: (context, index) {
-                final suggestion = suggestions[index];
-                return ListTile(
-                  title: Text(suggestion.displayName, maxLines: 2),
-                  onTap: () => onSuggestionSelected(suggestion),
-                );
-              },
+          SingleChildScrollView(
+            child: SizedBox(
+              height: 150,
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: suggestions.length,
+                itemBuilder: (context, index) {
+                  final suggestion = suggestions[index];
+                  return ListTile(
+                    title: Text(suggestion.displayName, maxLines: 2),
+                    onTap: () => onSuggestionSelected(suggestion),
+                  );
+                },
+              ),
             ),
           ),
         const SizedBox(height: 12),
