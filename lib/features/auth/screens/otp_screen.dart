@@ -1,6 +1,5 @@
-
 import 'package:flutter/material.dart';
-import 'package:phone_email_auth/phone_email_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -12,38 +11,186 @@ class OTPScreen extends StatefulWidget {
 
 class _OTPScreenState extends State<OTPScreen> {
   final _otpController = TextEditingController();
+  bool _isLoading = false;
+  String? _verificationId;
+  int? _resendToken;
+  bool _codeSent = false;
 
   @override
   void initState() {
     super.initState();
-    _sendOtp();
+    _sendOTP();
   }
 
-  void _sendOtp() async {
-    // Corrected method name to camelCase
-    PhoneEmail.sendOtp(
-      phone: widget.phoneNumber,
-    );
-  }
-
-  void _verifyOtp(String otp) async {
-    // Corrected method name to camelCase
-    final res = await PhoneEmail.verifyOtp(
-      phone: widget.phoneNumber,
-      otp: otp,
-    );
+  Future<void> _sendOTP() async {
     if (!mounted) return;
 
-    if (res.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP Verified Successfully!')),
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: widget.phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification (Android only)
+          await _signInWithCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            _showError('Failed to send OTP: ${e.message}');
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (mounted) {
+            setState(() {
+              _verificationId = verificationId;
+              _resendToken = resendToken;
+              _codeSent = true;
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('OTP sent successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
       );
-      Navigator.of(context).pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP Verification Failed: ${res.message}')),
-      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showError('Failed to send OTP: $e');
+      }
     }
+  }
+
+  Future<void> _verifyOTP() async {
+    if (_otpController.text.trim().isEmpty) {
+      _showError('Please enter the OTP');
+      return;
+    }
+
+    if (_verificationId == null) {
+      _showError('Verification ID not found. Please try again.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: _otpController.text.trim(),
+      );
+
+      await _signInWithCredential(credential);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showError('Invalid OTP. Please try again.');
+      }
+    }
+  }
+
+  Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (mounted && userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Phone number verified successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate back to the main app
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showError('Authentication failed: $e');
+      }
+    }
+  }
+
+  Future<void> _resendOTP() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: widget.phoneNumber,
+        forceResendingToken: _resendToken,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _signInWithCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            _showError('Failed to resend OTP: ${e.message}');
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (mounted) {
+            setState(() {
+              _verificationId = verificationId;
+              _resendToken = resendToken;
+              _isLoading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('OTP resent successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showError('Failed to resend OTP: $e');
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
@@ -56,7 +203,9 @@ class _OTPScreenState extends State<OTPScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OTP Verification'),
+        title: const Text('Verify Phone Number'),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -64,33 +213,119 @@ class _OTPScreenState extends State<OTPScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Enter the OTP sent to ${widget.phoneNumber}.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge,
+            Icon(
+              Icons.phone_android,
+              size: 80,
+              color: Theme.of(context).primaryColor,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+            Text(
+              'Verification Code',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'We have sent a verification code to\n${widget.phoneNumber}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 32),
             TextField(
               controller: _otpController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                labelText: 'OTP',
-                hintText: '123456',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              maxLength: 6,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 8,
               ),
+              decoration: InputDecoration(
+                labelText: 'Enter OTP',
+                hintText: '------',
+                counterText: '',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).primaryColor,
+                    width: 2,
+                  ),
+                ),
+                enabled: !_isLoading && _codeSent,
+              ),
+              onSubmitted: (_) => _verifyOTP(),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                if (_otpController.text.isNotEmpty) {
-                  _verifyOtp(_otpController.text);
-                }
-              },
-              child: const Text('Verify OTP'),
-            ),
+            if (_codeSent) ...[
+              ElevatedButton(
+                onPressed: _isLoading ? null : _verifyOTP,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Verify OTP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _isLoading ? null : _resendOTP,
+                child: const Text(
+                  'Didn\'t receive code? Resend',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ] else if (!_isLoading) ...[
+              ElevatedButton(
+                onPressed: _sendOTP,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Send OTP',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const Center(
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Sending OTP...',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

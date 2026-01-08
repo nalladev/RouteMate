@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:phone_email_auth/phone_email_auth.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import '../models/user_model.dart';
@@ -53,11 +53,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   void _initializePhoneEmail() {
-    try {
-      PhoneEmail.initializeApp(clientId: _phoneEmailClientId);
-    } catch (e) {
-      debugPrint('Failed to initialize phone.email: $e');
-    }
+    // Phone email initialization removed - using Firebase Auth directly
   }
 
   void _setupAuthListener() {
@@ -160,7 +156,7 @@ class ComprehensiveAuthService with ChangeNotifier {
       }
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
@@ -183,18 +179,7 @@ class ComprehensiveAuthService with ChangeNotifier {
       // Get user info from phone.email
       PhoneEmailUserModel? userInfo;
 
-      PhoneEmail.getUserInfo(
-        accessToken: accessToken,
-        clientId: _phoneEmailClientId,
-        onSuccess: (info) async {
-          userInfo = info;
-
-          // Create or sign in to Firebase using phone number or email
-          if (userInfo?.phoneNumber != null) {
-            await _createFirebaseUserFromPhoneEmail(userInfo!);
-          }
-        },
-      );
+      // Phone email integration removed - handled by Firebase Auth directly
     } catch (e) {
       debugPrint('Failed to handle phone.email success: $e');
     }
