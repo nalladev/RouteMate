@@ -91,7 +91,7 @@ class _PointsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.2),
+            color: const Color(0x33FFA500),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -123,7 +123,7 @@ class _PointsCard extends StatelessWidget {
               'Gold Rider',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: const Color(0xE6FFFFFF),
             avatar: Icon(Icons.star, color: Colors.orange.shade800),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           ),
@@ -224,7 +224,7 @@ class _RewardCard extends StatelessWidget {
     final bool canRedeem = isRedeemable && !isLocked;
     return Card(
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: const Color(0x1A000000),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       margin: const EdgeInsets.only(bottom: 12),
       child: Stack(
@@ -289,7 +289,7 @@ class _RewardCard extends StatelessWidget {
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: const Color(0x80FFFFFF),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Center(
@@ -327,7 +327,7 @@ class _PointsHistoryTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.orange.withOpacity(0.1),
+          backgroundColor: const Color(0x1AFFA500),
           child: Icon(
             Icons.check_circle_outline,
             color: Colors.orange.shade700,
