@@ -11,7 +11,7 @@ import '../models/driver.dart';
 import '../models/ride_request.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
+import '../services/comprehensive_auth_service.dart';
 import '../services/location_service.dart';
 import '../utils/app_state.dart';
 import '../widgets/map_view.dart';
@@ -38,7 +38,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   // Services
   late ApiService _apiService;
-  late AuthService _authService;
+  late ComprehensiveAuthService _authService;
   late LocationService _locationService;
   StreamSubscription? _locationSubscription;
 
@@ -65,9 +65,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     super.initState();
     // Services are fetched from the Provider, not instantiated directly.
     _apiService = Provider.of<ApiService>(context, listen: false);
-    _authService = Provider.of<AuthService>(context, listen: false);
+    _authService = Provider.of<ComprehensiveAuthService>(context, listen: false);
     _locationService = LocationService();
-    _currentUser = _authService.user;
+    _currentUser = _authService.backendUser;
 
     _initializeApp();
   }

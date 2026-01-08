@@ -64,8 +64,9 @@ class AuthService with ChangeNotifier {
   /// Logs the user in with a phone number and saves the received token.
   Future<void> login(String phone) async {
     try {
-      final token = await _apiService.login(phone);
-      await _saveToken(token);
+      final tokenData = await _apiService.login(phone);
+      // Extract the backend token from the response
+      await _saveToken(tokenData['backendToken']!);
     } catch (e) {
       // Re-throw the exception to be handled by the UI layer.
       rethrow;

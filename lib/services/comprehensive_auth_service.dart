@@ -101,11 +101,6 @@ class ComprehensiveAuthService with ChangeNotifier {
     }
   }
 
-  Future<void> _saveBackendToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_backendTokenKey, token);
-  }
-
   Future<void> _setBackendToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_backendTokenKey, token);
@@ -170,18 +165,6 @@ class ComprehensiveAuthService with ChangeNotifier {
     } catch (e) {
       debugPrint('Phone authentication error: $e');
       return AuthResult.failure('Phone authentication failed: $e', AuthMethod.phone);
-    }
-  }
-
-  // Create a local user object for state management
-  // This doesn't interact with Firebase, just local app state
-  User? _createLocalUser(String phoneNumber) {
-    try {
-      // We return a User-like object by using Firebase's current user
-      // which will be null, so the app will treat it as authenticated via backend token
-      return _firebaseAuth.currentUser;
-    } catch (e) {
-      return null;
     }
   }
 
@@ -291,15 +274,10 @@ class ComprehensiveAuthService with ChangeNotifier {
       final authClient = googleUser.authorizationClient;
       final clientAuth = await authClient.authorizeScopes([]);
 
-      // Check if we have valid tokens
-      if (googleAuth.idToken == null) {
-        return AuthResult.failure('Failed to get Google authentication tokens', AuthMethod.google);
-      }
-
       // Create Firebase credential
       final credential = GoogleAuthProvider.credential(
         accessToken: clientAuth.accessToken,
-        idToken: googleAuth.idToken,
+        idToken: googleAuth.idToken!,
       );
 
       // Sign in to Firebase with the credential
