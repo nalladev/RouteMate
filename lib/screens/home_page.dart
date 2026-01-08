@@ -267,6 +267,10 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       _showMessage("Please select a destination.");
       return;
     }
+    // Ensure backend has a current location stored before starting session
+    if (_currentLocation != null) {
+      await _apiService.updateUserLocation(_currentLocation!);
+    }
     _showMessage('Setting you as "driving"...');
     try {
       await _apiService.startDriving(_selectedPlace!);
