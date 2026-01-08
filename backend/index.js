@@ -186,8 +186,17 @@ authRouter.post('/login', async (req, res) => {
             }
         }
 
-        const token = jwt.sign({ uid: userRecord.uid }, process.env.JWT_SECRET_KEY);
-        res.status(200).json({ token });
+        // Generate Firebase custom token (for Firebase Auth session)
+        const firebaseCustomToken = await auth.createCustomToken(userRecord.uid);
+
+        // Generate backend JWT token (for API authentication)
+        const backendToken = jwt.sign({ uid: userRecord.uid }, process.env.JWT_SECRET_KEY);
+        
+        res.status(200).json({ 
+            firebaseToken: firebaseCustomToken,
+            backendToken: backendToken,
+            uid: userRecord.uid
+        });
     } catch (error) {
         res.status(500).json({ message: `Error processing login: ${error.message}` });
     }
@@ -237,9 +246,17 @@ authRouter.post('/firebase', async (req, res) => {
             });
         }
 
-        // Generate backend JWT token
-        const token = jwt.sign({ uid: uid }, process.env.JWT_SECRET_KEY);
-        res.status(200).json({ token });
+        // Generate Firebase custom token (for Firebase Auth session)
+        const firebaseCustomToken = await auth.createCustomToken(uid);
+
+        // Generate backend JWT token (for API authentication)
+        const backendToken = jwt.sign({ uid: uid }, process.env.JWT_SECRET_KEY);
+        
+        res.status(200).json({ 
+            firebaseToken: firebaseCustomToken,
+            backendToken: backendToken,
+            uid: uid
+        });
     } catch (error) {
         console.error('Firebase token verification failed:', error);
         res.status(401).json({ message: 'Invalid Firebase token.' });

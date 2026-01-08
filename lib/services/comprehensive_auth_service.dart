@@ -81,11 +81,11 @@ class ComprehensiveAuthService with ChangeNotifier {
       if (idToken == null) return;
 
       // Authenticate with backend using Firebase token
-      final backendToken = await _apiService.authenticateWithFirebaseToken(idToken);
+      final tokenData = await _apiService.authenticateWithFirebaseToken(idToken);
 
-      if (backendToken != null && backendToken.isNotEmpty) {
-        await _saveBackendToken(backendToken);
-        _apiService.setAuthToken(backendToken);
+      if (tokenData != null && tokenData['backendToken'] != null && tokenData['backendToken']!.isNotEmpty) {
+        // Save and set the backend token for API calls
+        await _setBackendToken(tokenData['backendToken']!);
 
         // Get user profile from backend
         try {
@@ -127,26 +127,35 @@ class ComprehensiveAuthService with ChangeNotifier {
   ) async {
     try {
       // Use the JWT token from phone.email directly with the backend
-      // No need to create Firebase users - the backend handles everything
+      // The backend will create a custom Firebase token and return both tokens
       
       if (jwtToken == null) {
         return AuthResult.failure('JWT token is required for authentication', AuthMethod.phone);
       }
 
       try {
-        // Authenticate directly with backend using phone.email JWT
-        final token = await _apiService.authenticateWithPhoneEmail(jwtToken);
+        // Authenticate with backend using phone.email JWT
+        final tokenData = await _apiService.authenticateWithPhoneEmail(jwtToken);
         
-        if (token != null) {
-          // Store the backend token
-          await _setBackendToken(token);
+        if (tokenData != null && tokenData['firebaseToken'] != null && tokenData['backendToken'] != null) {
+          // Sign into Firebase using the custom token returned by the backend
+          try {
+            final userCredential = await _firebaseAuth.signInWithCustomToken(tokenData['firebaseToken']!);
+            _firebaseUser = userCredential.user;
+          } catch (e) {
+            debugPrint('Failed to sign in with Firebase custom token: $e');
+            return AuthResult.failure('Firebase sign-in failed: $e', AuthMethod.phone);
+          }
           
-          // Fetch user profile
-          _backendUser = await _apiService.getUserProfile();
+          // Store the backend token for API calls
+          await _setBackendToken(tokenData['backendToken']!);
           
-          // Create a lightweight Firebase user representation for local state
-          // We don't store anything in Firebase, just keep track locally
-          _firebaseUser = _createLocalUser(phoneNumber);
+          // Fetch user profile from backend
+          try {
+            _backendUser = await _apiService.getUserProfile();
+          } catch (e) {
+            debugPrint('Failed to get user profile: $e');
+          }
           
           notifyListeners();
           

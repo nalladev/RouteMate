@@ -126,19 +126,31 @@ class ApiService {
 
   // --- Authentication API ---
 
-  Future<String> login(String phone) async {
+  /// Logs in with phone number and returns both Firebase and backend tokens.
+  /// Returns: {'firebaseToken': String, 'backendToken': String, 'uid': String}
+  Future<Map<String, String>> login(String phone) async {
     final result = await _post('auth/login', {'phone': phone});
-    if (result['token'] is! String) {
-      throw ApiException('Invalid token received from server.');
+    if (result['firebaseToken'] is! String || result['backendToken'] is! String) {
+      throw ApiException('Invalid tokens received from server.');
     }
-    return result['token'];
+    return {
+      'firebaseToken': result['firebaseToken'] as String,
+      'backendToken': result['backendToken'] as String,
+      'uid': result['uid'] as String? ?? '',
+    };
   }
 
-  Future<String?> authenticateWithFirebaseToken(String firebaseIdToken) async {
+  /// Authenticates with Firebase token and returns both the Firebase custom token and backend token.
+  /// Returns: {'firebaseToken': String, 'backendToken': String, 'uid': String}
+  Future<Map<String, String>?> authenticateWithFirebaseToken(String firebaseIdToken) async {
     try {
       final result = await _post('auth/firebase', {'firebaseToken': firebaseIdToken});
-      if (result['token'] is String) {
-        return result['token'];
+      if (result['firebaseToken'] is String && result['backendToken'] is String) {
+        return {
+          'firebaseToken': result['firebaseToken'] as String,
+          'backendToken': result['backendToken'] as String,
+          'uid': result['uid'] as String? ?? '',
+        };
       }
       return null;
     } catch (e) {
@@ -147,11 +159,17 @@ class ApiService {
     }
   }
 
-  Future<String?> authenticateWithPhoneEmail(String jwtToken) async {
+  /// Authenticates with phone.email JWT token and returns both tokens.
+  /// Returns: {'firebaseToken': String, 'backendToken': String, 'uid': String}
+  Future<Map<String, String>?> authenticateWithPhoneEmail(String jwtToken) async {
     try {
       final result = await _post('auth/phone-email', {'jwtToken': jwtToken});
-      if (result['token'] is String) {
-        return result['token'];
+      if (result['firebaseToken'] is String && result['backendToken'] is String) {
+        return {
+          'firebaseToken': result['firebaseToken'] as String,
+          'backendToken': result['backendToken'] as String,
+          'uid': result['uid'] as String? ?? '',
+        };
       }
       return null;
     } catch (e) {
