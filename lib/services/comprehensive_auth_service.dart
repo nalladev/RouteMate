@@ -31,7 +31,9 @@ class ComprehensiveAuthService with ChangeNotifier {
   static const String _backendTokenKey = 'backend_auth_token';
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
   final ApiService _apiService;
 
   // Current user state
@@ -39,7 +41,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   UserModel? _backendUser;
   bool _isInitialized = false;
 
-  ComprehensiveAuthService(this._apiService) : _googleSignIn = GoogleSignIn() {
+  ComprehensiveAuthService(this._apiService) {
     _setupAuthListener();
   }
 
@@ -73,11 +75,6 @@ class ComprehensiveAuthService with ChangeNotifier {
 
       // Get Firebase ID token
       final idToken = await _firebaseUser!.getIdToken();
-
-      if (idToken == null) {
-        debugPrint('Failed to get Firebase ID token');
-        return;
-      }
 
       // Authenticate with backend using Firebase token
       final backendToken = await _apiService.authenticateWithFirebaseToken(idToken);
