@@ -19,6 +19,7 @@ class MapView extends StatelessWidget {
   final List<Driver> availableDrivers;
   final Function(bool) onMapReady;
   final Function(RideRequest) onPickupPassenger;
+  final VoidCallback onUserPan;
 
   const MapView({
     super.key,
@@ -31,6 +32,7 @@ class MapView extends StatelessWidget {
     required this.availableDrivers,
     required this.onMapReady,
     required this.onPickupPassenger,
+    required this.onUserPan,
   });
 
   @override
@@ -44,6 +46,11 @@ class MapView extends StatelessWidget {
         initialCenter: mapCenter,
         initialZoom: currentLocation != null ? 15.0 : 10.0,
         onMapReady: () => onMapReady(true),
+        onMapEvent: (event) {
+          if (event is MapEventMoveStart && event.source != MapEventSource.mapController) {
+            onUserPan();
+          }
+        },
       ),
       children: [
         TileLayer(

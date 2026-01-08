@@ -41,6 +41,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   late ComprehensiveAuthService _authService;
   late LocationService _locationService;
   StreamSubscription? _locationSubscription;
+  bool _followLocation = true;
 
   // App Data
   UserModel? _currentUser;
@@ -117,7 +118,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _currentLocation = newPos;
         });
 
-        if (_isMapReady && _appState != AppState.driving) {
+        if (_isMapReady && _followLocation) {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
 
@@ -198,6 +199,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _routePoints = [];
           _relevantRideRequests = [];
           _availableDrivers = [];
+          _followLocation = true;
         });
       }
     }
@@ -258,7 +260,15 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         }
       }
     } on ApiException catch (e) {
-      _showMessage("Could not get route: ${e.message}");
+      // OSRM returns 404 for impossible/very long over-water routes; show a helpful message
+      if (e.message.toLowerCase().contains('route not found')) {
+        if (mounted) {
+          setState(() => _routePoints = [start, end]);
+        }
+        _showMessage("No driving route found between these locations. Showing a straight-line preview.");
+      } else {
+        _showMessage("Could not get route: ${e.message}");
+      }
     }
   }
 
@@ -371,6 +381,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           },
           onPickupPassenger: (rideRequest) =>
               _handlePassengerPickup(rideRequest),
+              onUserPan: () {
+                if (mounted) setState(() => _followLocation = false);
+              },
         ),
         ControlPanel(
           appState: _appState,
@@ -385,6 +398,20 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           onReset: _resetApp,
         ),
         ProfileButton(onPressed: _showWallet),
+        Positioned(
+          top: 110, // sits just below the profile button
+          right: 16,
+          child: FloatingActionButton.small(
+            heroTag: 'recenter',
+            onPressed: () {
+              if (_currentLocation != null) {
+                setState(() => _followLocation = true);
+                _mapController.move(_currentLocation!, _mapController.camera.zoom);
+              }
+            },
+            child: const Icon(Icons.my_location),
+          ),
+        ),
         // Show location status indicator when location is not available
         if (_currentLocation == null)
           Positioned(
