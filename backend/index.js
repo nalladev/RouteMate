@@ -193,6 +193,59 @@ authRouter.post('/login', async (req, res) => {
     }
 });
 
+authRouter.post('/firebase', async (req, res) => {
+    const { firebaseToken } = req.body;
+    if (!firebaseToken) {
+        return res.status(400).json({ message: 'Firebase token is required.' });
+    }
+
+    try {
+        // Verify Firebase token
+        const decodedToken = await auth.verifyIdToken(firebaseToken);
+        const { uid, phone_number, email } = decodedToken;
+
+        // Check if user exists in Firestore
+        let userDoc = await db.collection('users').doc(uid).get();
+        
+        if (!userDoc.exists) {
+            // Create new user in Firestore
+            const userData = {
+                uid: uid,
+                phone: phone_number || '',
+                email: email || '',
+                walletPoints: 100, // Welcome bonus
+                createdAt: FieldValue.serverTimestamp(),
+                stats: {
+                    totalRidesAsDriver: 0,
+                    totalRidesAsPassenger: 0,
+                    rating: 5.0,
+                    totalPointsEarned: 100
+                }
+            };
+
+            await db.collection('users').doc(uid).set(userData);
+
+            // Add welcome reward
+            await db.collection('rewards').add({
+                userId: uid,
+                type: 'bonus',
+                amount: 100,
+                description: 'Welcome bonus',
+                metadata: { category: 'signup' },
+                status: 'active',
+                dateEarned: FieldValue.serverTimestamp()
+            });
+        }
+
+        // Generate backend JWT token
+        const token = jwt.sign({ uid: uid }, process.env.JWT_SECRET_KEY);
+        res.status(200).json({ token });
+    } catch (error) {
+        console.error('Firebase token verification failed:', error);
+        res.status(401).json({ message: 'Invalid Firebase token.' });
+    }
+});
+
 apiRouter.use('/auth', authRouter);
 
 // --- User Routes ---

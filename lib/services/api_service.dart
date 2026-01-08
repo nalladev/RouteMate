@@ -52,7 +52,7 @@ class ApiService {
       throw ApiException('Failed to connect to the server. Please check your network connection.');
     }
   }
-  
+
   Future<dynamic> _put(String endpoint, [Map<String, dynamic>? data]) async {
     try {
       final response = await http.put(
@@ -132,6 +132,19 @@ class ApiService {
       throw ApiException('Invalid token received from server.');
     }
     return result['token'];
+  }
+
+  Future<String?> authenticateWithFirebaseToken(String firebaseIdToken) async {
+    try {
+      final result = await _post('auth/firebase', {'firebaseToken': firebaseIdToken});
+      if (result['token'] is String) {
+        return result['token'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Firebase token authentication failed: $e');
+      return null;
+    }
   }
 
   // --- User API ---

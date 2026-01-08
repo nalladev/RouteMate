@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlng;
-import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 
 import '../models/place_suggestion.dart';
@@ -13,6 +12,7 @@ import '../models/ride_request.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../utils/app_state.dart';
 import '../widgets/map_view.dart';
 import '../widgets/control_panel.dart';
@@ -39,13 +39,13 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // Services
   late ApiService _apiService;
   late AuthService _authService;
-  final Location _locationService = Location();
+  late LocationService _locationService;
   StreamSubscription? _locationSubscription;
 
   // App Data
   UserModel? _currentUser;
   int _walletPoints = 0;
-  final _locationNotifier = ValueNotifier<latlng.LatLng?>(null);
+  latlng.LatLng? _currentLocation;
   List<latlng.LatLng> _routePoints = [];
 
   // Search-specific state
@@ -66,6 +66,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     // Services are fetched from the Provider, not instantiated directly.
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<AuthService>(context, listen: false);
+    _locationService = LocationService();
     _currentUser = _authService.user;
 
     _initializeApp();
@@ -75,127 +76,58 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   Future<void> _initializeApp() async {
     _log('Initializing home page...');
-    final permission = await _requestLocationPermission();
-    if (permission.granted) {
-      _listenToLocationChanges();
-    } else if (permission.warning != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showMessage(permission.warning!);
-      });
-    }
     _fetchWalletPoints();
+    // Initialize location service asynchronously - don't block UI
+    _initializeLocationService();
   }
 
-  Future<_LocationCheckResult> _requestLocationPermission() async {
-    if (kIsWeb) {
-      // location_web can throw obscure TypeErrors when the Permissions API
-      // is unavailable; skip the request and rely on browser prompt.
-      _log('Skipping explicit location permission flow on web.');
-      return const _LocationCheckResult(true);
-    }
-
+  void _initializeLocationService() async {
     try {
-      bool serviceEnabled = await _locationService.serviceEnabled().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          _log('Location service check timed out');
-          return false;
-        },
-      );
-      if (!serviceEnabled) {
-        serviceEnabled = await _locationService.requestService().timeout(
-          const Duration(seconds: 5),
-          onTimeout: () {
-            _log('Location service request timed out');
-            return false;
-          },
-        );
-        if (!serviceEnabled) {
-          _log('Location services disabled.');
-          return const _LocationCheckResult(
-            false,
-            'Location services are disabled. Please enable GPS to see your position.',
-          );
+      final result = await _locationService.initialize();
+
+      if (result.isSuccess) {
+        setState(() {
+          _currentLocation = result.position;
+        });
+
+        if (!_loggedFirstLocation && result.position != null) {
+          _loggedFirstLocation = true;
+          _log('First location fix: ${result.position!.latitude}, ${result.position!.longitude}');
         }
-      }
 
-      PermissionStatus permission = await _locationService.hasPermission();
-      if (permission == PermissionStatus.denied) {
-        permission = await _locationService.requestPermission();
+        // Start listening to location updates
+        await _locationService.startLocationUpdates();
+        _listenToLocationChanges();
+      } else if (result.errorMessage != null) {
+        _log('Location initialization failed: ${result.errorMessage}');
+        // Don't show intrusive messages - just log for debugging
       }
-
-      if (permission == PermissionStatus.denied) {
-        _log('Location permission denied by user.');
-        return const _LocationCheckResult(
-          false,
-          'Location permission denied. Enable it to show your position.',
-        );
-      }
-
-      if (permission == PermissionStatus.deniedForever) {
-        _log('Location permission denied forever.');
-        return const _LocationCheckResult(
-          false,
-          'Location permission is blocked. Enable it from system settings.',
-        );
-      }
-
-      return const _LocationCheckResult(true);
-    } catch (e, st) {
-      _log('Location permission flow failed: $e');
-      _log(st.toString());
-      return const _LocationCheckResult(
-        false,
-        'Location unavailable right now. Please retry or check device settings.',
-      );
+    } catch (e) {
+      _log('Location service initialization error: $e');
     }
   }
 
   void _listenToLocationChanges() {
-    try {
-      _log('Starting location stream...');
-      _locationSubscription = _locationService.onLocationChanged.listen(
-        (LocationData newLocation) {
-          if (!mounted ||
-              newLocation.latitude == null ||
-              newLocation.longitude == null) {
-            return;
-          }
+    _locationSubscription = _locationService.locationStream.listen(
+      (locationResult) {
+        if (!mounted || !locationResult.isSuccess) return;
 
-          final newPos = latlng.LatLng(
-            newLocation.latitude!,
-            newLocation.longitude!,
-          );
-          if (!_loggedFirstLocation) {
-            _loggedFirstLocation = true;
-            _log('First location fix: ${newPos.latitude}, ${newPos.longitude}');
-          }
+        final newPos = locationResult.position!;
+        setState(() {
+          _currentLocation = newPos;
+        });
 
-          // Update location notifier without triggering full widget rebuild
-          _locationNotifier.value = newPos;
+        if (_isMapReady && _appState != AppState.driving) {
+          _mapController.move(newPos, _mapController.camera.zoom);
+        }
 
-          if (_isMapReady && _appState != AppState.driving) {
-            _mapController.move(newPos, _mapController.camera.zoom);
-          }
-          _updateUserLocationInDb(newPos);
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          _log('Location stream error: $error');
-          _log(stackTrace.toString());
-          if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showMessage(
-                'Location updates unavailable in this browser. Please allow location access or try another device.',
-              );
-            });
-          }
-          _locationSubscription?.cancel();
-        },
-      );
-    } catch (e, st) {
-      _log('Location listener failed to start: $e');
-      _log(st.toString());
-    }
+        // Update location in database asynchronously without blocking UI
+        _updateUserLocationInDb(newPos);
+      },
+      onError: (error) {
+        _log('Location stream error: $error');
+      },
+    );
   }
 
   Future<void> _updateUserLocationInDb(latlng.LatLng location) async {
@@ -203,8 +135,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     try {
       await _apiService.updateUserLocation(location);
     } on ApiException catch (e) {
-      // Silently fail or show a non-intrusive notification
+      // Silently fail - don't interrupt user experience with location update errors
       debugPrint("Failed to update location: ${e.message}");
+    } catch (e) {
+      // Handle any other exceptions silently
+      debugPrint("Location update error: $e");
     }
   }
 
@@ -291,8 +226,13 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Future<void> _getRoute() async {
-    if (_locationNotifier.value == null || _selectedPlace == null) return;
-    final start = _locationNotifier.value!;
+    if (_selectedPlace == null) {
+      _showMessage("Please select a destination first.");
+      return;
+    }
+
+    // Use current location if available, otherwise use a default location
+    final start = _currentLocation ?? _locationService.getDefaultCenter();
     final end = latlng.LatLng(
       _selectedPlace!.latitude,
       _selectedPlace!.longitude,
@@ -338,15 +278,21 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   }
 
   Future<void> _findRide() async {
-    if (_selectedPlace == null || _locationNotifier.value == null) {
+    if (_selectedPlace == null) {
       _showMessage("Please select a destination.");
       return;
     }
+
+    if (_currentLocation == null) {
+      _showMessage("Location not available. Please enable GPS or try again.");
+      return;
+    }
+
     _showMessage("Requesting a ride...");
     try {
       await _apiService.createRideRequest(
         _selectedPlace!,
-        _locationNotifier.value!,
+        _currentLocation!,
       );
       if (mounted) {
         setState(() => _appState = AppState.searching);
@@ -401,44 +347,77 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   // --- UI & HELPERS ---
 
   Widget _buildHomeContent() {
-    return ValueListenableBuilder<latlng.LatLng?>(
-      valueListenable: _locationNotifier,
-      builder: (context, currentLocation, _) {
-        return currentLocation == null
-            ? const Center(child: CircularProgressIndicator())
-            : Stack(
+    return Stack(
+      children: [
+        MapView(
+          mapController: _mapController,
+          currentLocation: _currentLocation, // Can be null, map will handle it
+          routePoints: _routePoints,
+          selectedPlace: _selectedPlace,
+          appState: _appState,
+          relevantRideRequests: _relevantRideRequests,
+          availableDrivers: _availableDrivers,
+          onMapReady: (isReady) {
+            _log('Map ready: $isReady');
+            if (mounted) setState(() => _isMapReady = isReady);
+          },
+          onPickupPassenger: (rideRequest) =>
+              _handlePassengerPickup(rideRequest),
+        ),
+        ControlPanel(
+          appState: _appState,
+          destinationController: _destinationController,
+          isSearching: _isSearching,
+          suggestions: _suggestions,
+          availableDrivers: _availableDrivers,
+          onSearchChanged: _onSearchChanged,
+          onSuggestionSelected: _handleSuggestionSelected,
+          onStartDriving: _startDriving,
+          onFindRide: _findRide,
+          onReset: _resetApp,
+        ),
+        ProfileButton(onPressed: _showWallet),
+        // Show location status indicator when location is not available
+        if (_currentLocation == null)
+          Positioned(
+            top: 100,
+            left: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                border: Border.all(color: Colors.orange.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
                 children: [
-                  MapView(
-                    mapController: _mapController,
-                    currentLocation: currentLocation,
-                    routePoints: _routePoints,
-                    selectedPlace: _selectedPlace,
-                    appState: _appState,
-                    relevantRideRequests: _relevantRideRequests,
-                    availableDrivers: _availableDrivers,
-                    onMapReady: (isReady) {
-                      _log('Map ready: $isReady');
-                      if (mounted) setState(() => _isMapReady = isReady);
+                  Icon(Icons.location_off, color: Colors.orange.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _locationService.getStatusMessage(),
+                      style: TextStyle(color: Colors.orange.shade700),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final result = await _locationService.retryPermission();
+                      if (result.isSuccess) {
+                        setState(() {
+                          _currentLocation = result.position;
+                        });
+                        await _locationService.startLocationUpdates();
+                        _listenToLocationChanges();
+                      }
                     },
-                    onPickupPassenger: (rideRequest) =>
-                        _handlePassengerPickup(rideRequest),
+                    child: const Text('Retry'),
                   ),
-                  ControlPanel(
-                    appState: _appState,
-                    destinationController: _destinationController,
-                    isSearching: _isSearching,
-                    suggestions: _suggestions,
-                    availableDrivers: _availableDrivers,
-                    onSearchChanged: _onSearchChanged,
-                    onSuggestionSelected: _handleSuggestionSelected,
-                    onStartDriving: _startDriving,
-                    onFindRide: _findRide,
-                    onReset: _resetApp,
-                  ),
-                  ProfileButton(onPressed: _showWallet),
                 ],
-              );
-      },
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -487,11 +466,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   @override
   void dispose() {
     _locationSubscription?.cancel();
+    _locationService.stopLocationUpdates();
     _destinationController.dispose();
     _mapController.dispose();
     _debounce?.cancel();
     _stopPolling();
-    _locationNotifier.dispose();
     super.dispose();
   }
 
@@ -500,10 +479,4 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
       debugPrint('[Home] $message');
     }
   }
-}
-
-class _LocationCheckResult {
-  final bool granted;
-  final String? warning;
-  const _LocationCheckResult(this.granted, [this.warning]);
 }

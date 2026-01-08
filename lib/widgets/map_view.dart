@@ -35,11 +35,14 @@ class MapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Default center: San Francisco if no location available
+    final mapCenter = currentLocation ?? const latlng.LatLng(37.7749, -122.4194);
+
     return FlutterMap(
       mapController: mapController,
       options: MapOptions(
-        initialCenter: currentLocation ?? const latlng.LatLng(0, 0),
-        initialZoom: 15.0,
+        initialCenter: mapCenter,
+        initialZoom: currentLocation != null ? 15.0 : 10.0,
         onMapReady: () => onMapReady(true),
       ),
       children: [
@@ -66,17 +69,18 @@ class MapView extends StatelessWidget {
 
   List<Marker> _buildMarkers(BuildContext context) {
     List<Marker> markers = [];
-    if (currentLocation == null) return markers;
 
-    // 1. User's current location
-    markers.add(
-      Marker(
-        point: currentLocation!,
-        width: 80,
-        height: 80,
-        child: const PulsingDot(),
-      ),
-    );
+    // 1. User's current location (only if available)
+    if (currentLocation != null) {
+      markers.add(
+        Marker(
+          point: currentLocation!,
+          width: 80,
+          height: 80,
+          child: const PulsingDot(),
+        ),
+      );
+    }
 
     // 2. Destination marker
     if (selectedPlace != null) {

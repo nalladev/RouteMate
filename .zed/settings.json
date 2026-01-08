@@ -1,0 +1,26 @@
+{
+  "required_extensions": ["dart"],
+  "auto_install_extensions": {
+    "dart": true,
+  },
+  "languages": {
+    "Dart": {
+      "language_servers": ["dart"],
+      "format_on_save": "on",
+      "formatter": "language_server",
+      "tab_size": 2,
+      "hard_tabs": false,
+    },
+  },
+  "lsp": {
+    "dart": {
+      "initialization_options": {
+        "onlyAnalyzeProjectsWithOpenFiles": false,
+        "suggestFromUnimportedLibraries": true,
+        "closingLabels": true,
+        "outline": true,
+        "flutterOutline": true,
+      },
+    },
+  },
+}
