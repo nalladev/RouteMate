@@ -10,7 +10,7 @@ class ApiConfig {
   /// - Production: 'https://your-backend-domain.com/api'
   /// 
   /// Leave empty to throw an error if not configured.
-  static const String apiBaseUrl = 'https://routemate-jpsc.onrender.com/api';
+  static const String apiBaseUrl = 'http://10.0.2.2:3000/api';
   
   /// Returns the configured API base URL.
   /// Throws an error if the URL is not configured.

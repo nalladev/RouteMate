@@ -288,6 +288,79 @@ userRouter.get('/test-role', (req, res) => {
 apiRouter.use('/user', userRouter);
 
 
+
+// --- Voucher Routes ---
+const voucherRouter = express.Router();
+voucherRouter.use(authenticateToken);
+
+// Hardcoded list of vouchers available for redemption
+const availableVouchers = [
+    { id: 'v1', title: 'Free Ride Coupon', description: 'A coupon for one free ride up to $10.', points: 1000, icon: 'directions_car' },
+    { id: 'v2', title: 'Fuel Cashback', description: 'Get $5 cashback on your next fuel purchase.', points: 1500, icon: 'local_gas_station' },
+    { id: 'v3', title: 'Food / Coffee Discount', description: '25% off at participating stores.', points: 1800, icon: 'coffee' },
+    { id: 'v4', title: '20% Off Next Airport Trip', description: 'A 20% discount on your next ride to or from the airport.', points: 2200, icon: 'airport_shuttle' },
+    { id: 'v5', title: 'Free Car Wash Voucher', description: 'One free standard car wash.', points: 2500, icon: 'local_car_wash' },
+    { id: 'v6', title: 'Priority Customer Support', description: 'Jump the queue for customer support.', points: 3000, icon: 'support_agent' },
+];
+
+// GET /api/vouchers - Fetches the list of all available vouchers
+voucherRouter.get('/', (req, res) => {
+    res.status(200).json({ vouchers: availableVouchers });
+});
+
+// POST /api/vouchers/:id/redeem - Redeems a voucher for the user
+voucherRouter.post('/:id/redeem', async (req, res) => {
+    const { uid } = req.user;
+    const { id } = req.params;
+
+    const voucher = availableVouchers.find(v => v.id === id);
+
+    if (!voucher) {
+        return res.status(404).json({ message: 'Voucher not found.' });
+    }
+
+    const userRef = db.collection('users').doc(uid);
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) {
+                throw 'User not found.';
+            }
+
+            const currentPoints = userDoc.data().walletPoints || 0;
+            if (currentPoints < voucher.points) {
+                throw 'Insufficient points.';
+            }
+
+            const newPoints = currentPoints - voucher.points;
+            
+            // Update user's wallet points
+            transaction.update(userRef, { walletPoints: newPoints });
+
+            // Add the redeemed voucher to a sub-collection
+            const redeemedVoucherRef = userRef.collection('redeemed_vouchers').doc();
+            transaction.set(redeemedVoucherRef, {
+                ...voucher,
+                redeemedAt: new Date(),
+            });
+        });
+
+        res.status(200).json({ message: `Successfully redeemed '${voucher.title}'.` });
+
+    } catch (error) {
+        // If the error is a string, it's a validation error from our transaction logic
+        if (typeof error === 'string') {
+            return res.status(400).json({ message: error });
+        }
+        // Otherwise, it's a generic server error
+        res.status(500).json({ message: `Error redeeming voucher: ${error.message}` });
+    }
+});
+
+apiRouter.use('/vouchers', voucherRouter);
+
+
 // --- Driver Routes ---
 const driverRouter = express.Router();
 driverRouter.use(authenticateToken);
