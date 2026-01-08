@@ -261,6 +261,7 @@ class ComprehensiveAuthService with ChangeNotifier {
       var googleUser = await _googleSignIn.attemptLightweightAuthentication();
       googleUser ??= await _googleSignIn.authenticate();
 
+      // ignore: unnecessary_null_comparison
       if (googleUser == null) {
         return AuthResult.failure('Google Sign-In was cancelled', AuthMethod.google);
       }
