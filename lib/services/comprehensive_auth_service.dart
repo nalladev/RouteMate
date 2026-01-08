@@ -85,6 +85,11 @@ class ComprehensiveAuthService with ChangeNotifier {
       // Get Firebase ID token
       final idToken = await _firebaseUser!.getIdToken();
 
+      if (idToken == null) {
+        debugPrint('Failed to get Firebase ID token');
+        return;
+      }
+
       // Authenticate with backend using Firebase token
       final backendToken = await _apiService.authenticateWithFirebaseToken(idToken);
 

@@ -81,25 +81,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
-  String _formatPhoneNumber(String phone) {
-    // Remove all non-digit characters
-    String digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
 
-    // If the number doesn't start with a country code, assume US and prepend +1
-    if (digitsOnly.length == 10) {
-      return '+1$digitsOnly';
-    } else if (digitsOnly.length == 11 && digitsOnly.startsWith('1')) {
-      return '+$digitsOnly';
-    } else if (!digitsOnly.startsWith('+') && digitsOnly.length > 10) {
-      return '+$digitsOnly';
-    }
-
-    // If it already looks valid, just add + if missing
-    if (!digitsOnly.startsWith('+')) {
-      return '+$digitsOnly';
-    }
-    return digitsOnly;
-  }
 
   Future<void> _signInWithEmail() async {
     final email = _emailController.text.trim();
