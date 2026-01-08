@@ -31,9 +31,7 @@ class ComprehensiveAuthService with ChangeNotifier {
   static const String _backendTokenKey = 'backend_auth_token';
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  late final GoogleSignIn _googleSignIn;
   final ApiService _apiService;
 
   // Current user state
@@ -42,7 +40,17 @@ class ComprehensiveAuthService with ChangeNotifier {
   bool _isInitialized = false;
 
   ComprehensiveAuthService(this._apiService) {
+    _initializeGoogleSignIn();
     _setupAuthListener();
+  }
+
+  void _initializeGoogleSignIn() {
+    _googleSignIn = GoogleSignIn(
+      scopes: [
+        'email',
+        'profile',
+      ],
+    );
   }
 
   // Getters
@@ -194,20 +202,31 @@ class ComprehensiveAuthService with ChangeNotifier {
     }
   }
 
-  // Google Sign-In
+  // Google Sign-In - Simplified implementation
   Future<AuthResult> signInWithGoogle() async {
     try {
-      // Trigger the authentication flow
+      // Check if Google Sign-In is available
+      if (!await _googleSignIn.isSignedIn()) {
+        // Sign out any existing user first
+        await _googleSignIn.signOut();
+      }
+
+      // Attempt to sign in
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
         return AuthResult.failure('Google Sign-In was cancelled', AuthMethod.google);
       }
 
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
-      // Create a new credential
+      // Check if we have valid tokens
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        return AuthResult.failure('Failed to get Google authentication tokens', AuthMethod.google);
+      }
+
+      // Create Firebase credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -218,6 +237,7 @@ class ComprehensiveAuthService with ChangeNotifier {
 
       return AuthResult.success(userCredential.user, AuthMethod.google);
     } catch (e) {
+      debugPrint('Google Sign-In error: $e');
       return AuthResult.failure('Google Sign-In failed: $e', AuthMethod.google);
     }
   }
