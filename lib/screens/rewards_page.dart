@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:routemate/models/reward.dart';
-import 'package:routemate/models/voucher.dart';
 import 'package:routemate/services/api_service.dart';
 
 class RewardsPage extends StatefulWidget {
@@ -13,114 +12,32 @@ class RewardsPage extends StatefulWidget {
 }
 
 class _RewardsPageState extends State<RewardsPage> {
-  late Future<void> _dataFuture;
+  late Future<void> _rewardsFuture;
   int _walletPoints = 0;
   List<Reward> _rewards = [];
-  List<Voucher> _vouchers = [];
-  bool _isRedeeming = false;
 
   @override
   void initState() {
     super.initState();
-    _dataFuture = _fetchData();
+    _rewardsFuture = _fetchData();
   }
 
   Future<void> _fetchData() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
+      // Fetch points and rewards history in parallel
       final results = await Future.wait([
         apiService.getWalletPoints(),
         apiService.getRewards(),
-        apiService.getVouchers(),
       ]);
       
-      if (mounted) {
-        setState(() {
-          _walletPoints = results[0] as int;
-          _rewards = results[1] as List<Reward>;
-          _vouchers = results[2] as List<Voucher>;
-        });
-      }
+      setState(() {
+        _walletPoints = results[0] as int;
+        _rewards = results[1] as List<Reward>;
+      });
     } catch (e) {
-      // Allow the FutureBuilder to handle this error
+      // Propagate error to be handled by the FutureBuilder
       throw Exception('Failed to load rewards data: ${e.toString()}');
-    }
-  }
-
-  Future<void> _redeemVoucher(Voucher voucher) async {
-    final shouldRedeem = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Redemption'),
-        content: Text('Are you sure you want to spend ${voucher.points} points to redeem "${voucher.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Redeem'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldRedeem != true) return;
-
-    setState(() {
-      _isRedeeming = true;
-    });
-
-    try {
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      await apiService.redeemVoucher(voucher.id);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully redeemed "${voucher.title}"!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-      // Refresh all data
-      await _fetchData();
-
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.message}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRedeeming = false;
-        });
-      }
-    }
-  }
-
-  IconData _getIconForString(String iconName) {
-    switch (iconName) {
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'local_gas_station':
-        return Icons.local_gas_station;
-      case 'coffee':
-        return Icons.coffee;
-      case 'airport_shuttle':
-        return Icons.airport_shuttle;
-      case 'local_car_wash':
-        return Icons.local_car_wash;
-      case 'support_agent':
-        return Icons.support_agent;
-      default:
-        return Icons.star;
     }
   }
 
@@ -138,88 +55,93 @@ class _RewardsPageState extends State<RewardsPage> {
         elevation: 1,
         foregroundColor: Colors.black87,
       ),
-      body: Stack(
-        children: [
-          FutureBuilder(
-            future: _dataFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && _vouchers.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: FutureBuilder(
+        future: _rewardsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              if (snapshot.hasError && _vouchers.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Error loading data. Please try again later.\n${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                );
-              }
-              
-              const int nextTierPoints = 5000;
-              final double progress = _walletPoints / nextTierPoints;
-
-              return RefreshIndicator(
-                onRefresh: _fetchData,
-                child: ListView(
-                  padding: const EdgeInsets.all(16.0),
-                  children: [
-                    _PointsCard(points: _walletPoints),
-                    const SizedBox(height: 24),
-                    _TierProgressBar(
-                      progress: progress,
-                      currentTier: 'Gold Rider',
-                      nextTier: 'Platinum',
-                      nextTierPoints: nextTierPoints,
-                    ),
-                    const SizedBox(height: 32),
-                    _SectionHeader(title: 'Redeemable Rewards'),
-                    const SizedBox(height: 16),
-                    ..._vouchers.map((voucher) => _RewardCard(
-                      icon: _getIconForString(voucher.icon),
-                      title: voucher.title,
-                      points: voucher.points,
-                      isRedeemable: _walletPoints >= voucher.points,
-                      onRedeem: () => _redeemVoucher(voucher),
-                    )).toList(),
-                    
-                    const SizedBox(height: 32),
-                    _SectionHeader(title: 'Points History'),
-                    const SizedBox(height: 16),
-                    if (_rewards.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20.0),
-                          child: Text('No reward history yet.'),
-                        ),
-                      )
-                    else
-                      ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
-                  ],
-                ),
-              );
-            },
-          ),
-          if (_isRedeeming)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
               ),
-            ),
-        ],
+            );
+          }
+          
+          // Hardcoded data for demonstration of progress bar
+          const int nextTierPoints = 2000;
+          final double progress = _walletPoints / nextTierPoints;
+
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              _PointsCard(points: _walletPoints),
+              const SizedBox(height: 24),
+              _TierProgressBar(
+                progress: progress,
+                currentTier: 'Gold Rider',
+                nextTier: 'Platinum',
+                nextTierPoints: nextTierPoints,
+              ),
+              const SizedBox(height: 32),
+              _SectionHeader(title: 'Redeemable Rewards'),
+              const SizedBox(height: 16),
+              _RewardCard(
+                icon: Icons.directions_car,
+                title: 'Free Ride Coupon',
+                points: 1000,
+                isRedeemable: _walletPoints >= 1000,
+              ),
+              _RewardCard(
+                icon: Icons.local_gas_station,
+                title: 'Fuel Cashback',
+                points: 1500,
+                isRedeemable: _walletPoints >= 1500,
+              ),
+              _RewardCard(
+                icon: Icons.coffee,
+                title: 'Food / Coffee Discount',
+                points: 1800,
+                isLocked: true,
+              ),
+              _RewardCard(
+                icon: Icons.airport_shuttle,
+                title: '20% Off Next Airport Trip',
+                points: 2200,
+                isRedeemable: _walletPoints >= 2200,
+              ),
+               _RewardCard(
+                icon: Icons.local_car_wash,
+                title: 'Free Car Wash Voucher',
+                points: 2500,
+                isRedeemable: _walletPoints >= 2500,
+              ),
+              _RewardCard(
+                icon: Icons.support_agent,
+                title: 'Priority Customer Support',
+                points: 3000,
+                isLocked: true,
+              ),
+              const SizedBox(height: 32),
+              _SectionHeader(title: 'Points History'),
+              const SizedBox(height: 16),
+              if (_rewards.isEmpty)
+                const Center(
+                  child: Text('No reward history yet.'),
+                )
+              else
+                ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
+            ],
+          );
+        },
       ),
     );
   }
 }
-// ... (rest of the widgets)
-// Update _RewardCard to accept onRedeem callback
 
 class _PointsCard extends StatelessWidget {
   final int points;
@@ -358,7 +280,6 @@ class _RewardCard extends StatelessWidget {
   final int points;
   final bool isRedeemable;
   final bool isLocked;
-  final VoidCallback? onRedeem;
 
   const _RewardCard({
     required this.icon,
@@ -366,7 +287,6 @@ class _RewardCard extends StatelessWidget {
     required this.points,
     this.isRedeemable = false,
     this.isLocked = false,
-    this.onRedeem,
   });
 
   @override
@@ -417,7 +337,7 @@ class _RewardCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: canRedeem ? onRedeem : null,
+                  onPressed: canRedeem ? () {} : null,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: Colors.orange.shade600,

@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 // These models will be created in the next steps.
-import '../models/voucher.dart';
 import '../models/place_suggestion.dart';
 import '../models/driver.dart';
 import '../models/ride_request.dart';
@@ -38,12 +37,12 @@ class ApiService {
     }
   }
 
-  Future<dynamic> _post(String endpoint, [Map<String, dynamic>? data]) async {
+  Future<dynamic> _post(String endpoint, Map<String, dynamic> data) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/$endpoint'),
         headers: _getHeaders(),
-        body: data != null ? json.encode(data) : null,
+        body: json.encode(data),
       );
       return _handleResponse(response);
     } catch (e, st) {
@@ -160,19 +159,6 @@ class ApiService {
   Future<Map<String, dynamic>> getUserProfile() async {
     final result = await _get('user/profile');
     return result['profile'] as Map<String, dynamic>;
-  }
-
-  // --- Vouchers ---
-
-  Future<List<Voucher>> getVouchers() async {
-    final result = await _get('vouchers');
-    return (result['vouchers'] as List)
-        .map((v) => Voucher.fromJson(v))
-        .toList();
-  }
-
-  Future<void> redeemVoucher(String voucherId) async {
-    await _post('vouchers/$voucherId/redeem');
   }
 
   // Driving
