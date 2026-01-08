@@ -1,319 +1,350 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
-import '../models/reward.dart';
-import '../services/api_service.dart';
-
-class RewardsPage extends StatefulWidget {
+class RewardsPage extends StatelessWidget {
   const RewardsPage({super.key});
 
   @override
-  State<RewardsPage> createState() => _RewardsPageState();
-}
-
-class _RewardsPageState extends State<RewardsPage> {
-  late Future<List<Reward>> _rewardsFuture;
-  final _dateFormatter = DateFormat('MMM d, yyyy');
-
-  @override
-  void initState() {
-    super.initState();
-    _rewardsFuture = _fetchRewards();
-  }
-
-  Future<List<Reward>> _fetchRewards() {
-    // Access ApiService from the provider to fetch data.
-    final apiService = Provider.of<ApiService>(context, listen: false);
-    return apiService.getRewards();
-  }
-
-  Future<void> _refreshRewards() async {
-    setState(() {
-      _rewardsFuture = _fetchRewards();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Hardcoded data for demonstration
+    const int currentPoints = 1250;
+    const int nextTierPoints = 2000;
+    const double progress = currentPoints / nextTierPoints;
+
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('My Rewards'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshRewards,
-        child: FutureBuilder<List<Reward>>(
-          future: _rewardsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingDisplay();
-            }
-
-            if (snapshot.hasError) {
-              final errorMessage = snapshot.error is ApiException
-                  ? (snapshot.error as ApiException).message
-                  : 'An unknown error occurred.';
-              return _ErrorDisplay(message: 'Error: $errorMessage');
-            }
-
-            final rewards = snapshot.data ?? [];
-            if (rewards.isEmpty) {
-              return const _EmptyDisplay();
-            }
-
-            // Calculate total active points from the fetched list of rewards.
-            final totalPoints = rewards
-                .where((reward) => reward.status == 'Active')
-                .fold<int>(0, (total, reward) => total + reward.points);
-
-            return Column(
-              children: [
-                _TotalPointsHeader(points: totalPoints),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: rewards.length,
-                    itemBuilder: (context, index) {
-                      final reward = rewards[index];
-                      // The _RewardCard now receives data from the Reward model.
-                      return _RewardCard(
-                        title: reward.title,
-                        points: reward.points,
-                        description: reward.description,
-                        dateEarned: reward.dateEarned,
-                        status: reward.status,
-                        dateFormatter: _dateFormatter,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: const Text('Rewards Dashboard'),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        foregroundColor: Colors.black87,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          _PointsCard(points: currentPoints),
+          const SizedBox(height: 24),
+          _TierProgressBar(
+            progress: progress,
+            currentTier: 'Gold Rider',
+            nextTier: 'Platinum',
+            nextTierPoints: nextTierPoints,
+          ),
+          const SizedBox(height: 32),
+          _SectionHeader(title: 'Redeemable Rewards'),
+          const SizedBox(height: 16),
+          _RewardCard(
+            icon: Icons.directions_car,
+            title: 'Free Ride Coupon',
+            points: 1000,
+            isRedeemable: currentPoints >= 1000,
+          ),
+          _RewardCard(
+            icon: Icons.local_gas_station,
+            title: 'Fuel Cashback',
+            points: 1500,
+            isRedeemable: currentPoints >= 1500,
+          ),
+          _RewardCard(
+            icon: Icons.coffee,
+            title: 'Food / Coffee Discount',
+            points: 1800,
+            isLocked: true,
+          ),
+          const SizedBox(height: 32),
+          _SectionHeader(title: 'Points History'),
+          const SizedBox(height: 16),
+          _PointsHistoryTile(
+            description: 'Ride Completed',
+            points: '+50 pts',
+            date: 'Jan 08, 2026',
+          ),
+          _PointsHistoryTile(
+            description: 'Welcome Bonus',
+            points: '+100 pts',
+            date: 'Jan 02, 2026',
+          ),
+        ],
       ),
     );
   }
 }
 
-// Helper Widgets (No changes needed for these)
-
-class _TotalPointsHeader extends StatelessWidget {
+class _PointsCard extends StatelessWidget {
   final int points;
 
-  const _TotalPointsHeader({required this.points});
+  const _PointsCard({required this.points});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'TOTAL ACTIVE POINTS',
-            style: TextStyle(
-              color: Color(0xFF9A3412),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            '$points pts',
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFC2410C),
-            ),
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade700, Colors.orange.shade500],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your Points',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            points.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Chip(
+            label: const Text(
+              'Gold Rider',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.white.withOpacity(0.9),
+            avatar: Icon(Icons.star, color: Colors.orange.shade800),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TierProgressBar extends StatelessWidget {
+  final double progress;
+  final String currentTier;
+  final String nextTier;
+  final int nextTierPoints;
+
+  const _TierProgressBar({
+    required this.progress,
+    required this.currentTier,
+    required this.nextTier,
+    required this.nextTierPoints,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Tier Progress',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(
+              'Next: $nextTier',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 12,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange.shade600),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${nextTierPoints.toString()} pts to unlock',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
       ),
     );
   }
 }
 
 class _RewardCard extends StatelessWidget {
+  final IconData icon;
   final String title;
   final int points;
-  final String description;
-  final DateTime dateEarned;
-  final String status;
-  final DateFormat dateFormatter;
+  final bool isRedeemable;
+  final bool isLocked;
 
   const _RewardCard({
+    required this.icon,
     required this.title,
     required this.points,
-    required this.description,
-    required this.dateEarned,
-    required this.status,
-    required this.dateFormatter,
+    this.isRedeemable = false,
+    this.isLocked = false,
   });
 
-  Color _getStatusColor() {
-    switch (status) {
-      case 'Active':
-        return Colors.green;
-      case 'Redeemed':
-        return Colors.blue;
-      case 'Expired':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final bool canRedeem = isRedeemable && !isLocked;
     return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       margin: const EdgeInsets.only(bottom: 12),
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withAlpha((0.1 * 255).round()),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _getStatusColor().withAlpha((0.5 * 255).round()),
-                      ),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        color: _getStatusColor(),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$points points',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Earned ${dateFormatter.format(dateEarned)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingDisplay extends StatelessWidget {
-  const _LoadingDisplay();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
-}
-
-class _EmptyDisplay extends StatelessWidget {
-  const _EmptyDisplay();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Icon(
-            Icons.card_giftcard,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No rewards yet',
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 40,
+                  color: isLocked ? Colors.grey[400] : Colors.orange.shade600,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isLocked ? Colors.grey[500] : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$points pts',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isLocked
+                              ? Colors.grey[400]
+                              : Colors.orange.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: canRedeem ? () {} : null,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.orange.shade600,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                  ),
+                  child: const Text('Redeem'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Complete rides to earn rewards!',
-            style: TextStyle(
-              color: Colors.grey[600],
+          if (isLocked)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.lock,
+                    color: Colors.grey.shade700,
+                    size: 32,
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _ErrorDisplay extends StatelessWidget {
-  final String message;
+class _PointsHistoryTile extends StatelessWidget {
+  final String description;
+  final String points;
+  final String date;
 
-  const _ErrorDisplay({required this.message});
+  const _PointsHistoryTile({
+    required this.description,
+    required this.points,
+    required this.date,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
-            ),
-          ],
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          child: Icon(
+            Icons.check_circle_outline,
+            color: Colors.orange.shade700,
+          ),
+        ),
+        title: Text(
+          description,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(date, style: TextStyle(color: Colors.grey.shade600)),
+        trailing: Text(
+          points,
+          style: const TextStyle(
+            color: Colors.green,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
     );
