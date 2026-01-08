@@ -121,8 +121,11 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
 
-        // Update location in database asynchronously without blocking UI
-        _updateUserLocationInDb(newPos);
+        // Only update location in database if user is actively using the app
+        // (passenger searching or driver driving)
+        if (_appState == AppState.searching || _appState == AppState.driving) {
+          _updateUserLocationInDb(newPos);
+        }
       },
       onError: (error) {
         _log('Location stream error: $error');
@@ -202,7 +205,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   Future<void> _handlePassengerPickup(RideRequest rideRequest) async {
     try {
-      await _apiService.acceptRide(rideRequest.id);
+      // Note: acceptRide endpoint not available in backend
+      // Auto-accept is handled server-side during ride matching
       _showMessage("Passenger picked up! Route is being updated.");
       // In a real app, you might re-calculate the route to the passenger's destination
     } on ApiException catch (e) {
@@ -331,7 +335,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
         return;
       }
       try {
-        final drivers = await _apiService.getAvailableDrivers();
+        final drivers = await _apiService.getNearbyDrivers();
         if (mounted) setState(() => _availableDrivers = drivers);
       } on ApiException catch (e) {
         debugPrint("Failed to poll for drivers: ${e.message}");

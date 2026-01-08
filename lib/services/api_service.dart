@@ -210,9 +210,8 @@ class ApiService {
   // --- Driver API ---
 
   Future<void> startDriving(PlaceSuggestion destination) async {
-    // Get current location from location service (you may need to inject this)
-    // For now, we'll send the destination with a placeholder for current location
-    await _post('driver/start-session', {
+    // Use the /session endpoint which automatically gets current location from DB
+    await _post('driver/session', {
       'destination': {
         'displayName': destination.displayName,
         'latitude': destination.latitude,
@@ -264,8 +263,8 @@ class ApiService {
   }
 
   Future<List<RideRequest>> getRelevantRideRequests() async {
-    final result = await _get('driver/ride-requests');
-    return (result['rideRequests'] as List).map((r) => RideRequest.fromJson(r)).toList();
+    final result = await _get('driver/nearby-requests');
+    return (result['requests'] as List).map((r) => RideRequest.fromJson(r)).toList();
   }
 
   Future<List<RideRequest>> getNearbyRideRequests() async {
@@ -280,15 +279,18 @@ class ApiService {
   // --- Passenger API ---
 
   Future<void> createRideRequest(PlaceSuggestion destination, LatLng pickup) async {
-    await _post('passenger/ride-request', {
+    await _post('passenger/request-ride', {
       'destination': {
-        'displayName': destination.displayName,
+        'name': destination.displayName,
         'latitude': destination.latitude,
         'longitude': destination.longitude,
+        'placeId': destination.placeId,
       },
       'pickup': {
-         'latitude': pickup.latitude,
-         'longitude': pickup.longitude,
+        'name': 'Current Location',
+        'latitude': pickup.latitude,
+        'longitude': pickup.longitude,
+        'placeId': null,
       }
     });
   }
@@ -319,10 +321,12 @@ class ApiService {
     return result['requestId'] as String;
   }
 
-  Future<List<Driver>> getAvailableDrivers() async {
-    final result = await _get('passenger/drivers');
-    return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
-  }
+  // Note: This endpoint is not available in the backend
+  // Use getNearbyDrivers() instead
+  // Future<List<Driver>> getAvailableDrivers() async {
+  //   final result = await _get('passenger/drivers');
+  //   return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
+  // }
 
   Future<List<Driver>> getNearbyDrivers() async {
     final result = await _get('passenger/nearby-drivers');
@@ -331,8 +335,8 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getRideRequestStatus() async {
     try {
-      final result = await _get('passenger/ride-request/status');
-      return result['rideRequest'] as Map<String, dynamic>;
+      final result = await _get('passenger/request-status');
+      return result['request'] as Map<String, dynamic>;
     } on ApiException catch (e) {
       // Return null if no active ride request found
       if (e.message.contains('No active ride request')) {
@@ -343,19 +347,21 @@ class ApiService {
   }
 
   Future<void> cancelRideRequest() async {
-    await _delete('passenger/ride-request');
+    await _delete('passenger/cancel-request');
   }
 
   // --- Ride Management API ---
-
-  Future<void> acceptRide(String rideRequestId) async {
-    await _put('driver/ride-requests/$rideRequestId/accept');
-  }
-
-  Future<Map<String, dynamic>> completeRide(String rideRequestId) async {
-    final result = await _put('driver/ride-requests/$rideRequestId/complete');
-    return result as Map<String, dynamic>;
-  }
+  // Note: acceptRide and completeRide endpoints are not available in the backend
+  // The current backend doesn't implement driver ride acceptance/completion endpoints
+  // 
+  // Future<void> acceptRide(String rideRequestId) async {
+  //   await _put('driver/ride-requests/$rideRequestId/accept');
+  // }
+  //
+  // Future<Map<String, dynamic>> completeRide(String rideRequestId) async {
+  //   final result = await _put('driver/ride-requests/$rideRequestId/complete');
+  //   return result as Map<String, dynamic>;
+  // }
 
   Future<String> matchRide({required String requestId, required String sessionId}) async {
     final result = await _post('rides/match', {

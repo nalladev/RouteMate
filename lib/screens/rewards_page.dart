@@ -63,8 +63,8 @@ class _RewardsPageState extends State<RewardsPage> {
 
             // Calculate total active points from the fetched list of rewards.
             final totalPoints = rewards
-                .where((reward) => reward.status == 'Active')
-                .fold<int>(0, (total, reward) => total + reward.points);
+                .where((reward) => reward.status == 'active')
+                .fold<int>(0, (total, reward) => total + reward.amount);
 
             return Column(
               children: [
@@ -77,8 +77,8 @@ class _RewardsPageState extends State<RewardsPage> {
                       final reward = rewards[index];
                       // The _RewardCard now receives data from the Reward model.
                       return _RewardCard(
-                        title: reward.title,
-                        points: reward.points,
+                        title: reward.type,
+                        points: reward.amount,
                         description: reward.description,
                         dateEarned: reward.dateEarned,
                         status: reward.status,

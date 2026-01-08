@@ -453,14 +453,19 @@ driverRouter.post('/start-session', async (req, res) => {
     }
 
     try {
-        // Check if user already has an active session
+        // Clean up any existing active sessions (in case of crashes or unclean exits)
         const existingSession = await db.collection('driver_sessions')
             .where('driverId', '==', uid)
             .where('status', '==', 'active')
             .get();
         
         if (!existingSession.empty) {
-            return res.status(400).json({ message: 'You already have an active driving session.' });
+            for (const sessionDoc of existingSession.docs) {
+                await sessionDoc.ref.update({
+                    status: 'inactive',
+                    endedAt: FieldValue.serverTimestamp()
+                });
+            }
         }
 
         // Get route from external API (simplified)
@@ -523,14 +528,19 @@ driverRouter.post('/session', async (req, res) => {
     }
 
     try {
-        // Check if user already has an active session
+        // Clean up any existing active sessions (in case of crashes or unclean exits)
         const existingSession = await db.collection('driver_sessions')
             .where('driverId', '==', uid)
             .where('status', '==', 'active')
             .get();
         
         if (!existingSession.empty) {
-            return res.status(400).json({ message: 'You already have an active driving session.' });
+            for (const sessionDoc of existingSession.docs) {
+                await sessionDoc.ref.update({
+                    status: 'inactive',
+                    endedAt: FieldValue.serverTimestamp()
+                });
+            }
         }
 
         // Get current user location from user_locations collection
@@ -781,7 +791,7 @@ passengerRouter.post('/request-ride', async (req, res) => {
             preferences: {
                 maxWaitTime: preferences?.maxWaitTime || 10,
                 maxWalkDistance: preferences?.maxWalkDistance || 500,
-                priceRange: preferences?.priceRange
+                priceRange: preferences?.priceRange || null
             },
             status: 'waiting',
             estimatedDistance: getDistance(pickup.latitude, pickup.longitude,
