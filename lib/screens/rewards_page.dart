@@ -1,15 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:routemate/models/reward.dart';
+import 'package:routemate/services/api_service.dart';
 
-class RewardsPage extends StatelessWidget {
+class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Hardcoded data for demonstration
-    const int currentPoints = 1250;
-    const int nextTierPoints = 2000;
-    const double progress = currentPoints / nextTierPoints;
+  State<RewardsPage> createState() => _RewardsPageState();
+}
 
+class _RewardsPageState extends State<RewardsPage> {
+  late Future<void> _rewardsFuture;
+  int _walletPoints = 0;
+  List<Reward> _rewards = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _rewardsFuture = _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    try {
+      // Fetch points and rewards history in parallel
+      final results = await Future.wait([
+        apiService.getWalletPoints(),
+        apiService.getRewards(),
+      ]);
+      
+      setState(() {
+        _walletPoints = results[0] as int;
+        _rewards = results[1] as List<Reward>;
+      });
+    } catch (e) {
+      // Propagate error to be handled by the FutureBuilder
+      throw Exception('Failed to load rewards data: ${e.toString()}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -22,52 +55,71 @@ class RewardsPage extends StatelessWidget {
         elevation: 1,
         foregroundColor: Colors.black87,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _PointsCard(points: currentPoints),
-          const SizedBox(height: 24),
-          _TierProgressBar(
-            progress: progress,
-            currentTier: 'Gold Rider',
-            nextTier: 'Platinum',
-            nextTierPoints: nextTierPoints,
-          ),
-          const SizedBox(height: 32),
-          _SectionHeader(title: 'Redeemable Rewards'),
-          const SizedBox(height: 16),
-          _RewardCard(
-            icon: Icons.directions_car,
-            title: 'Free Ride Coupon',
-            points: 1000,
-            isRedeemable: currentPoints >= 1000,
-          ),
-          _RewardCard(
-            icon: Icons.local_gas_station,
-            title: 'Fuel Cashback',
-            points: 1500,
-            isRedeemable: currentPoints >= 1500,
-          ),
-          _RewardCard(
-            icon: Icons.coffee,
-            title: 'Food / Coffee Discount',
-            points: 1800,
-            isLocked: true,
-          ),
-          const SizedBox(height: 32),
-          _SectionHeader(title: 'Points History'),
-          const SizedBox(height: 16),
-          _PointsHistoryTile(
-            description: 'Ride Completed',
-            points: '+50 pts',
-            date: 'Jan 08, 2026',
-          ),
-          _PointsHistoryTile(
-            description: 'Welcome Bonus',
-            points: '+100 pts',
-            date: 'Jan 02, 2026',
-          ),
-        ],
+      body: FutureBuilder(
+        future: _rewardsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          }
+          
+          // Hardcoded data for demonstration of progress bar
+          const int nextTierPoints = 2000;
+          final double progress = _walletPoints / nextTierPoints;
+
+          return ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              _PointsCard(points: _walletPoints),
+              const SizedBox(height: 24),
+              _TierProgressBar(
+                progress: progress,
+                currentTier: 'Gold Rider',
+                nextTier: 'Platinum',
+                nextTierPoints: nextTierPoints,
+              ),
+              const SizedBox(height: 32),
+              _SectionHeader(title: 'Redeemable Rewards'),
+              const SizedBox(height: 16),
+              _RewardCard(
+                icon: Icons.directions_car,
+                title: 'Free Ride Coupon',
+                points: 1000,
+                isRedeemable: _walletPoints >= 1000,
+              ),
+              _RewardCard(
+                icon: Icons.local_gas_station,
+                title: 'Fuel Cashback',
+                points: 1500,
+                isRedeemable: _walletPoints >= 1500,
+              ),
+              _RewardCard(
+                icon: Icons.coffee,
+                title: 'Food / Coffee Discount',
+                points: 1800,
+                isLocked: true,
+              ),
+              const SizedBox(height: 32),
+              _SectionHeader(title: 'Points History'),
+              const SizedBox(height: 16),
+              if (_rewards.isEmpty)
+                const Center(
+                  child: Text('No reward history yet.'),
+                )
+              else
+                ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
+            ],
+          );
+        },
       ),
     );
   }
@@ -308,18 +360,15 @@ class _RewardCard extends StatelessWidget {
 }
 
 class _PointsHistoryTile extends StatelessWidget {
-  final String description;
-  final String points;
-  final String date;
+  final Reward reward;
 
-  const _PointsHistoryTile({
-    required this.description,
-    required this.points,
-    required this.date,
-  });
+  const _PointsHistoryTile({ required this.reward });
 
   @override
   Widget build(BuildContext context) {
+    final formattedDate = DateFormat('MMM dd, yyyy').format(reward.dateEarned);
+    final pointsText = '+${reward.points} pts';
+
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -334,12 +383,12 @@ class _PointsHistoryTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          description,
+          reward.title,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(date, style: TextStyle(color: Colors.grey.shade600)),
+        subtitle: Text(formattedDate, style: TextStyle(color: Colors.grey.shade600)),
         trailing: Text(
-          points,
+          pointsText,
           style: const TextStyle(
             color: Colors.green,
             fontWeight: FontWeight.bold,
