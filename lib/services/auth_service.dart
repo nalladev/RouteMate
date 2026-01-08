@@ -13,20 +13,27 @@ class AuthService with ChangeNotifier {
 
   UserModel? _user;
   UserModel? get user => _user;
-  String? get activeRole => _user?.activeRole;
+  
+  // Getter to access the current user's role from the state.
+  // Returns the role as a String, or null if the user is not logged in.
+  String? get currentUserRole => _user?.activeRole;
 
   bool get isLoggedIn => _user != null;
 
   /// Decodes the JWT, saves it to persistent storage, and updates the app state.
+  /// The role is extracted from the JWT payload and stored in the UserModel.
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
 
     try {
+      // Decode the JWT to access its payload.
       Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
       final String uid = decodedToken['uid'];
+      // Extract the 'role' from the payload.
       final String? role = decodedToken['role'];
 
+      // Store the user's data, including the role, in the state.
       _user = UserModel(uid: uid, activeRole: role ?? 'passenger');
 
       _apiService.setAuthToken(token);
@@ -37,8 +44,9 @@ class AuthService with ChangeNotifier {
     }
   }
 
-  /// A public method to update the token after a role change.
-  Future<void> updateToken(String newToken) async {
+  /// A public method to update the token and role after a role change.
+  /// This is called after the backend provides a new JWT with the updated role.
+  Future<void> updateTokenAndRole(String newToken) async {
     await _saveToken(newToken);
   }
 

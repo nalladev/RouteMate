@@ -33,7 +33,7 @@ class _WalletBottomSheetState extends State<WalletBottomSheet> {
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<AuthService>(context, listen: false);
     
-    final currentRole = _authService.activeRole;
+    final currentRole = _authService.currentUserRole;
     setState(() {
       _selectedRole = {
         if (currentRole == 'driver') UserRole.driver else UserRole.passenger
@@ -55,7 +55,7 @@ class _WalletBottomSheetState extends State<WalletBottomSheet> {
       final newToken = await _apiService.setRole(
         role == UserRole.driver ? 'DRIVER' : 'PASSENGER',
       );
-      await _authService.updateToken(newToken);
+      await _authService.updateTokenAndRole(newToken);
       
       if (mounted) {
         setState(() {

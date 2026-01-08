@@ -78,18 +78,18 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _authService.addListener(_onAuthChanged);
     // Update current user details when dependencies change
     _currentUser = _authService.user;
-    _currentRole = _authService.activeRole;
+    _currentRole = _authService.currentUserRole;
   }
 
   void _onAuthChanged() {
     // If the role has changed, reset the app state
-    if (_authService.activeRole != null &&
-        _authService.activeRole != _currentRole) {
-      _log('Role changed from $_currentRole to ${_authService.activeRole}, resetting app state.');
+    if (_authService.currentUserRole != null &&
+        _authService.currentUserRole != _currentRole) {
+      _log('Role changed from $_currentRole to ${_authService.currentUserRole}, resetting app state.');
       _resetApp();
       setState(() {
         _currentUser = _authService.user;
-        _currentRole = _authService.activeRole;
+        _currentRole = _authService.currentUserRole;
       });
     }
   }
