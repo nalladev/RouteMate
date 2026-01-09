@@ -1,10 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:routemate/services/auth_service.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
-  const RoleSelectionScreen({Key? key}) : super(key: key);
+  const RoleSelectionScreen({super.key});
 
   @override
   _RoleSelectionScreenState createState() => _RoleSelectionScreenState();
@@ -32,16 +31,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      
+
       // Calls the AuthService to set the user's role via an API call.
       await authService.setRole(_selectedRole!);
 
       // On success, navigate to the HomePage.
       // The AuthGate will handle showing the correct screen based on the role.
-       if (mounted) {
+      if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
-
     } catch (e) {
       // Handle errors, e.g., show a snackbar
       if (mounted) {
@@ -61,10 +59,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Your Role'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Select Your Role'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -87,7 +82,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             const SizedBox(height: 40),
             ElevatedButton(
               // Button is disabled until a role is selected.
-              onPressed: _selectedRole == null || _isLoading ? null : _onContinue,
+              onPressed: _selectedRole == null || _isLoading
+                  ? null
+                  : _onContinue,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 textStyle: const TextStyle(fontSize: 18),
@@ -134,7 +131,11 @@ class _RoleCard extends StatelessWidget {
           padding: const EdgeInsets.all(32.0),
           child: Column(
             children: [
-              Icon(icon, size: 60, color: isSelected ? theme.primaryColor : null),
+              Icon(
+                icon,
+                size: 60,
+                color: isSelected ? theme.primaryColor : null,
+              ),
               const SizedBox(height: 10),
               Text(
                 role.toUpperCase(),
