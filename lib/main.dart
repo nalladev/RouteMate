@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:routemate/features/auth/screens/auth_gate.dart';
+
 import 'package:routemate/services/api_service.dart';
 import 'package:routemate/services/auth_service.dart';
+import 'package:routemate/widgets/wallet_cost_split_screen.dart'; // Import the new screen
 
 void main() {
   runApp(const AppProviders());
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Inter',
       ),
-      home: const AuthGate(),
+      home: const WalletCostSplitScreen(), // Temporarily set the new screen as home
       debugShowCheckedModeBanner: false,
     );
   }
