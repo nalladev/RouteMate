@@ -1,47 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:routemate/features/auth/screens/login_screen.dart';
-import 'package:routemate/features/auth/screens/role_selection_screen.dart';
-import 'package:routemate/screens/home_page.dart';
 import 'package:routemate/services/auth_service.dart';
+import 'package:routemate/features/auth/screens/login_screen.dart';
+import 'package:routemate/screens/home_page.dart';
+import 'package:routemate/features/auth/screens/role_selection_screen.dart';
 
-/// AuthGate is the root widget that handles the initial navigation flow
-/// based on the user's authentication state and role.
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+  State<AuthGate> createState() => _AuthGateState();
+}
 
-    return StreamBuilder(
-      // Re-evaluates the UI whenever the authentication state changes.
-      stream: authService.authStateChanges,
+class _AuthGateState extends State<AuthGate> {
+  late Future<void> _autoLoginFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Attempt to log in automatically when the widget is first created.
+    _autoLoginFuture = Provider.of<AuthService>(context, listen: false).tryAutoLogin();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _autoLoginFuture,
       builder: (context, snapshot) {
-        // While waiting for the initial auth state, show a loading indicator.
+        // While waiting for the auto-login attempt to complete, show a loading screen.
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
           );
         }
 
-        // Decision Branch 1: Check if the user is logged in.
-        if (authService.isLoggedIn) {
-          final role = authService.currentUserRole;
-
-          // Decision Branch 2: User is logged in, now check for a role.
-          if (role != null && role.isNotEmpty) {
-            // Outcome A: User is logged in and has a role. Navigate to the main application.
-            return const RouteMateHomePage();
-          } else {
-            // Outcome B: User is logged in but has NOT selected a role.
-            // Navigate to the RoleSelectionScreen to enforce a choice.
-            return const RoleSelectionScreen();
-          }
-        } else {
-          // Outcome C: User is not logged in. Navigate to the LoginScreen.
-          return const LoginScreen();
-        }
+        // After the attempt, rely on the AuthService to determine the UI.
+        return Consumer<AuthService>(
+          builder: (context, authService, child) {
+            if (authService.isLoggedIn) {
+              // If user is logged in, check if they have a role.
+              final role = authService.currentUserRole;
+              if (role == null || role.isEmpty) {
+                // If no role is assigned, direct to RoleSelectionScreen.
+                return const RoleSelectionScreen();
+              } else {
+                // If a role exists, proceed to the main app homepage.
+                return const RouteMateHomePage();
+              }
+            } else {
+              // If user is not logged in, show the LoginScreen.
+              return const LoginScreen();
+            }
+          },
+        );
       },
     );
   }

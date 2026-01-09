@@ -41,7 +41,6 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   late AuthService _authService;
   final Location _locationService = Location();
   StreamSubscription? _locationSubscription;
-  StreamSubscription? _authSubscription;
 
   // App Data
   UserModel? _currentUser;
@@ -68,28 +67,29 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<AuthService>(context, listen: false);
     
-    // Set initial user state and listen for changes
-    _currentUser = _authService.user;
-    _currentRole = _authService.currentUserRole;
-    _authSubscription = _authService.authStateChanges.listen(_onAuthChanged);
-
     _initializeApp();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Remove existing listener before adding a new one
+    _authService.removeListener(_onAuthChanged);
+    _authService.addListener(_onAuthChanged);
+    // Update current user details when dependencies change
+    _currentUser = _authService.user;
+    _currentRole = _authService.currentUserRole;
+  }
 
-
-  void _onAuthChanged(UserModel? user) {
-    // If the role has changed, reset the app state to avoid inconsistencies.
-    if (user?.activeRole != null && user?.activeRole != _currentRole) {
-      _log('Role changed from $_currentRole to ${user?.activeRole}, resetting app state.');
+  void _onAuthChanged() {
+    // If the role has changed, reset the app state
+    if (_authService.currentUserRole != null &&
+        _authService.currentUserRole != _currentRole) {
+      _log('Role changed from $_currentRole to ${_authService.currentUserRole}, resetting app state.');
       _resetApp();
-    }
-    
-    // Always update the user details when auth state changes.
-    if (mounted) {
       setState(() {
-        _currentUser = user;
-        _currentRole = user?.activeRole;
+        _currentUser = _authService.user;
+        _currentRole = _authService.currentUserRole;
       });
     }
   }
@@ -509,7 +509,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   @override
   void dispose() {
-    _authSubscription?.cancel();
+    _authService.removeListener(_onAuthChanged);
     _locationSubscription?.cancel();
     _destinationController.dispose();
     _mapController.dispose();

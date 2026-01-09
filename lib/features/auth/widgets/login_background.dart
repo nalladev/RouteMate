@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class LoginBackground extends StatelessWidget {
@@ -10,7 +11,10 @@ class LoginBackground extends StatelessWidget {
     return Stack(
       children: [
         // The custom background painter
-        CustomPaint(size: Size.infinite, painter: _BackgroundPainter()),
+        CustomPaint(
+          size: Size.infinite,
+          painter: _BackgroundPainter(),
+        ),
         // The content to be displayed on top of the background
         child,
       ],
@@ -30,9 +34,7 @@ class _BackgroundPainter extends CustomPainter {
     );
 
     final paint = Paint()
-      ..shader = gradient.createShader(
-        Rect.fromLTWH(0, 0, size.width, size.height * 0.6),
-      );
+      ..shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.6));
 
     // --- 2. Draw the Main Background Shape ---
     final path = Path();

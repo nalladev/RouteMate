@@ -28,6 +28,7 @@ class RewardsPage extends StatefulWidget {
   State<RewardsPage> createState() => _RewardsPageState();
 }
 
+
 enum RewardFilter { all, redeemable, locked }
 
 class _RewardsPageState extends State<RewardsPage> {
@@ -59,44 +60,38 @@ class _RewardsPageState extends State<RewardsPage> {
   final List<RedeemableReward> _redeemableRewards = [
     RedeemableReward(
       title: 'Free Ride Coupon',
-      description:
-          'Enjoy a completely free ride up to a distance of 10km. This coupon is valid for 30 days after redemption.',
+      description: 'Enjoy a completely free ride up to a distance of 10km. This coupon is valid for 30 days after redemption.',
       points: 1000,
       icon: Icons.directions_car,
     ),
     RedeemableReward(
       title: 'Fuel Cashback',
-      description:
-          'Get \$5 cashback on your next fuel purchase at any partner station. Cashback will be credited to your wallet.',
+      description: 'Get \$5 cashback on your next fuel purchase at any partner station. Cashback will be credited to your wallet.',
       points: 1500,
       icon: Icons.local_gas_station,
     ),
     RedeemableReward(
       title: 'Food / Coffee Discount',
-      description:
-          'A voucher for 20% off at participating cafes and restaurants. A list of partners is available in the app.',
+      description: 'A voucher for 20% off at participating cafes and restaurants. A list of partners is available in the app.',
       points: 1800,
       icon: Icons.coffee,
       isLocked: true,
     ),
     RedeemableReward(
       title: '20% Off Next Airport Trip',
-      description:
-          'Get a 20% discount on your next ride to or from the airport. The discount is capped at \$10.',
+      description: 'Get a 20% discount on your next ride to or from the airport. The discount is capped at \$10.',
       points: 2200,
       icon: Icons.airport_shuttle,
     ),
     RedeemableReward(
       title: 'Free Car Wash Voucher',
-      description:
-          'Redeem this for a free basic car wash at any of our partner car wash centers. Valid for 60 days.',
+      description: 'Redeem this for a free basic car wash at any of our partner car wash centers. Valid for 60 days.',
       points: 2500,
       icon: Icons.local_car_wash,
     ),
     RedeemableReward(
       title: 'Priority Customer Support',
-      description:
-          'Jump the queue and get instant access to our support agents whenever you need help.',
+      description: 'Jump the queue and get instant access to our support agents whenever you need help.',
       points: 3000,
       icon: Icons.support_agent,
       isLocked: true,
@@ -117,7 +112,7 @@ class _RewardsPageState extends State<RewardsPage> {
         apiService.getWalletPoints(),
         apiService.getRewards(),
       ]);
-
+      
       if (mounted) {
         setState(() {
           _walletPoints = results[0] as int;
@@ -156,7 +151,7 @@ class _RewardsPageState extends State<RewardsPage> {
               ),
             );
           }
-
+          
           // Hardcoded data for demonstration of progress bar
           const int nextTierPoints = 2000;
           final double progress = _walletPoints / nextTierPoints;
@@ -221,16 +216,16 @@ class _RewardsPageState extends State<RewardsPage> {
                       },
                     ),
                   );
-                }),
+                }).toList(),
                 const SizedBox(height: 32),
                 _SectionHeader(title: 'Points History'),
                 const SizedBox(height: 16),
                 if (_rewards.isEmpty)
-                  const Center(child: Text('No reward history yet.'))
+                  const Center(
+                    child: Text('No reward history yet.'),
+                  )
                 else
-                  ..._rewards.map(
-                    (reward) => _PointsHistoryTile(reward: reward),
-                  ),
+                  ..._rewards.map((reward) => _PointsHistoryTile(reward: reward)).toList(),
               ],
             ),
           );
@@ -244,10 +239,7 @@ class _FilterChips extends StatelessWidget {
   final RewardFilter selectedFilter;
   final ValueChanged<RewardFilter> onFilterChanged;
 
-  const _FilterChips({
-    required this.selectedFilter,
-    required this.onFilterChanged,
-  });
+  const _FilterChips({required this.selectedFilter, required this.onFilterChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -441,9 +433,7 @@ class _RewardCard extends StatelessWidget {
                 Icon(
                   reward.icon,
                   size: 40,
-                  color: reward.isLocked
-                      ? Colors.grey[400]
-                      : Colors.orange.shade600,
+                  color: reward.isLocked ? Colors.grey[400] : Colors.orange.shade600,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -455,9 +445,7 @@ class _RewardCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: reward.isLocked
-                              ? Colors.grey[500]
-                              : Colors.black87,
+                          color: reward.isLocked ? Colors.grey[500] : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -479,9 +467,7 @@ class _RewardCard extends StatelessWidget {
                   onPressed: canRedeem ? onRedeem : null,
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    backgroundColor: isRedeemed
-                        ? Colors.grey.shade400
-                        : Colors.orange.shade600,
+                    backgroundColor: isRedeemed ? Colors.grey.shade400 : Colors.orange.shade600,
                     disabledBackgroundColor: Colors.grey.shade300,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -521,7 +507,7 @@ class _RewardCard extends StatelessWidget {
 class _PointsHistoryTile extends StatelessWidget {
   final Reward reward;
 
-  const _PointsHistoryTile({required this.reward});
+  const _PointsHistoryTile({ required this.reward });
 
   @override
   Widget build(BuildContext context) {
@@ -545,10 +531,7 @@ class _PointsHistoryTile extends StatelessWidget {
           reward.title,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          formattedDate,
-          style: TextStyle(color: Colors.grey.shade600),
-        ),
+        subtitle: Text(formattedDate, style: TextStyle(color: Colors.grey.shade600)),
         trailing: Text(
           pointsText,
           style: const TextStyle(
