@@ -221,7 +221,7 @@ class _RewardsPageState extends State<RewardsPage> {
                       },
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 32),
                 _SectionHeader(title: 'Points History'),
                 const SizedBox(height: 16),
@@ -231,8 +231,7 @@ class _RewardsPageState extends State<RewardsPage> {
                   )
                 else
                   ..._rewards
-                      .map((reward) => _PointsHistoryTile(reward: reward))
-                      .toList(),
+                      .map((reward) => _PointsHistoryTile(reward: reward)),
               ],
             ),
           );
@@ -526,7 +525,7 @@ class _PointsHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedDate = DateFormat('MMM dd, yyyy').format(reward.dateEarned);
-    final pointsText = '+${reward.points} pts';
+    final pointsText = '+${reward.amount} pts';
 
     return Card(
       elevation: 0,
@@ -542,7 +541,7 @@ class _PointsHistoryTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          reward.title,
+          reward.description,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle:

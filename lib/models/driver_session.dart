@@ -1,3 +1,5 @@
+import 'package:routemate/models/active_ride.dart';
+
 class DriverSession {
   final String id;
   final String driverId;
@@ -94,66 +96,6 @@ class DriverSession {
   bool get isActive => status == DriverSessionStatus.active;
   bool get hasAvailableSeats => currentPassengers < capacity;
   int get availableSeats => capacity - currentPassengers;
-}
-
-class LocationPoint {
-  final String name;
-  final double latitude;
-  final double longitude;
-  final String? placeId;
-
-  LocationPoint({
-    required this.name,
-    required this.latitude,
-    required this.longitude,
-    this.placeId,
-  });
-
-  factory LocationPoint.fromJson(Map<String, dynamic> json) {
-    return LocationPoint(
-      name: json['name'] ?? '',
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
-      placeId: json['placeId'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'latitude': latitude,
-      'longitude': longitude,
-      'placeId': placeId,
-    };
-  }
-
-  LocationPoint copyWith({
-    String? name,
-    double? latitude,
-    double? longitude,
-    String? placeId,
-  }) {
-    return LocationPoint(
-      name: name ?? this.name,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      placeId: placeId ?? this.placeId,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is LocationPoint &&
-        other.latitude == latitude &&
-        other.longitude == longitude;
-  }
-
-  @override
-  int get hashCode => latitude.hashCode ^ longitude.hashCode;
-
-  @override
-  String toString() => '$name ($latitude, $longitude)';
 }
 
 class RouteInfo {
