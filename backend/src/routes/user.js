@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
-const { FieldValue } = require('firebase-admin/firestore');
+const { FieldValue, GeoPoint } = require('firebase-admin/firestore');
 
 // ============================================================================
 // USER PROFILE
@@ -127,7 +127,7 @@ router.put('/location', authenticateToken, async (req, res) => {
         // Only update database if conditions are met
         if (shouldUpdate) {
             const updateData = {
-                location: new db.GeoPoint(location.latitude, location.longitude),
+                location: new GeoPoint(location.latitude, location.longitude),
                 updatedAt: FieldValue.serverTimestamp()
             };
 
@@ -150,7 +150,16 @@ router.put('/location', authenticateToken, async (req, res) => {
         }
     } catch (error) {
         console.error('Error updating location:', error);
-        res.status(500).json({ error: 'Failed to update location' });
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            userId: req.user?.uid,
+            location: req.body?.location
+        });
+        res.status(500).json({ 
+            error: 'Failed to update location',
+            details: error.message 
+        });
     }
 });
 
@@ -198,12 +207,14 @@ router.get('/rewards', authenticateToken, async (req, res) => {
             const reward = doc.data();
             rewards.push({
                 id: doc.id,
-                title: reward.description || reward.type,
-                description: reward.description,
-                points: reward.amount,
-                dateEarned: reward.dateEarned,
+                type: reward.type || 'reward',
+                amount: reward.amount || 0,  // Changed from 'points' to 'amount' to match Flutter model
+                description: reward.description || '',
+                dateEarned: reward.dateEarned?.toDate?.()?.toISOString() || new Date().toISOString(),
                 status: reward.status || 'active',
-                type: reward.type
+                expiresAt: reward.expiresAt?.toDate?.()?.toISOString() || null,
+                userId: reward.userId || req.user.uid,
+                metadata: reward.metadata || null
             });
         });
 

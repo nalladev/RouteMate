@@ -181,15 +181,21 @@ class ApiService {
   // --- User API ---
 
   Future<void> updateUserLocation(LatLng location, {double? heading, double? speed, double? accuracy}) async {
-    await _put('user/location', {
-      'location': {
-        'latitude': location.latitude,
-        'longitude': location.longitude
-      },
-      'heading': heading,
-      'speed': speed,
-      'accuracy': accuracy,
-    });
+    try {
+      await _put('user/location', {
+        'location': {
+          'latitude': location.latitude,
+          'longitude': location.longitude
+        },
+        'heading': heading,
+        'speed': speed,
+        'accuracy': accuracy,
+      });
+    } catch (e) {
+      // Log but don't throw - location updates should fail gracefully
+      debugPrint('Location update failed (non-critical): $e');
+      // Don't rethrow - allow app to continue functioning
+    }
   }
 
   Future<UserModel> getUserProfile() async {
