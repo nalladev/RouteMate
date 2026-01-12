@@ -10,7 +10,7 @@ const https = require('https');
 const app = express();
 
 // Self-ping mechanism to keep server awake on Render
-const PING_INTERVAL = 13 * 60 * 1000; // 13 minutes in milliseconds
+const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 const SERVER_URL = 'https://routemate-jpsc.onrender.com/health';
 
 function selfPing() {
