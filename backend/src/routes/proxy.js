@@ -22,7 +22,7 @@ router.get('/search-places', authenticateToken, async (req, res) => {
         }
 
         const results = await searchPlaces(query);
-        res.status(200).json({ results });
+        res.status(200).json({ places: results });
     } catch (error) {
         console.error('Error searching places:', error);
         res.status(500).json({ error: 'Failed to search places' });
