@@ -283,8 +283,17 @@ paths:
     put:
       tags:
         - User
-      summary: Update user location
-      description: Update user's current location with heading and speed
+      summary: Update user location (Smart Updates)
+      description: |
+        Update user's current location with smart conditional logic to reduce server load.
+        
+        **Update Logic:**
+        - First location: Always updates
+        - Drivers: Update every 10s OR if moved >50m
+        - Passengers: Update every 15s OR if moved >50m
+        - Idle users: Update every 30s only
+        
+        The server will skip updates that don't meet these conditions.
       security:
         - BearerAuth: []
       requestBody:
@@ -301,7 +310,7 @@ paths:
                 heading:
                   type: number
                   example: 45.5
-                  description: Direction heading in degrees
+                  description: Direction heading in degrees (0-360)
                 speed:
                   type: number
                   example: 60
@@ -312,7 +321,17 @@ paths:
                   description: GPS accuracy in meters
       responses:
         '200':
-          description: Location updated successfully
+          description: Location update processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                    description: Reason for update or skip
 
   /driver/session:
     post:
@@ -389,9 +408,20 @@ paths:
       tags:
         - Driver
       summary: Get nearby passenger requests
-      description: Retrieve passenger ride requests compatible with driver's route
+      description: |
+        Retrieve passenger ride requests near the driver's current location.
+        Results are filtered by distance and sorted by proximity (closest first).
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 5
+            minimum: 0.5
+            maximum: 50
+          description: Search radius in kilometers (default 5km)
       responses:
         '200':
           description: Compatible requests retrieved
@@ -461,9 +491,20 @@ paths:
       tags:
         - Passenger
       summary: Find nearby drivers
-      description: Retrieve nearby drivers available for passenger's active ride request
+      description: |
+        Retrieve nearby active drivers within specified radius.
+        Results are filtered by distance and sorted by proximity (closest first).
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 10
+            minimum: 1
+            maximum: 50
+          description: Search radius in kilometers (default 10km)
       responses:
         '200':
           description: Available drivers retrieved

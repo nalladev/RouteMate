@@ -2,17 +2,23 @@ import 'package:latlong2/latlong.dart';
 
 class Driver {
   final String id;
+  final String? sessionId;
   final LatLng location;
   final String destinationName;
   final LatLng? destinationLocation;
   final String? status;
+  final int? availableSeats;
+  final double? estimatedArrival;
 
   Driver({
     required this.id,
     required this.location,
     required this.destinationName,
+    this.sessionId,
     this.destinationLocation,
     this.status,
+    this.availableSeats,
+    this.estimatedArrival,
   });
 
   factory Driver.fromJson(Map<String, dynamic> json) {
@@ -73,16 +79,20 @@ class Driver {
     
     return Driver(
       id: json['id'] ?? json['driverId'] ?? '',
+      sessionId: json['sessionId']?.toString(),
       location: location,
       destinationName: destinationName,
       destinationLocation: destinationLocation,
       status: json['status']?.toString(),
+      availableSeats: json['availableSeats'] as int?,
+      estimatedArrival: (json['estimatedArrival'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'sessionId': sessionId,
       'location': {
         'latitude': location.latitude,
         'longitude': location.longitude,
@@ -93,22 +103,30 @@ class Driver {
         'longitude': destinationLocation!.longitude,
       } : null,
       'status': status,
+      'availableSeats': availableSeats,
+      'estimatedArrival': estimatedArrival,
     };
   }
 
   Driver copyWith({
     String? id,
+    String? sessionId,
     LatLng? location,
     String? destinationName,
     LatLng? destinationLocation,
     String? status,
+    int? availableSeats,
+    double? estimatedArrival,
   }) {
     return Driver(
       id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
       location: location ?? this.location,
       destinationName: destinationName ?? this.destinationName,
       destinationLocation: destinationLocation ?? this.destinationLocation,
       status: status ?? this.status,
+      availableSeats: availableSeats ?? this.availableSeats,
+      estimatedArrival: estimatedArrival ?? this.estimatedArrival,
     );
   }
 
@@ -117,19 +135,25 @@ class Driver {
     if (identical(this, other)) return true;
     return other is Driver &&
         other.id == id &&
+        other.sessionId == sessionId &&
         other.location == location &&
         other.destinationName == destinationName &&
         other.destinationLocation == destinationLocation &&
-        other.status == status;
+        other.status == status &&
+        other.availableSeats == availableSeats &&
+        other.estimatedArrival == estimatedArrival;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
+        sessionId.hashCode ^
         location.hashCode ^
         destinationName.hashCode ^
         destinationLocation.hashCode ^
-        status.hashCode;
+        status.hashCode ^
+        availableSeats.hashCode ^
+        estimatedArrival.hashCode;
   }
 
   @override

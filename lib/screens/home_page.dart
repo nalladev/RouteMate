@@ -18,6 +18,8 @@ import '../widgets/map_view.dart';
 import '../widgets/control_panel.dart';
 import '../widgets/profile_button.dart';
 import '../widgets/wallet_bottom_sheet.dart';
+import '../widgets/rider_connection_panel.dart';
+import '../services/location_update_manager.dart';
 import './rewards_page.dart';
 
 class RouteMateHomePage extends StatefulWidget {
@@ -40,6 +42,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   late ApiService _apiService;
   late ComprehensiveAuthService _authService;
   late LocationService _locationService;
+  late LocationUpdateManager _locationUpdateManager;
   StreamSubscription? _locationSubscription;
   bool _followLocation = true;
 
@@ -60,6 +63,9 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
   Timer? _driversPoller;
   List<RideRequest> _relevantRideRequests = [];
   List<Driver> _availableDrivers = [];
+  
+  // Ride request tracking for passenger
+  String? _activeRideRequestId;
 
   @override
   void initState() {
@@ -68,6 +74,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _apiService = Provider.of<ApiService>(context, listen: false);
     _authService = Provider.of<ComprehensiveAuthService>(context, listen: false);
     _locationService = LocationService();
+    _locationUpdateManager = LocationUpdateManager(_apiService);
     _currentUser = _authService.backendUser;
 
     _initializeApp();
@@ -122,11 +129,15 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
 
-        // Only update location in database if user is actively using the app
-        // (passenger searching or driver driving)
-        if (_appState == AppState.searching || _appState == AppState.driving) {
-          _updateUserLocationInDb(newPos);
-        }
+        // Update user status for smart location updates
+        _locationUpdateManager.setUserStatus(_getUserStatusString());
+
+        // Use smart location update manager
+        _locationUpdateManager.updateLocation(newPos).then((updated) {
+          if (updated) {
+            debugPrint('Location updated on server');
+          }
+        });
       },
       onError: (error) {
         _log('Location stream error: $error');
@@ -134,16 +145,14 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     );
   }
 
-  Future<void> _updateUserLocationInDb(latlng.LatLng location) async {
-    if (_currentUser == null) return;
-    try {
-      await _apiService.updateUserLocation(location);
-    } on ApiException catch (e) {
-      // Silently fail - don't interrupt user experience with location update errors
-      debugPrint("Failed to update location: ${e.message}");
-    } catch (e) {
-      // Handle any other exceptions silently
-      debugPrint("Location update error: $e");
+  String _getUserStatusString() {
+    switch (_appState) {
+      case AppState.driving:
+        return 'driving';
+      case AppState.searching:
+        return 'searching';
+      case AppState.initial:
+        return 'idle';
     }
   }
 
@@ -199,6 +208,7 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
           _routePoints = [];
           _relevantRideRequests = [];
           _availableDrivers = [];
+          _activeRideRequestId = null;
           _followLocation = true;
         });
       }
@@ -308,12 +318,15 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
     _showMessage("Requesting a ride...");
     try {
-      await _apiService.createRideRequest(
-        _selectedPlace!,
-        _currentLocation!,
+      final requestId = await _apiService.createRideRequestNew(
+        pickup: _currentLocation!,
+        destination: _selectedPlace!,
       );
       if (mounted) {
-        setState(() => _appState = AppState.searching);
+        setState(() {
+          _appState = AppState.searching;
+          _activeRideRequestId = requestId;
+        });
         _startPollingForDrivers();
       }
     } on ApiException catch (e) {
@@ -362,6 +375,55 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
     _driversPoller?.cancel();
   }
 
+  Future<void> _matchWithDriver(Driver driver) async {
+    _showMessage('Connecting with driver...');
+    try {
+      final rideId = await _apiService.matchRide(
+        requestId: _activeRideRequestId!,
+        sessionId: driver.sessionId!,
+      );
+      
+      if (mounted) {
+        _showMessage('Connected with driver! Ride ID: $rideId');
+        // Stop polling as ride is now matched
+        _stopPolling();
+        setState(() {
+          _appState = AppState.initial;
+          _destinationController.clear();
+          _suggestions = [];
+          _selectedPlace = null;
+          _routePoints = [];
+          _relevantRideRequests = [];
+          _availableDrivers = [];
+          _activeRideRequestId = null;
+          _followLocation = true;
+        });
+      }
+    } on ApiException catch (e) {
+      _showMessage("Failed to connect with driver: ${e.message}");
+    }
+  }
+
+  // Manual refresh methods for UI
+  Future<void> _refreshDriversList() async {
+    try {
+      final drivers = await _apiService.getNearbyDrivers();
+      if (mounted) setState(() => _availableDrivers = drivers);
+      _showMessage('Found ${drivers.length} driver${drivers.length == 1 ? '' : 's'} nearby');
+    } on ApiException catch (e) {
+      _showMessage("Failed to refresh drivers: ${e.message}");
+    }
+  }
+
+  Future<void> _refreshRequestsList() async {
+    try {
+      final requests = await _apiService.getRelevantRideRequests();
+      if (mounted) setState(() => _relevantRideRequests = requests);
+      _showMessage('Found ${requests.length} ride request${requests.length == 1 ? '' : 's'} nearby');
+    } on ApiException catch (e) {
+      _showMessage("Failed to refresh requests: ${e.message}");
+    }
+  }
   // --- UI & HELPERS ---
 
   Widget _buildHomeContent() {
@@ -459,6 +521,33 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
               ),
             ),
           ),
+        // Draggable panel showing available riders/passengers
+        RiderConnectionPanel(
+          appState: _appState,
+          availableDrivers: _availableDrivers,
+          availableRequests: _relevantRideRequests,
+          onRefresh: () {
+            if (_appState == AppState.searching) {
+              _refreshDriversList();
+            } else if (_appState == AppState.driving) {
+              _refreshRequestsList();
+            }
+          },
+          onDriverSelected: (driver) {
+            if (_activeRideRequestId == null) {
+              _showMessage('No active ride request. Please request a ride first.');
+              return;
+            }
+            if (driver.sessionId == null) {
+              _showMessage('Driver session information unavailable.');
+              return;
+            }
+            _matchWithDriver(driver);
+          },
+          onRequestSelected: (request) {
+            _handlePassengerPickup(request);
+          },
+        ),
       ],
     );
   }

@@ -262,13 +262,15 @@ class ApiService {
     });
   }
 
-  Future<List<RideRequest>> getRelevantRideRequests() async {
-    final result = await _get('driver/nearby-requests');
+  Future<List<RideRequest>> getRelevantRideRequests({double? radius}) async {
+    final queryParams = radius != null ? '?radius=$radius' : '';
+    final result = await _get('driver/nearby-requests$queryParams');
     return (result['requests'] as List).map((r) => RideRequest.fromJson(r)).toList();
   }
 
-  Future<List<RideRequest>> getNearbyRideRequests() async {
-    final result = await _get('driver/nearby-requests');
+  Future<List<RideRequest>> getNearbyRideRequests({double? radius}) async {
+    final queryParams = radius != null ? '?radius=$radius' : '';
+    final result = await _get('driver/nearby-requests$queryParams');
     return (result['requests'] as List).map((r) => RideRequest.fromJson(r)).toList();
   }
 
@@ -328,8 +330,9 @@ class ApiService {
   //   return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
   // }
 
-  Future<List<Driver>> getNearbyDrivers() async {
-    final result = await _get('passenger/nearby-drivers');
+  Future<List<Driver>> getNearbyDrivers({double? radius}) async {
+    final queryParams = radius != null ? '?radius=$radius' : '';
+    final result = await _get('passenger/nearby-drivers$queryParams');
     return (result['drivers'] as List).map((d) => Driver.fromJson(d)).toList();
   }
 
