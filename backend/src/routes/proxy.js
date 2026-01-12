@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const { searchPlaces, getRoute } = require('../services/proxyService');
 
 /**
@@ -13,7 +13,7 @@ const { searchPlaces, getRoute } = require('../services/proxyService');
  * Search for places using Nominatim
  * Query params: q (search query)
  */
-router.get('/search-places', authenticateUser, async (req, res) => {
+router.get('/search-places', authenticateToken, async (req, res) => {
     try {
         const query = req.query.q;
 
@@ -34,7 +34,7 @@ router.get('/search-places', authenticateUser, async (req, res) => {
  * Get route between two points using OSRM
  * Query params: start (lat,lon), end (lat,lon)
  */
-router.get('/route', authenticateUser, async (req, res) => {
+router.get('/route', authenticateToken, async (req, res) => {
     try {
         const { start, end } = req.query;
 

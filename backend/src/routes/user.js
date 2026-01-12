@@ -17,7 +17,7 @@ const { FieldValue } = require('firebase-admin/firestore');
  * GET /api/user/profile
  * Get user's profile information
  */
-router.get('/profile', authenticateUser, async (req, res) => {
+router.get('/profile', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.uid;
 

@@ -70,6 +70,7 @@ try {
     console.log('  ✅ Auth routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load auth routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -78,6 +79,7 @@ try {
     console.log('  ✅ Logs routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load logs routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -86,6 +88,7 @@ try {
     console.log('  ✅ User routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load user routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -94,6 +97,7 @@ try {
     console.log('  ✅ Driver routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load driver routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -102,6 +106,7 @@ try {
     console.log('  ✅ Passenger routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load passenger routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -110,6 +115,7 @@ try {
     console.log('  ✅ Rides routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load rides routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
@@ -118,10 +124,15 @@ try {
     console.log('  ✅ Proxy routes loaded');
 } catch (error) {
     console.error('  ❌ Failed to load proxy routes:', error.message);
+    console.error(error.stack);
     throw error;
 }
 
-console.log(`🔌 Port configured: ${port}`);
+console.log('✅ All routes loaded\n');
+
+// Initialize Express app
+const app = express();
+const port = process.env.PORT || 3000;
 
 // ============================================================================
 // MIDDLEWARE SETUP
@@ -130,13 +141,26 @@ console.log(`🔌 Port configured: ${port}`);
 console.log('⚙️  Setting up middleware...');
 
 // CORS and Body Parser
-app.use(cors());
-app.use(bodyParser.json());
-console.log('  ✅ CORS and body parser configured');
+try {
+    app.use(cors());
+    console.log('  ✅ CORS configured');
+    app.use(bodyParser.json());
+    console.log('  ✅ Body parser configured');
+} catch (error) {
+    console.error('  ❌ Failed to configure middleware:', error.message);
+    console.error(error.stack);
+    throw error;
+}
 
 // Request/Response Logging
-app.use(requestLogger);
-console.log('  ✅ Request logger configured');
+try {
+    app.use(requestLogger);
+    console.log('  ✅ Request logger configured');
+} catch (error) {
+    console.error('  ❌ Failed to configure request logger:', error.message);
+    console.error(error.stack);
+    throw error;
+}
 
 // ============================================================================
 // ROUTES
@@ -161,23 +185,46 @@ app.get('/health', (req, res) => {
 console.log('  ✅ Health check endpoint mounted');
 
 // Mount all API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/logs', logsRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/driver', driverRoutes);
-app.use('/api/passenger', passengerRoutes);
-app.use('/api/rides', ridesRoutes);
-app.use('/api/proxy', proxyRoutes);
-console.log('  ✅ All API routes mounted');
+try {
+    app.use('/api/auth', authRoutes);
+    app.use('/api/logs', logsRoutes);
+    app.use('/api/user', userRoutes);
+    app.use('/api/driver', driverRoutes);
+    app.use('/api/passenger', passengerRoutes);
+    app.use('/api/rides', ridesRoutes);
+    app.use('/api/proxy', proxyRoutes);
+    console.log('  ✅ All API routes mounted');
+} catch (error) {
+    console.error('  ❌ Failed to mount routes:', error.message);
+    console.error(error.stack);
+    throw error;
+}
 
 // ============================================================================
-// SERVER STARTUP
+// ERROR HANDLERS
 // ============================================================================
 
-console.log('🚦 Starting server...');
+// 404 handler - must be after all routes
+app.use((req, res) => {
+    console.warn(`[404] ⚠️  Route not found: ${req.method} ${req.originalUrl}`);
+    console.warn(`[404] 📍 IP: ${req.ip}, User-Agent: ${req.get('user-agent')}`);
+    res.status(404).json({
+        error: 'Route not found',
+        path: req.originalUrl,
+        method: req.method
+    });
+});
 
-app.listen(port, () => {
-    console.log(`
+app.use((req, res) => {
+    console.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('❌ ERROR:', err.message);
+    console.error(err.stack);
+    res.status(err.status || 500).json({ error: err.message || 'Internal server error' console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║         RouteMate Backend - Refactored Version             ║
 ║                                                            ║

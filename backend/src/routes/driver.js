@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
 const { getDistance } = require('../utils/geoUtils');
 const { FieldValue } = require('firebase-admin/firestore');
@@ -18,7 +18,7 @@ const { FieldValue } = require('firebase-admin/firestore');
  * POST /api/driver/session
  * Start a driving session with a destination
  */
-router.post('/session', authenticateUser, async (req, res) => {
+router.post('/session', authenticateToken, async (req, res) => {
     try {
         const { destination } = req.body;
         const userId = req.user.uid;
@@ -62,7 +62,7 @@ router.post('/session', authenticateUser, async (req, res) => {
  * DELETE /api/driver/session
  * End the current driving session
  */
-router.delete('/session', authenticateUser, async (req, res) => {
+router.delete('/session', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.uid;
 
@@ -83,7 +83,7 @@ router.delete('/session', authenticateUser, async (req, res) => {
  * PUT /api/driver/update-location
  * Update driver's current location
  */
-router.put('/update-location', authenticateUser, async (req, res) => {
+router.put('/update-location', authenticateToken, async (req, res) => {
     try {
         const { location, heading, speed } = req.body;
         const userId = req.user.uid;
@@ -118,7 +118,7 @@ router.put('/update-location', authenticateUser, async (req, res) => {
  * Get ride requests near the driver's route (within specified radius)
  * Query params: radius (optional, default 5km)
  */
-router.get('/nearby-requests', authenticateUser, async (req, res) => {
+router.get('/nearby-requests', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.uid;
         const radius = parseFloat(req.query.radius) || 5; // Default 5km radius
@@ -194,7 +194,7 @@ router.get('/nearby-requests', authenticateUser, async (req, res) => {
  * PUT /api/driver/ride-requests/:id/accept
  * Accept a ride request
  */
-router.put('/ride-requests/:id/accept', authenticateUser, async (req, res) => {
+router.put('/ride-requests/:id/accept', authenticateToken, async (req, res) => {
     try {
         const requestId = req.params.id;
         const driverId = req.user.uid;
@@ -229,7 +229,7 @@ router.put('/ride-requests/:id/accept', authenticateUser, async (req, res) => {
  * PUT /api/driver/ride-requests/:id/complete
  * Complete a ride
  */
-router.put('/ride-requests/:id/complete', authenticateUser, async (req, res) => {
+router.put('/ride-requests/:id/complete', authenticateToken, async (req, res) => {
     try {
         const requestId = req.params.id;
         const driverId = req.user.uid;

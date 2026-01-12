@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
 const { completeRide } = require('../services/rideService');
 const { FieldValue } = require('firebase-admin/firestore');
@@ -14,7 +14,7 @@ const { FieldValue } = require('firebase-admin/firestore');
  * POST /api/rides/match
  * Match a driver with a passenger
  */
-router.post('/match', authenticateUser, async (req, res) => {
+router.post('/match', authenticateToken, async (req, res) => {
     try {
         const { requestId, sessionId } = req.body;
 
@@ -78,7 +78,7 @@ router.post('/match', authenticateUser, async (req, res) => {
  * PUT /api/rides/:rideId/status
  * Update ride status
  */
-router.put('/:rideId/status', authenticateUser, async (req, res) => {
+router.put('/:rideId/status', authenticateToken, async (req, res) => {
     try {
         const { rideId } = req.params;
         const { status } = req.body;

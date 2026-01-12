@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
 const { getDistance } = require('../utils/geoUtils');
 const { FieldValue } = require('firebase-admin/firestore');
@@ -18,7 +18,7 @@ const { FieldValue } = require('firebase-admin/firestore');
  * POST /api/passenger/request-ride
  * Create a new ride request
  */
-router.post('/request-ride', authenticateUser, async (req, res) => {
+router.post('/request-ride', authenticateToken, async (req, res) => {
     try {
         const { destination, pickup } = req.body;
         const passengerId = req.user.uid;
@@ -65,7 +65,7 @@ router.post('/request-ride', authenticateUser, async (req, res) => {
  * DELETE /api/passenger/cancel-request
  * Cancel the passenger's active ride request
  */
-router.delete('/cancel-request', authenticateUser, async (req, res) => {
+router.delete('/cancel-request', authenticateToken, async (req, res) => {
     try {
         const passengerId = req.user.uid;
 
@@ -97,7 +97,7 @@ router.delete('/cancel-request', authenticateUser, async (req, res) => {
  * GET /api/passenger/request-status
  * Check the status of the current ride request
  */
-router.get('/request-status', authenticateUser, async (req, res) => {
+router.get('/request-status', authenticateToken, async (req, res) => {
     try {
         const passengerId = req.user.uid;
 
@@ -141,7 +141,7 @@ router.get('/request-status', authenticateUser, async (req, res) => {
  * Get available drivers near the passenger (within specified radius)
  * Query params: radius (optional, default 10km)
  */
-router.get('/nearby-drivers', authenticateUser, async (req, res) => {
+router.get('/nearby-drivers', authenticateToken, async (req, res) => {
     try {
         const passengerId = req.user.uid;
         const radius = parseFloat(req.query.radius) || 10; // Default 10km radius
@@ -219,7 +219,7 @@ router.get('/nearby-drivers', authenticateUser, async (req, res) => {
  * Get all available drivers (legacy endpoint for backward compatibility)
  * This endpoint is now deprecated in favor of /nearby-drivers with radius
  */
-router.get('/drivers', authenticateUser, async (req, res) => {
+router.get('/drivers', authenticateToken, async (req, res) => {
     try {
         // Redirect to nearby-drivers with a large radius (50km)
         req.query.radius = req.query.radius || '50';
