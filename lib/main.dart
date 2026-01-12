@@ -5,6 +5,8 @@ import 'package:routemate/features/auth/screens/auth_gate.dart';
 import 'package:routemate/services/comprehensive_auth_service.dart';
 import 'package:routemate/services/api_service.dart';
 import 'firebase_options.dart';
+import 'package:routemate/screens/home_page.dart';
+import 'package:routemate/features/auth/screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +50,10 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Inter',
       ),
       home: const AuthGate(),
+      routes: {
+        '/home': (context) => const RouteMateHomePage(),
+        '/login': (context) => const LoginScreen(),
+      },
       debugShowCheckedModeBanner: false,
     );
   }

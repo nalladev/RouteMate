@@ -1,1 +1,6 @@
-enum AppState { initial, driving, searching }
+enum AppState {
+	initial,
+	idle,
+	driving,
+	searching,
+}

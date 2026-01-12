@@ -56,6 +56,8 @@ class ControlPanel extends StatelessWidget {
 
   Widget _buildPanelContent(BuildContext context) {
     switch (appState) {
+      case AppState.idle:
+        return _buildInitialStateUI(context);
       case AppState.initial:
         return _buildInitialStateUI(context);
       case AppState.driving:

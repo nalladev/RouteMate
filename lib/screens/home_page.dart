@@ -147,6 +147,8 @@ class _RouteMateHomePageState extends State<RouteMateHomePage> {
 
   String _getUserStatusString() {
     switch (_appState) {
+      case AppState.idle:
+        return 'idle';
       case AppState.driving:
         return 'driving';
       case AppState.searching:

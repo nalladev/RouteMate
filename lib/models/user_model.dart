@@ -1,3 +1,61 @@
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is String) {
+    try {
+      return DateTime.parse(value);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (value is int) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (value is num) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    } catch (_) {
+      return null;
+    }
+  }
+  if (value is Map<String, dynamic>) {
+    final dynamic secondsVal = value['seconds'] ?? value['_seconds'];
+    final dynamic nanosVal = value['nanoseconds'] ?? value['_nanoseconds'] ?? 0;
+    int? seconds;
+    int? nanoseconds;
+    if (secondsVal is int) {
+      seconds = secondsVal;
+    } else if (secondsVal is num) {
+      seconds = secondsVal.toInt();
+    }
+    if (nanosVal is int) {
+      nanoseconds = nanosVal;
+    } else if (nanosVal is num) {
+      nanoseconds = nanosVal.toInt();
+    }
+    if (seconds != null) {
+      try {
+        final int ms = seconds * 1000 + ((nanoseconds ?? 0) ~/ 1000000);
+        return DateTime.fromMillisecondsSinceEpoch(ms);
+      } catch (_) {
+        // fall through
+      }
+    }
+    final iso = value['iso'] ?? value['date'] ?? value['toDate'];
+    if (iso is String) {
+      try {
+        return DateTime.parse(iso);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
 class UserModel {
   final String uid;
   final String phone;
@@ -22,17 +80,15 @@ class UserModel {
       uid: json['uid'] ?? '',
       phone: json['phone'] ?? '',
       walletPoints: json['walletPoints'] ?? 0,
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
-          : DateTime.now(),
-      profile: json['profile'] != null 
-          ? UserProfile.fromJson(json['profile']) 
+      createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
+      profile: json['profile'] != null
+          ? UserProfile.fromJson(json['profile'] as Map<String, dynamic>)
           : null,
-      stats: json['stats'] != null 
-          ? UserStats.fromJson(json['stats']) 
+      stats: json['stats'] != null
+          ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
           : UserStats.empty(),
-      location: json['location'] != null 
-          ? UserLocation.fromJson(json['location']) 
+      location: json['location'] != null
+          ? UserLocation.fromJson(json['location'] as Map<String, dynamic>)
           : null,
     );
   }
@@ -177,15 +233,13 @@ class UserLocation {
   factory UserLocation.fromJson(Map<String, dynamic> json) {
     return UserLocation(
       userId: json['userId'] ?? '',
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      latitude: ((json['latitude'] ?? json['_latitude'] ?? 0.0) as num).toDouble(),
+      longitude: ((json['longitude'] ?? json['_longitude'] ?? 0.0) as num).toDouble(),
       heading: (json['heading'] ?? 0.0).toDouble(),
       speed: (json['speed'] ?? 0.0).toDouble(),
       accuracy: (json['accuracy'] ?? 10.0).toDouble(),
       isActive: json['isActive'] ?? true,
-      updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt']) 
-          : DateTime.now(),
+      updatedAt: _parseDateTime(json['updatedAt']) ?? DateTime.now(),
     );
   }
 

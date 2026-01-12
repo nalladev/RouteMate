@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:routemate/config/api_config.dart';
 
 class PhoneEmailOTPService {
-  // Use your backend as a proxy instead of calling phone.email directly
-  // This avoids CORS issues on web
-  static const String _backendUrl = 'http://localhost:3000'; // Update with your actual backend URL
+  // Use the configured backend as proxy instead of calling phone.email directly
+  static String get _apiBaseUrl => ApiConfig.baseUrl; // Points to production/base API
   
   final String phoneNumber;
   String? _requestId;
@@ -22,7 +22,7 @@ class PhoneEmailOTPService {
       debugPrint('Sending OTP to $phoneNumber via backend');
       
       final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/send-otp'),
+        Uri.parse('$_apiBaseUrl/auth/send-otp'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -61,7 +61,7 @@ class PhoneEmailOTPService {
       debugPrint('Verifying OTP for request ID: $_requestId');
       
       final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/verify-otp'),
+        Uri.parse('$_apiBaseUrl/auth/verify-otp'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
