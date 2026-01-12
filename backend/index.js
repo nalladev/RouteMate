@@ -14,16 +14,18 @@ const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 const SERVER_URL = 'https://routemate-jpsc.onrender.com/health';
 
 function selfPing() {
-    https.get(SERVER_URL, (res) => {
-        console.log(`[${new Date().toISOString()}] 🏓 Self-ping successful - Status: ${res.statusCode}`);
+    https.get(SERVER_URL, {
+        headers: { 'X-Self-Ping': 'true' }
+    }, (res) => {
+        // Logging handled in health endpoint handler
     }).on('error', (err) => {
-        console.error(`[${new Date().toISOString()}] ❌ Self-ping failed:`, err.message);
+        // Silently fail - will be retried on next interval
     });
 }
 
 // Start self-ping after server is running
 function startSelfPing() {
-    console.log(`[${new Date().toISOString()}] 🚀 Starting self-ping mechanism - pinging every 13 minutes`);
+    console.log(`[${new Date().toISOString()}] 🚀 Starting self-ping mechanism - pinging every 10 minutes`);
     selfPing(); // Initial ping
     setInterval(selfPing, PING_INTERVAL);
 }
@@ -133,6 +135,12 @@ const apiRouter = express.Router();
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+    const isSelfPing = req.get('X-Self-Ping') === 'true';
+    
+    if (isSelfPing) {
+        console.log(`[${new Date().toISOString()}] 🏓 Self-ping received - Status: 200`);
+    }
+    
     res.status(200).json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
