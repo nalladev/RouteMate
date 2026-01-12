@@ -224,7 +224,17 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('❌ ERROR:', err.message);
     console.error(err.stack);
-    res.status(err.status || 500).json({ error: err.message || 'Internal server error' console.log(`
+    res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
+
+console.log('🚦 Starting server...');
+
+app.listen(port, () => {
+    console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║         RouteMate Backend - Refactored Version             ║
 ║                                                            ║
