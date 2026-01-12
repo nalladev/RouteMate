@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const admin = require('firebase-admin');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
 const { getDistance } = require('../utils/geoUtils');
@@ -43,7 +44,7 @@ router.post('/session', authenticateToken, async (req, res) => {
             driverId: userId,
             destination: {
                 displayName: destination.displayName,
-                location: new db.GeoPoint(destination.latitude, destination.longitude)
+                location: new admin.firestore.GeoPoint(destination.latitude, destination.longitude)
             },
             status: 'active',
             createdAt: FieldValue.serverTimestamp(),
@@ -57,7 +58,7 @@ router.post('/session', authenticateToken, async (req, res) => {
             status: 'driving',
             destination: {
                 displayName: destination.displayName,
-                location: new db.GeoPoint(destination.latitude, destination.longitude)
+                location: new admin.firestore.GeoPoint(destination.latitude, destination.longitude)
             },
             updatedAt: FieldValue.serverTimestamp()
         });
@@ -107,7 +108,7 @@ router.put('/update-location', authenticateToken, async (req, res) => {
         }
 
         const updateData = {
-            location: new db.GeoPoint(location.latitude, location.longitude),
+            location: new admin.firestore.GeoPoint(location.latitude, location.longitude),
             updatedAt: FieldValue.serverTimestamp()
         };
 
