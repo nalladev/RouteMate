@@ -51,7 +51,9 @@ router.get('/route', authenticateToken, async (req, res) => {
         }
 
         const route = await getRoute(startLat, startLon, endLat, endLon);
-        res.status(200).json(route);
+        // Convert to OpenAPI spec format: { points: [[lon, lat], ...] }
+        const points = route.coordinates.map(coord => [coord.longitude, coord.latitude]);
+        res.status(200).json({ points });
     } catch (error) {
         console.error('Error getting route:', error);
         res.status(500).json({ error: 'Failed to get route' });

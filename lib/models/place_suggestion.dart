@@ -13,10 +13,10 @@ class PlaceSuggestion {
 
   factory PlaceSuggestion.fromNominatimJson(Map<String, dynamic> json) {
     return PlaceSuggestion(
-      displayName: json['display_name'],
-      latitude: double.parse(json['lat']),
-      longitude: double.parse(json['lon']),
-      placeId: json['place_id']?.toString(),
+      displayName: json['name'] ?? 'Unknown',
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      placeId: json['type']?.toString(),
     );
   }
 

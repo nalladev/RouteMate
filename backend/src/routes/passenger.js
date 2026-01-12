@@ -183,29 +183,30 @@ router.get('/nearby-drivers', authenticateToken, async (req, res) => {
                 // Include drivers within radius
                 if (distance <= radius) {
                     nearbyDrivers.push({
-                        id: doc.id,
-                        status: driver.status,
+                        driverId: doc.id,
+                        sessionId: driver.sessionId || null,
                         currentLocation: {
                             latitude: driver.location.latitude,
                             longitude: driver.location.longitude
                         },
                         destination: driver.destination ? {
                             displayName: driver.destination.displayName,
-                            location: {
-                                latitude: driver.destination.location.latitude,
-                                longitude: driver.destination.location.longitude
-                            }
+                            latitude: driver.destination.location.latitude,
+                            longitude: driver.destination.location.longitude
                         } : null,
-                        distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-                        heading: driver.heading,
-                        speed: driver.speed
+                        estimatedArrival: null,
+                        availableSeats: 4,
+                        _distance: distance // Internal use for sorting
                     });
                 }
             }
         });
 
         // Sort by distance
-        nearbyDrivers.sort((a, b) => a.distance - b.distance);
+        nearbyDrivers.sort((a, b) => a._distance - b._distance);
+        
+        // Remove internal sorting field before sending response
+        nearbyDrivers.forEach(driver => delete driver._distance);
 
         res.status(200).json({ drivers: nearbyDrivers });
     } catch (error) {

@@ -38,6 +38,20 @@ router.post('/session', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'User location not available. Please update location first.' });
         }
 
+        // Create driver session
+        const sessionData = {
+            driverId: userId,
+            destination: {
+                displayName: destination.displayName,
+                location: new db.GeoPoint(destination.latitude, destination.longitude)
+            },
+            status: 'active',
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        const sessionRef = await db.collection('driver_sessions').add(sessionData);
+
         // Update user status to driving
         await db.collection('users').doc(userId).update({
             status: 'driving',
@@ -48,9 +62,9 @@ router.post('/session', authenticateToken, async (req, res) => {
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        res.status(200).json({ 
-            message: 'Session started. You are now a driver.',
-            status: 'driving'
+        res.status(201).json({ 
+            message: 'Session started successfully',
+            sessionId: sessionRef.id
         });
     } catch (error) {
         console.error('Error starting driver session:', error);
