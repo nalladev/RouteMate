@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const { db } = require('../config/firebase');
 const { FieldValue } = require('firebase-admin/firestore');
 
@@ -57,7 +57,7 @@ router.get('/profile', authenticateUser, async (req, res) => {
  * Update user's current location
  * Implements smart update logic to reduce unnecessary database writes
  */
-router.put('/location', authenticateUser, async (req, res) => {
+router.put('/location', authenticateToken, async (req, res) => {
     try {
         const { location, heading, speed, accuracy } = req.body;
         const userId = req.user.uid;
@@ -162,7 +162,7 @@ router.put('/location', authenticateUser, async (req, res) => {
  * GET /api/user/wallet
  * Get user's wallet points balance
  */
-router.get('/wallet', authenticateUser, async (req, res) => {
+router.get('/wallet', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.uid;
 
@@ -183,7 +183,7 @@ router.get('/wallet', authenticateUser, async (req, res) => {
  * GET /api/user/rewards
  * Get user's rewards history
  */
-router.get('/rewards', authenticateUser, async (req, res) => {
+router.get('/rewards', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.uid;
 
