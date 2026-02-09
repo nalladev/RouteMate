@@ -13,11 +13,13 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
 import { MarkerData, RideConnection } from '@/types';
 import { api } from '@/utils/api';
+import { GOOGLE_MAPS_API_KEY } from '@/config/env';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -44,6 +46,7 @@ export default function HomeScreen() {
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,7 +102,7 @@ export default function HomeScreen() {
     setShowPlacesSearch(true);
   }
 
-  function handlePlaceSelected(data: any, details: any) {
+  async function handlePlaceSelected(data: any, details: any) {
     if (details?.geometry?.location) {
       const { lat, lng } = details.geometry.location;
       setDestination({ lat, lng });
@@ -107,16 +110,81 @@ export default function HomeScreen() {
       setShowPlacesSearch(false);
       Keyboard.dismiss();
       
-      // Center map on destination
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
+      // Fetch route from Google Directions API
+      if (userLocation) {
+        try {
+          const origin = `${userLocation.lat},${userLocation.lng}`;
+          const destination = `${lat},${lng}`;
+          const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
+          
+          const response = await fetch(url);
+          const result = await response.json();
+          
+          if (result.routes && result.routes.length > 0) {
+            const points = result.routes[0].overview_polyline.points;
+            const decodedPoints = decodePolyline(points);
+            setRouteCoordinates(decodedPoints);
+            
+            // Fit map to show entire route
+            if (mapRef.current) {
+              mapRef.current.fitToCoordinates(decodedPoints, {
+                edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
+                animated: true,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching route:', error);
+        }
+      }
+      
+      // Automatically enter active mode (riding or driving based on role)
+      try {
+        const state = role === 'driver' ? 'driving' : 'riding';
+        await updateUserState(state, { lat, lng });
+      } catch (error: any) {
+        Alert.alert('Error', error.message);
       }
     }
+  }
+
+  // Decode Google's encoded polyline format
+  function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
+    const points: { latitude: number; longitude: number }[] = [];
+    let index = 0;
+    const len = encoded.length;
+    let lat = 0;
+    let lng = 0;
+
+    while (index < len) {
+      let b;
+      let shift = 0;
+      let result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push({
+        latitude: lat / 1e5,
+        longitude: lng / 1e5,
+      });
+    }
+
+    return points;
   }
 
   function handleCancelPlacesSearch() {
@@ -133,6 +201,7 @@ export default function HomeScreen() {
           try {
             await updateUserState('idle', null);
             setDestination(null);
+            setRouteCoordinates([]);
           } catch (error: any) {
             Alert.alert('Error', error.message);
           }
@@ -256,15 +325,53 @@ export default function HomeScreen() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
+        showsPointsOfInterest={true}
+        showsBuildings={true}
+        onPoiClick={async (event) => {
+          const poi = event.nativeEvent;
+          if (poi.coordinate && poi.name) {
+            const { latitude, longitude } = poi.coordinate;
+            setDestination({ lat: latitude, lng: longitude });
+            setSearchQuery(poi.name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+            
+            // Fetch route from Google Directions API
+            if (userLocation) {
+              try {
+                const origin = `${userLocation.lat},${userLocation.lng}`;
+                const destination = `${latitude},${longitude}`;
+                const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.routes && result.routes.length > 0) {
+                  const points = result.routes[0].overview_polyline.points;
+                  const decodedPoints = decodePolyline(points);
+                  setRouteCoordinates(decodedPoints);
+                  
+                  // Fit map to show entire route
+                  if (mapRef.current) {
+                    mapRef.current.fitToCoordinates(decodedPoints, {
+                      edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
+                      animated: true,
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching route:', error);
+              }
+            }
+            
+            // Automatically enter active mode
+            try {
+              const state = role === 'driver' ? 'driving' : 'riding';
+              await updateUserState(state, { lat: latitude, lng: longitude });
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          }
+        }}
       >
-        {userLocation && (
-          <Marker
-            coordinate={{ latitude: userLocation.lat, longitude: userLocation.lng }}
-            title="You"
-            pinColor="blue"
-          />
-        )}
-
         {markers.map((marker) => (
           <Marker
             key={marker.userId}
@@ -274,14 +381,21 @@ export default function HomeScreen() {
           />
         ))}
 
-        {destination && userLocation && (
+        {/* Destination marker (red pin like Google Maps) */}
+        {destination && (
+          <Marker
+            coordinate={{ latitude: destination.lat, longitude: destination.lng }}
+            title="Destination"
+            pinColor="red"
+          />
+        )}
+
+        {/* Route polyline - only show when route is fetched */}
+        {routeCoordinates.length > 0 && isActive && (
           <Polyline
-            coordinates={[
-              { latitude: userLocation.lat, longitude: userLocation.lng },
-              { latitude: destination.lat, longitude: destination.lng },
-            ]}
-            strokeColor="#007AFF"
-            strokeWidth={3}
+            coordinates={routeCoordinates}
+            strokeColor="#4285F4"
+            strokeWidth={4}
           />
         )}
       </MapView>
@@ -302,11 +416,22 @@ export default function HomeScreen() {
               placeholder="Search destination..."
               onPress={handlePlaceSelected}
               query={{
-                key: process.env.GOOGLE_MAPS_API_KEY || '',
+                key: GOOGLE_MAPS_API_KEY,
                 language: 'en',
               }}
               fetchDetails={true}
               enablePoweredByContainer={false}
+              onFail={() => {
+                Alert.alert(
+                  'Search Unavailable', 
+                  'Location search requires Google Places API with billing enabled. You can tap anywhere on the map to set your destination instead.',
+                  [{ text: 'OK', onPress: handleCancelPlacesSearch }]
+                );
+              }}
+              textInputProps={{
+                autoFocus: true,
+                onBlur: handleCancelPlacesSearch,
+              }}
               styles={{
                 container: {
                   flex: 0,
@@ -331,12 +456,6 @@ export default function HomeScreen() {
                 },
               }}
             />
-            <TouchableOpacity
-              style={styles.cancelPlacesButton}
-              onPress={handleCancelPlacesSearch}
-            >
-              <Text style={styles.cancelPlacesButtonText}>Cancel</Text>
-            </TouchableOpacity>
           </View>
         )}
         {isActive && (
@@ -348,7 +467,7 @@ export default function HomeScreen() {
 
       {/* Center on user button */}
       <TouchableOpacity style={styles.centerButton} onPress={centerOnUser}>
-        <Text style={styles.centerButtonText}>📍</Text>
+        <MaterialIcons name="my-location" size={24} color="#e86713" />
       </TouchableOpacity>
 
       {/* Role toggle */}
@@ -522,9 +641,11 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    zIndex: 1000,
   },
   searchInput: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 12,
@@ -536,6 +657,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   placesSearchContainer: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 8,
@@ -544,18 +666,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  cancelPlacesButton: {
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  cancelPlacesButtonText: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: '500',
   },
   exitButton: {
     marginLeft: 10,
@@ -596,12 +706,12 @@ const styles = StyleSheet.create({
   },
   roleToggle: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 20,
     left: 10,
     right: 10,
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 20,
     padding: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -613,10 +723,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 20,
   },
   roleButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#e86713',
   },
   roleButtonText: {
     fontSize: 16,
@@ -664,10 +774,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginVertical: 15,
-    color: '#007AFF',
+    color: '#e86713',
   },
   requestButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#e86713',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -695,7 +805,7 @@ const styles = StyleSheet.create({
     bottom: 150,
     left: 10,
     right: 10,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#e86713',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',

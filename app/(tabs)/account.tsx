@@ -16,7 +16,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { Transaction } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -24,8 +23,7 @@ export default function AccountScreen() {
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = Colors['light'];
   
   // Top-up state
   const [showTopupModal, setShowTopupModal] = useState(false);
@@ -207,7 +205,6 @@ export default function AccountScreen() {
         style: 'destructive',
         onPress: async () => {
           await logout();
-          router.replace('/login');
         },
       },
     ]);
@@ -399,13 +396,6 @@ export default function AccountScreen() {
 
           {/* Actions */}
           <View style={styles.actionsSection}>
-            <TouchableOpacity 
-              style={[styles.refreshButton, { backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border }]} 
-              onPress={loadAccountInfo}
-            >
-              <Text style={[styles.refreshButtonText, { color: colors.text }]}>🔄 Refresh Balance</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.error }]} onPress={handleLogout}>
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
@@ -723,6 +713,7 @@ const styles = StyleSheet.create({
   balanceValue: {
     fontSize: 42,
     fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   walletActions: {
     flexDirection: 'row',
@@ -796,16 +787,6 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     marginTop: Spacing.md,
-  },
-  refreshButton: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  refreshButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   logoutButton: {
     padding: Spacing.md,

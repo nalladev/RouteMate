@@ -133,7 +133,7 @@ export default function KYCVerificationScreen() {
           startInLoadingState={true}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#e86713" />
               <Text style={styles.loadingText}>Loading verification...</Text>
             </View>
           )}
@@ -298,8 +298,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
-    shadowColor: '#007AFF',
+    backgroundColor: '#e86713',
+    shadowColor: '#e86713',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   backButtonText: {
-    color: '#007AFF',
+    color: '#e86713',
     fontSize: 16,
   },
   webViewTitle: {

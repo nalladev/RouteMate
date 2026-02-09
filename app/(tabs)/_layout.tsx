@@ -19,11 +19,9 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: colors.card,
+          backgroundColor: "white",
           borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-          paddingTop: 10,
           ...Shadow.medium,
           elevation: 8,
         },
@@ -41,9 +39,9 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name="house.fill" 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name="house.fill"
               color={color}
             />
           ),
@@ -54,9 +52,9 @@ export default function TabLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name="clock.fill" 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name="clock.fill"
               color={color}
             />
           ),
@@ -67,9 +65,9 @@ export default function TabLayout() {
         options={{
           title: 'Account',
           tabBarIcon: ({ color, focused }) => (
-            <IconSymbol 
-              size={focused ? 30 : 26} 
-              name="person.crop.circle.fill" 
+            <IconSymbol
+              size={focused ? 30 : 26}
+              name="person.crop.circle.fill"
               color={color}
             />
           ),

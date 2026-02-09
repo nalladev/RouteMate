@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { RideConnection } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -21,8 +20,7 @@ export default function HistoryScreen() {
   const [rides, setRides] = useState<RideConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = Colors['light'];
 
   useEffect(() => {
     if (!isAuthenticated) {

@@ -32,7 +32,7 @@ function getApiBaseUrl(): string {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { login, otpLogin, isAuthenticated, user, isLoading: authLoading } = useAuth();
   
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [countryCode, setCountryCode] = useState('+91');
@@ -64,7 +64,7 @@ export default function LoginScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.authLoadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#e86713" />
           <Text style={styles.authLoadingText}>Loading...</Text>
         </View>
       </View>
@@ -132,8 +132,8 @@ export default function LoginScreen() {
         return;
       }
 
-      // User exists - complete login
-      await login(data.user.Mobile, data.token);
+      // User exists - complete login using otpLogin from AuthContext
+      await otpLogin(jwt);
       
       // Check KYC status after login
       if (!data.user.IsKycVerified) {
@@ -253,7 +253,7 @@ export default function LoginScreen() {
           startInLoadingState={true}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#e86713" />
             </View>
           )}
         />
@@ -463,12 +463,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#e86713',
   },
   secondaryButton: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#e86713',
   },
   buttonText: {
     color: '#fff',
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButtonText: {
-    color: '#007AFF',
+    color: '#e86713',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
+    color: '#e86713',
     fontSize: 14,
   },
   webView: {
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   backButtonText: {
-    color: '#007AFF',
+    color: '#e86713',
     fontSize: 16,
   },
   webViewTitle: {
@@ -534,11 +534,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     borderRadius: 8,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     paddingVertical: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    minWidth: 90,
+    minWidth: 70,
   },
   countryCodeText: {
     fontSize: 16,
