@@ -339,8 +339,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
 * `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
 * `PHONE_EMAIL_API_KEY`
-* `DIDIT_API_KEY` (Backend - for API verification)
-* `EXPO_PUBLIC_DIDIT_CLIENT_ID` (Frontend - for WebView integration)
+* `DIDIT_API_KEY` (Backend - for API verification and session creation)
+* `DIDIT_WORKFLOW_ID` (Backend - workflow ID for verification)
 * `PASSWORD_HASHING_SEED`
 * `GOOGLE_MAPS_API_KEY`
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)

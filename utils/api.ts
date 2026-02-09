@@ -181,6 +181,12 @@ export const api = {
   },
 
   // KYC
+  createKycSession: async (): Promise<{ sessionId: string; verificationUrl: string }> => {
+    return request('/api/kyc/create-session', {
+      method: 'POST',
+    });
+  },
+
   verifyKyc: async (kycData: any): Promise<{ success: boolean; verified: boolean }> => {
     return request('/api/kyc/verify', {
       method: 'POST',

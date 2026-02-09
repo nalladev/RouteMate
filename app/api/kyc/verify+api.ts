@@ -1,46 +1,40 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { updateDocument } from '../../../lib/firestore';
 
-async function verifyWithDidit(kycData: any): Promise<boolean> {
+async function verifySessionWithDidit(sessionId: string): Promise<{ verified: boolean; data?: any }> {
   const diditApiKey = process.env.DIDIT_API_KEY;
   if (!diditApiKey) {
     throw new Error('DIDIT_API_KEY is not set');
   }
 
   try {
-    // Call Didit API for KYC verification
-    const response = await fetch('https://api.didit.me/v1/kyc/verify', {
-      method: 'POST',
+    // Get session details from Didit API
+    const response = await fetch(`https://verification.didit.me/v3/session/${sessionId}`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${diditApiKey}`,
+        'x-api-key': diditApiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        user_id: kycData.userId,
-        full_name: kycData.fullName || kycData.name,
-        date_of_birth: kycData.dateOfBirth,
-        nationality: kycData.nationality,
-        document_type: kycData.documentType, // passport, drivers_license, national_id
-        document_number: kycData.documentNumber,
-        document_front: kycData.documentFront, // base64 image
-        document_back: kycData.documentBack, // base64 image (if applicable)
-        selfie: kycData.selfie, // base64 image
-      }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Didit API error:', response.status, errorData);
-      return false;
+      return { verified: false };
     }
 
     const result = await response.json();
     
-    // Didit returns verification status and confidence score
-    return result.verified === true && (result.confidence_score || 0) >= 0.8;
+    // Check if session is approved
+    const isApproved = result.status === 'Approved' || result.status === 'approved';
+    
+    return {
+      verified: isApproved,
+      data: result,
+    };
   } catch (error) {
     console.error('Didit verification error:', error);
-    return false;
+    return { verified: false };
   }
 }
 
@@ -65,30 +59,37 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { kycData } = body;
+    const { sessionId, status } = body;
 
-    if (!kycData) {
+    if (!sessionId) {
       return Response.json(
-        { error: 'KYC data is required' },
+        { error: 'Session ID is required' },
         { status: 400 }
       );
     }
 
-    const isVerified = await verifyWithDidit(kycData);
+    // Verify the session with Didit
+    const verificationResult = await verifySessionWithDidit(sessionId);
 
-    if (!isVerified) {
+    if (!verificationResult.verified) {
       return Response.json(
-        { error: 'KYC verification failed' },
+        { error: 'KYC verification failed or session not approved' },
         { status: 400 }
       );
     }
 
-    // Extract name from KYC data
-    const name = kycData.name || kycData.fullName || '';
+    // Extract user data from verification result
+    const kycData = verificationResult.data;
+    const name = kycData?.user_data?.name || kycData?.full_name || '';
 
     await updateDocument('users', user.Id, {
       Name: name,
-      KycData: kycData,
+      KycData: {
+        sessionId,
+        status,
+        verifiedAt: new Date().toISOString(),
+        diditData: kycData,
+      },
       IsKycVerified: true,
     });
 

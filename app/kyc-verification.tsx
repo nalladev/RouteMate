@@ -18,18 +18,36 @@ export default function KYCVerificationScreen() {
   const { user, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState<string>('');
 
-  // Didit KYC WebView URL
-  const getDiditKYCUrl = () => {
-    const diditClientId = process.env.EXPO_PUBLIC_DIDIT_CLIENT_ID || '';
-    // Didit KYC verification flow URL
-    return `https://kyc.didit.me/verify?client_id=${diditClientId}&user_id=${user?.Id}`;
-  };
-
-  async function handleKYCData(kycData: any) {
+  // Create Didit verification session via backend
+  async function createVerificationSession() {
     setIsLoading(true);
     try {
-      await api.verifyKyc(kycData);
+      const response = await api.createKycSession();
+      
+      if (!response.verificationUrl) {
+        throw new Error('No verification URL received');
+      }
+      
+      setVerificationUrl(response.verificationUrl);
+      setShowDiditWebView(true);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to start verification');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleVerificationComplete(verificationSessionId: string, status: string) {
+    setIsLoading(true);
+    try {
+      // Send session ID and status to backend for verification
+      await api.verifyKyc({
+        sessionId: verificationSessionId,
+        status,
+        userId: user?.Id,
+      });
 
       // Refresh user data to get updated KYC status
       await refreshUser();
@@ -52,19 +70,22 @@ export default function KYCVerificationScreen() {
     }
   }
 
-  function handleWebViewMessage(event: any) {
-    try {
-      const message = JSON.parse(event.nativeEvent.data);
-      
-      // Didit sends KYC data when verification is complete
-      if (message.type === 'kyc_complete' && message.data) {
-        handleKYCData(message.data);
-      } else if (message.type === 'kyc_error') {
-        Alert.alert('Error', 'KYC verification failed. Please try again.');
-        setShowDiditWebView(false);
+  function handleNavigationStateChange(navState: any) {
+    const { url } = navState;
+    
+    // Check if this is the callback URL
+    if (url && url.includes('kyc-callback')) {
+      try {
+        const urlObj = new URL(url);
+        const verificationSessionId = urlObj.searchParams.get('verificationSessionId');
+        const status = urlObj.searchParams.get('status');
+        
+        if (verificationSessionId && status) {
+          handleVerificationComplete(verificationSessionId, status);
+        }
+      } catch (error) {
+        console.error('Failed to parse callback URL:', error);
       }
-    } catch (error) {
-      console.error('Failed to parse WebView message:', error);
     }
   }
 
@@ -99,9 +120,16 @@ export default function KYCVerificationScreen() {
           <Text style={styles.webViewTitle}>KYC Verification</Text>
         </View>
         <WebView
-          source={{ uri: getDiditKYCUrl() }}
+          source={{ uri: verificationUrl }}
           style={styles.webView}
-          onMessage={handleWebViewMessage}
+          userAgent="Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback={true}
+          domStorageEnabled={true}
+          androidHardwareAccelerationDisabled={false}
+          androidLayerType="hardware"
+          javaScriptEnabled={true}
+          onNavigationStateChange={handleNavigationStateChange}
           startInLoadingState={true}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
@@ -151,7 +179,7 @@ export default function KYCVerificationScreen() {
 
         <TouchableOpacity
           style={[styles.button, styles.primaryButton]}
-          onPress={() => setShowDiditWebView(true)}
+          onPress={createVerificationSession}
           disabled={isLoading}
         >
           {isLoading ? (
