@@ -1,0 +1,918 @@
+openapi: 3.0.0
+info:
+  title: RouteMate API
+  description: API for RouteMate ride-sharing application
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+      required:
+        - lat
+        - lng
+    
+    UserState:
+      type: string
+      enum:
+        - driving
+        - riding
+        - idle
+    
+    User:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        Mobile:
+          type: string
+        state:
+          $ref: '#/components/schemas/UserState'
+        LastLocation:
+          $ref: '#/components/schemas/Location'
+        Destination:
+          $ref: '#/components/schemas/Location'
+        Wallet:
+          type: object
+          properties:
+            address:
+              type: string
+        IsKycVerified:
+          type: boolean
+    
+    RideConnectionState:
+      type: string
+      enum:
+        - requested
+        - accepted
+        - rejected
+        - picked_up
+        - completed
+    
+    RideConnection:
+      type: object
+      properties:
+        Id:
+          type: string
+        PassengerId:
+          type: string
+        DriverId:
+          type: string
+        PickupLocation:
+          $ref: '#/components/schemas/Location'
+        Destination:
+          $ref: '#/components/schemas/Location'
+        Distance:
+          type: number
+          format: double
+        Fare:
+          type: number
+          format: double
+        RideTotalTime:
+          type: number
+          format: double
+        OtpCode:
+          type: string
+        State:
+          $ref: '#/components/schemas/RideConnectionState'
+        CreatedAt:
+          type: string
+          format: date-time
+        ExpiresAt:
+          type: string
+          format: date-time
+    
+    MarkerData:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        rating:
+          type: number
+          format: double
+        vehicle:
+          type: string
+        lastLocation:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /api/auth/login:
+    post:
+      summary: Password-based login
+      description: Authenticate user with mobile and password
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobile:
+                  type: string
+                password:
+                  type: string
+              required:
+                - mobile
+                - password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/auth/otp-login:
+    post:
+      summary: OTP-based login
+      description: Login via phone.email OTP token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otpToken:
+                  type: string
+              required:
+                - otpToken
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid OTP token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/auth/signup:
+    post:
+      summary: Create new account
+      description: Register new user after OTP verification
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otpToken:
+                  type: string
+                password:
+                  type: string
+              required:
+                - otpToken
+                - password
+      responses:
+        '200':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid OTP token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidate user session
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/user/me:
+    get:
+      summary: Get current user profile
+      description: Fetch logged-in user profile information
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/user/state:
+    post:
+      summary: Update user state
+      description: Update user activity state and destination
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state:
+                  $ref: '#/components/schemas/UserState'
+                destination:
+                  $ref: '#/components/schemas/Location'
+              required:
+                - state
+      responses:
+        '200':
+          description: State updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/user/location:
+    post:
+      summary: Update user location
+      description: Update user's current GPS location
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  format: double
+                lng:
+                  type: number
+                  format: double
+              required:
+                - lat
+                - lng
+      responses:
+        '200':
+          description: Location updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/match/markers:
+    get:
+      summary: Get filtered markers
+      description: Returns filtered nearby drivers or passengers based on role and route overlap
+      tags:
+        - Discovery
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - driver
+              - passenger
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: List of filtered markers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  markers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarkerData'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/request:
+    post:
+      summary: Request a ride
+      description: Passenger requests ride from a driver
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                driverId:
+                  type: string
+                pickupLocation:
+                  $ref: '#/components/schemas/Location'
+                destination:
+                  $ref: '#/components/schemas/Location'
+              required:
+                - driverId
+                - pickupLocation
+                - destination
+      responses:
+        '200':
+          description: Ride requested successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Driver not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/request/cancel:
+    post:
+      summary: Cancel ride request
+      description: Cancel pending ride request
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+              required:
+                - requestId
+      responses:
+        '200':
+          description: Request cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/requests:
+    get:
+      summary: Get pending requests
+      description: Driver fetches pending ride requests
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/request/respond:
+    post:
+      summary: Respond to ride request
+      description: Driver accepts or rejects ride request
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                action:
+                  type: string
+                  enum:
+                    - accepted
+                    - rejected
+              required:
+                - requestId
+                - action
+      responses:
+        '200':
+          description: Response recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connection:
+                    $ref: '#/components/schemas/RideConnection'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/connection/verify-otp:
+    post:
+      summary: Verify pickup OTP
+      description: Driver verifies passenger OTP at pickup
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                otp:
+                  type: string
+              required:
+                - connectionId
+                - otp
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request or invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/connection/complete:
+    post:
+      summary: Complete ride
+      description: Marks ride as completed and triggers payment
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Ride completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  paymentTx:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Payment processing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/connections:
+    get:
+      summary: Get active connections
+      description: Returns active ride connections for current user
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of active connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/rides/history:
+    get:
+      summary: Get ride history
+      description: Returns completed rides for user
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of completed rides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rides:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/balance:
+    get:
+      summary: Get wallet balance
+      description: Fetch wallet balance and address
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wallet information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: number
+                    format: double
+                    description: Balance in SOL
+                  address:
+                    type: string
+                    description: Wallet address
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/kyc/verify:
+    post:
+      summary: Verify KYC
+      description: Submit KYC data for verification via Didit
+      tags:
+        - KYC
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kycData:
+                  type: object
+                  description: KYC verification data from Didit
+              required:
+                - kycData
+      responses:
+        '200':
+          description: KYC verification successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  verified:
+                    type: boolean
+        '400':
+          description: Bad request or verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: User
+    description: User profile and state management
+  - name: Discovery
+    description: Driver/passenger discovery and matching
+  - name: Rides
+    description: Ride request and connection management
+  - name: Wallet
+    description: Wallet and payment operations
+  - name: KYC
+    description: KYC verification operations

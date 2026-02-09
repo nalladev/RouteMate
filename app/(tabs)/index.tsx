@@ -1,98 +1,682 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAppState } from '@/contexts/AppStateContext';
+import { MarkerData, RideConnection } from '@/types';
+import { api } from '@/utils/api';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const {
+    role,
+    setRole,
+    userLocation,
+    destination,
+    setDestination,
+    markers,
+    activeConnections,
+    pendingRequests,
+    isActive,
+    updateUserState,
+    refreshMarkers,
+  } = useAppState();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const mapRef = useRef<MapView>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
+  const [activeRequest, setActiveRequest] = useState<RideConnection | null>(null);
+  const [balance, setBalance] = useState<number>(0);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [showRequestPopup, setShowRequestPopup] = useState(false);
+  const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadBalance();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (role === 'driver' && pendingRequests.length > 0) {
+      setCurrentRequest(pendingRequests[0]);
+      setShowRequestPopup(true);
+    }
+  }, [pendingRequests, role]);
+
+  useEffect(() => {
+    if (activeConnections.length > 0) {
+      const myConnection = activeConnections.find(
+        (c) => c.PassengerId === user?.Id || c.DriverId === user?.Id
+      );
+      if (myConnection) {
+        setActiveRequest(myConnection);
+      }
+    }
+  }, [activeConnections, user]);
+
+  async function loadBalance() {
+    try {
+      const { balance: bal } = await api.getWalletBalance();
+      setBalance(bal);
+    } catch (error) {
+      console.error('Failed to load balance:', error);
+    }
+  }
+
+  function centerOnUser() {
+    if (userLocation && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    }
+  }
+
+  function handleSearchDestination() {
+    // Mock destination selection - in real app, use Google Places API
+    Alert.alert('Search', 'Destination search will be implemented with Google Places API');
+  }
+
+  function handleExitActive() {
+    Alert.alert('Exit Active Mode', 'Are you sure you want to exit?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Exit',
+        onPress: async () => {
+          try {
+            await updateUserState('idle', null);
+            setDestination(null);
+          } catch (error: any) {
+            Alert.alert('Error', error.message);
+          }
+        },
+      },
+    ]);
+  }
+
+  async function handleRequestRide(marker: MarkerData) {
+    if (!userLocation || !destination) return;
+
+    const minBalance = 10 / 100; // $10 worth
+    if (balance < minBalance) {
+      Alert.alert(
+        'Insufficient Balance',
+        'You need at least $10 worth of SOL to request a ride. Please top up your wallet.',
+        [{ text: 'Go to Account', onPress: () => router.push('/(tabs)/account') }]
+      );
+      return;
+    }
+
+    try {
+      const { requestId } = await api.requestRide(marker.userId, userLocation, destination);
+      Alert.alert('Success', 'Ride requested! Waiting for driver response.');
+      setSelectedMarker(null);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to request ride');
+    }
+  }
+
+  async function handleCancelRequest() {
+    if (!activeRequest) return;
+
+    Alert.alert('Cancel Request', 'Are you sure you want to cancel?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: async () => {
+          try {
+            await api.cancelRequest(activeRequest.Id);
+            setActiveRequest(null);
+            Alert.alert('Success', 'Request cancelled');
+          } catch (error: any) {
+            Alert.alert('Error', error.message);
+          }
+        },
+      },
+    ]);
+  }
+
+  async function handleRespondToRequest(action: 'accepted' | 'rejected') {
+    if (!currentRequest) return;
+
+    try {
+      await api.respondToRequest(currentRequest.Id, action);
+      setShowRequestPopup(false);
+      setCurrentRequest(null);
+      Alert.alert('Success', `Request ${action}`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  }
+
+  async function handleVerifyOtp(connectionId: string, otp: string) {
+    try {
+      await api.verifyOtp(connectionId, otp);
+      Alert.alert('Success', 'Passenger picked up!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  }
+
+  async function handleCompleteRide(connectionId: string) {
+    try {
+      const { paymentTx } = await api.completeRide(connectionId);
+      Alert.alert('Ride Completed', `Payment successful! TX: ${paymentTx}`);
+      setActiveRequest(null);
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  }
+
+  if (!user || !userLocation) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Loading location...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={{
+          latitude: userLocation.lat,
+          longitude: userLocation.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+        showsUserLocation
+        showsMyLocationButton={false}
+      >
+        {userLocation && (
+          <Marker
+            coordinate={{ latitude: userLocation.lat, longitude: userLocation.lng }}
+            title="You"
+            pinColor="blue"
+          />
+        )}
+
+        {markers.map((marker) => (
+          <Marker
+            key={marker.userId}
+            coordinate={{ latitude: marker.lastLocation.lat, longitude: marker.lastLocation.lng }}
+            title={marker.name}
+            onPress={() => setSelectedMarker(marker)}
+          />
+        ))}
+
+        {destination && userLocation && (
+          <Polyline
+            coordinates={[
+              { latitude: userLocation.lat, longitude: userLocation.lng },
+              { latitude: destination.lat, longitude: destination.lng },
+            ]}
+            strokeColor="#007AFF"
+            strokeWidth={3}
+          />
+        )}
+      </MapView>
+
+      {/* Search bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search destination..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onFocus={handleSearchDestination}
+        />
+        {isActive && (
+          <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
+            <Text style={styles.exitButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Center on user button */}
+      <TouchableOpacity style={styles.centerButton} onPress={centerOnUser}>
+        <Text style={styles.centerButtonText}>📍</Text>
+      </TouchableOpacity>
+
+      {/* Role toggle */}
+      <View style={styles.roleToggle}>
+        <TouchableOpacity
+          style={[styles.roleButton, role === 'passenger' && styles.roleButtonActive]}
+          onPress={() => setRole('passenger')}
+        >
+          <Text style={[styles.roleButtonText, role === 'passenger' && styles.roleButtonTextActive]}>
+            Passenger
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.roleButton, role === 'driver' && styles.roleButtonActive]}
+          onPress={() => setRole('driver')}
+        >
+          <Text style={[styles.roleButtonText, role === 'driver' && styles.roleButtonTextActive]}>
+            Driver
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Selected marker detail */}
+      {selectedMarker && role === 'passenger' && (
+        <View style={styles.bottomSheet}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetTitle}>{selectedMarker.name}</Text>
+            <TouchableOpacity onPress={() => setSelectedMarker(null)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.detailText}>Rating: {selectedMarker.rating || 'N/A'}</Text>
+          <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => handleRequestRide(selectedMarker)}
+          >
+            <Text style={styles.requestButtonText}>Request Ride</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Active request pane */}
+      {activeRequest && role === 'passenger' && !isMinimized && (
+        <View style={styles.bottomSheet}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetTitle}>Active Request</Text>
+            <TouchableOpacity onPress={() => setIsMinimized(true)}>
+              <Text style={styles.closeButton}>−</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.detailText}>Status: {activeRequest.State}</Text>
+          {activeRequest.State === 'accepted' && activeRequest.OtpCode && (
+            <Text style={styles.otpText}>OTP: {activeRequest.OtpCode}</Text>
+          )}
+          {activeRequest.State === 'requested' && (
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRequest}>
+              <Text style={styles.cancelButtonText}>Cancel Request</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Minimized status bar */}
+      {activeRequest && isMinimized && (
+        <TouchableOpacity
+          style={styles.minimizedBar}
+          onPress={() => setIsMinimized(false)}
+        >
+          <Text style={styles.minimizedText}>Active Request - Tap to expand</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Driver request popup */}
+      <Modal visible={showRequestPopup} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>New Ride Request</Text>
+            {currentRequest && (
+              <>
+                <Text style={styles.modalText}>Fare: ${currentRequest.Fare.toFixed(2)}</Text>
+                <Text style={styles.modalText}>Distance: {currentRequest.Distance.toFixed(2)} km</Text>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.rejectButton]}
+                    onPress={() => handleRespondToRequest('rejected')}
+                  >
+                    <Text style={styles.modalButtonText}>Reject</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.acceptButton]}
+                    onPress={() => handleRespondToRequest('accepted')}
+                  >
+                    <Text style={styles.modalButtonText}>Accept</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Connection Manager for drivers */}
+      {role === 'driver' && activeConnections.length > 0 && (
+        <View style={styles.connectionManager}>
+          <Text style={styles.connectionTitle}>Active Connections</Text>
+          <ScrollView style={styles.connectionList}>
+            {activeConnections.map((conn) => (
+              <View key={conn.Id} style={styles.connectionItem}>
+                <Text style={styles.connectionText}>Status: {conn.State}</Text>
+                {conn.State === 'accepted' && (
+                  <View style={styles.otpEntry}>
+                    <TextInput
+                      style={styles.otpInput}
+                      placeholder="Enter OTP"
+                      onSubmitEditing={(e) => handleVerifyOtp(conn.Id, e.nativeEvent.text)}
+                    />
+                  </View>
+                )}
+                {conn.State === 'picked_up' && (
+                  <TouchableOpacity
+                    style={styles.completeButton}
+                    onPress={() => handleCompleteRide(conn.Id)}
+                  >
+                    <Text style={styles.completeButtonText}>Complete Ride</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 10,
+    right: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exitButton: {
+    marginLeft: 10,
+    backgroundColor: '#fff',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exitButtonText: {
+    fontSize: 24,
+    color: '#333',
+  },
+  centerButton: {
+    position: 'absolute',
+    top: 120,
+    right: 10,
+    backgroundColor: '#fff',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  centerButtonText: {
+    fontSize: 24,
+  },
+  roleToggle: {
+    position: 'absolute',
+    bottom: 90,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  roleButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  roleButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  roleButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  roleButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 150,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  bottomSheetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    fontSize: 24,
+    color: '#666',
+  },
+  detailText: {
+    fontSize: 16,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  otpText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 15,
+    color: '#007AFF',
+  },
+  requestButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  requestButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#FF3B30',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  minimizedBar: {
     position: 'absolute',
+    bottom: 150,
+    left: 10,
+    right: 10,
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  minimizedText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  acceptButton: {
+    backgroundColor: '#34C759',
+  },
+  rejectButton: {
+    backgroundColor: '#FF3B30',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  connectionManager: {
+    position: 'absolute',
+    bottom: 150,
+    left: 10,
+    right: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  connectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  connectionList: {
+    maxHeight: 150,
+  },
+  connectionItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingVertical: 10,
+  },
+  connectionText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  otpEntry: {
+    marginTop: 10,
+  },
+  otpInput: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+  },
+  completeButton: {
+    backgroundColor: '#34C759',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  completeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
