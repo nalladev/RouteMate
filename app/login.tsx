@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AuthMode = 'login' | 'phone-email-login' | 'phone-email-signup' | 'signup-password';
 
@@ -40,6 +41,7 @@ export default function LoginScreen() {
   const [phoneEmailToken, setPhoneEmailToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   // Get CLIENT_ID from environment variable
@@ -63,7 +65,21 @@ export default function LoginScreen() {
       // Combine country code with mobile number
       const fullMobile = countryCode + mobile;
       await login(fullMobile, password);
-      router.replace('/(tabs)');
+      
+      // Check KYC status after login
+      const { user: loggedInUser } = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
+        },
+      }).then(res => res.json());
+      
+      if (!loggedInUser.IsKycVerified) {
+        router.replace('/kyc-verification' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
@@ -101,7 +117,13 @@ export default function LoginScreen() {
 
       // User exists - complete login
       await login(data.user.Mobile, data.token);
-      router.replace('/(tabs)');
+      
+      // Check KYC status after login
+      if (!data.user.IsKycVerified) {
+        router.replace('/kyc-verification' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Authentication failed');
       setAuthMode('login');
@@ -142,7 +164,13 @@ export default function LoginScreen() {
 
       // Store token and navigate
       await login(data.user.Mobile, data.token);
-      router.replace('/(tabs)');
+      
+      // New users need to complete KYC
+      if (!data.user.IsKycVerified) {
+        router.replace('/kyc-verification' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Signup failed');
       setAuthMode('login');
@@ -225,15 +253,24 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Create a password to complete your account setup</Text>
 
           <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Create Password (min 6 characters)"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-              autoFocus
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Create Password (min 6 characters)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!isLoading}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, styles.primaryButton]}
@@ -313,14 +350,23 @@ export default function LoginScreen() {
               </View>
             )}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, styles.primaryButton]}
@@ -518,5 +564,27 @@ const styles = StyleSheet.create({
   countryNameText: {
     fontSize: 14,
     color: '#666',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+  },
+  eyeButton: {
+    padding: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIcon: {
+    fontSize: 20,
   },
 });

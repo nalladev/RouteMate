@@ -144,6 +144,25 @@ export default function HomeScreen() {
   async function handleRequestRide(marker: MarkerData) {
     if (!userLocation || !destination) return;
 
+    // Recommend KYC verification for passengers (non-blocking)
+    if (!user?.IsKycVerified) {
+      Alert.alert(
+        'KYC Verification Recommended',
+        'For enhanced security and trust, we recommend completing KYC verification. You can still request rides without it.',
+        [
+          { text: 'Verify Later', style: 'cancel', onPress: () => proceedWithRideRequest(marker) },
+          { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
+        ]
+      );
+      return;
+    }
+
+    proceedWithRideRequest(marker);
+  }
+
+  async function proceedWithRideRequest(marker: MarkerData) {
+    if (!userLocation || !destination) return;
+
     const minBalance = 10 / 100; // $10 worth
     if (balance < minBalance) {
       Alert.alert(
@@ -207,8 +226,8 @@ export default function HomeScreen() {
 
   async function handleCompleteRide(connectionId: string) {
     try {
-      const { paymentTx } = await api.completeRide(connectionId);
-      Alert.alert('Ride Completed', `Payment successful! TX: ${paymentTx}`);
+      const { fare, paymentStatus } = await api.completeRide(connectionId);
+      Alert.alert('Ride Completed', `Payment ${paymentStatus}! Fare: ₹${fare.toFixed(2)}`);
       setActiveRequest(null);
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -336,7 +355,9 @@ export default function HomeScreen() {
       <View style={styles.roleToggle}>
         <TouchableOpacity
           style={[styles.roleButton, role === 'passenger' && styles.roleButtonActive]}
-          onPress={() => setRole('passenger')}
+          onPress={() => {
+            setRole('passenger');
+          }}
         >
           <Text style={[styles.roleButtonText, role === 'passenger' && styles.roleButtonTextActive]}>
             Passenger
@@ -344,7 +365,20 @@ export default function HomeScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.roleButton, role === 'driver' && styles.roleButtonActive]}
-          onPress={() => setRole('driver')}
+          onPress={() => {
+            if (!user?.IsKycVerified) {
+              Alert.alert(
+                'KYC Verification Required',
+                'You must complete KYC verification before becoming a driver. This ensures the safety and security of all users.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
+                ]
+              );
+              return;
+            }
+            setRole('driver');
+          }}
         >
           <Text style={[styles.roleButtonText, role === 'driver' && styles.roleButtonTextActive]}>
             Driver

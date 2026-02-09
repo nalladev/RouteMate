@@ -114,6 +114,19 @@ export default function AccountScreen() {
   }
 
   async function handlePayout() {
+    // Check KYC verification first
+    if (!user?.IsKycVerified) {
+      Alert.alert(
+        'KYC Verification Required',
+        'You must complete KYC verification before withdrawing funds. This is required for financial transactions.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
+        ]
+      );
+      return;
+    }
+
     const amount = parseFloat(payoutAmount);
     
     if (isNaN(amount) || amount <= 0) {
@@ -265,6 +278,15 @@ export default function AccountScreen() {
               </View>
             </View>
 
+            {!user.IsKycVerified && (
+              <TouchableOpacity
+                style={styles.verifyKycButton}
+                onPress={() => router.push('/kyc-verification' as any)}
+              >
+                <Text style={styles.verifyKycButtonText}>🔒 Verify Identity Now</Text>
+              </TouchableOpacity>
+            )}
+
             {user.UpiId && (
               <View style={styles.infoRow}>
                 <Text style={styles.label}>UPI ID</Text>
@@ -295,10 +317,23 @@ export default function AccountScreen() {
 
               <TouchableOpacity 
                 style={[styles.walletButton, styles.payoutButton, styles.disabledButton]} 
-                onPress={() => Alert.alert(
-                  'Feature Temporarily Disabled',
-                  'Withdrawal feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
-                )}
+                onPress={() => {
+                  if (!user.IsKycVerified) {
+                    Alert.alert(
+                      'KYC Verification Required',
+                      'You must complete KYC verification before withdrawing funds.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
+                      ]
+                    );
+                    return;
+                  }
+                  Alert.alert(
+                    'Feature Temporarily Disabled',
+                    'Withdrawal feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
+                  );
+                }}
               >
                 <Text style={styles.walletButtonText}>💸 Withdraw (Disabled)</Text>
               </TouchableOpacity>
@@ -635,19 +670,32 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   verifiedText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#4CAF50',
+    fontSize: 13,
     fontWeight: '600',
   },
   unverifiedBadge: {
-    backgroundColor: '#FF9500',
+    backgroundColor: '#FFF3CD',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   unverifiedText: {
+    color: '#856404',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  verifyKycButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  verifyKycButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   balanceContainer: {

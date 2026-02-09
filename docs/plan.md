@@ -37,6 +37,7 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Create session and return success → User logged in
 8. **After successful login (existing or new user):**
    - If not KYC verified, show Didit KYC verification page
+   - User can skip KYC and complete later (see KYC Requirements section below)
    - On KYC completion, send data to server
    - Extract `name` to common field and store full payload in `KycData`
    - Mark user as `IsKycVerified: true`
@@ -48,7 +49,36 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 3. App UI (after session available) & State Management
+## 3. KYC Requirements & Enforcement
+
+### When KYC is MANDATORY 🔒
+* **Switching to Driver Mode:** Alert shown → "KYC Verification Required" → User must verify before becoming driver.
+* **Withdrawing Funds:** Alert shown → "KYC Verification Required" → User must verify before payout.
+* Both show "Verify Now" button redirecting to KYC screen.
+
+### When KYC is RECOMMENDED 💡
+* **Requesting Rides (Passenger):** Alert shown → "KYC Verification Recommended" → User can "Verify Later" or "Verify Now".
+* **After Login:** KYC screen shown but user can "Skip for Now" and complete later from account settings.
+* Unverified users see "🔒 Verify Identity Now" button in account section.
+
+### KYC Flow (Didit Integration)
+1. User clicks "Start Verification" or "Verify Now"
+2. Didit WebView opens with KYC form
+3. User submits: Government ID (Aadhaar/Passport/Driver's License) + Selfie + Personal info
+4. Didit processes verification (5-10 minutes)
+5. Frontend sends KYC data to `/api/kyc/verify`
+6. Backend verifies with Didit API
+7. Backend extracts `name` and stores full payload in `KycData`
+8. User marked as `IsKycVerified: true`
+
+**Why KYC?**
+* **Drivers:** Transport passengers → identity verification required for safety.
+* **Payouts:** Financial transactions → regulatory compliance requirement.
+* **Passengers:** Enhanced trust → recommended but optional to reduce friction.
+
+---
+
+## 4. App UI (after session available) & State Management
 1. Full-screen map (custom markers + route drawing)
 2. Mandatory location access permission (blocks interaction until granted)
 3. Blue glowing dot for user's live location
@@ -66,7 +96,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 4. Discovery & Interaction Logic (Home Section)
+## 5. Discovery & Interaction Logic (Home Section)
 
 ### Intelligent Discovery (Filtering)
 * **Passenger Discovery:** Only shows drivers whose current route (from `LastLocation` to `Destination`) passes through the passenger's pickup and destination points.
@@ -138,7 +168,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 5. Ride Connection & Auto-Expiry
+## 6. Ride Connection & Auto-Expiry
 1. Driver receives request in `user/riderequests`.
 2. **Auto-Cancel:** Requests not accepted within 10 minutes are automatically marked `rejected` or deleted by backend.
 3. Driver accepts; connection record created and passenger request pane switches to accepted state showing OTP and driver arrival tracking.
@@ -156,14 +186,14 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 6. History Section
+## 7. History Section
 * Show only completed rides made by user.
 * **For passenger:** Show driver name, fare, ride time, start, destination.
 * **For driver:** Show fare, ride time, start, destination.
 
 ---
 
-## 7. Account/User Section
+## 8. Account/User Section
 * Show user name, phone, KYC verified badge.
 * Show wallet balance prominently.
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
@@ -174,7 +204,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 8. Payment System Architecture
+## 9. Payment System Architecture
 
 ### Internal Wallet System
 * Each user has a `WalletBalance` field in Firestore (type: number, default: 0).
@@ -245,7 +275,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 9. Technical Architecture
+## 10. Technical Architecture
 * **Backend:** Vercel API routing.
 * **Matching Engine:** API endpoint to filter markers based on route similarity and direction.
 * **Database:** Firestore (All operations via backend).
@@ -256,7 +286,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 10. Data Models
+## 11. Data Models
 
 ### User Collection
 * `Id`: string
@@ -305,11 +335,12 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 11. Environment Variables (Backend Only)
+## 12. Environment Variables (Backend Only)
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
 * `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
 * `PHONE_EMAIL_API_KEY`
-* `DIDIT_API_KEY`
+* `DIDIT_API_KEY` (Backend - for API verification)
+* `EXPO_PUBLIC_DIDIT_CLIENT_ID` (Frontend - for WebView integration)
 * `PASSWORD_HASHING_SEED`
 * `GOOGLE_MAPS_API_KEY`
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)

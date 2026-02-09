@@ -20,14 +20,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const { PasswordHash, Wallet, ...userPublic } = user;
-    const userResponse = {
-      ...userPublic,
-      Wallet: { address: Wallet.address },
-    };
+    const { PasswordHash, ...userPublic } = user;
 
     return Response.json({
-      user: userResponse,
+      user: userPublic,
     });
   } catch (error) {
     console.error('Get user error:', error);
