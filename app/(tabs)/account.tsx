@@ -9,11 +9,14 @@ import {
   TextInput,
   ScrollView,
   Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { Transaction } from '@/types';
+import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -21,6 +24,8 @@ export default function AccountScreen() {
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
   
   // Top-up state
   const [showTopupModal, setShowTopupModal] = useState(false);
@@ -220,19 +225,19 @@ export default function AccountScreen() {
 
   function getTransactionColor(type: string): string {
     switch (type) {
-      case 'topup': return '#34C759';
-      case 'ride_earning': return '#34C759';
-      case 'payout': return '#FF3B30';
-      case 'ride_payment': return '#FF9500';
-      default: return '#666';
+      case 'topup': return colors.success;
+      case 'ride_earning': return colors.success;
+      case 'payout': return colors.error;
+      case 'ride_payment': return colors.warning;
+      default: return colors.textSecondary;
     }
   }
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading account...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading account...</Text>
       </View>
     );
   }
@@ -242,37 +247,40 @@ export default function AccountScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.title}>Account</Text>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.text }]}>Account</Text>
         </View>
 
         <View style={styles.content}>
           {/* Profile Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profile</Text>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Name</Text>
-              <Text style={styles.value}>{user.Name || 'Not set'}</Text>
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionIcon}>👤</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile</Text>
             </View>
             
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Mobile</Text>
-              <Text style={styles.value}>{user.Mobile}</Text>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Name</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{user.Name || 'Not set'}</Text>
             </View>
             
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>KYC Status</Text>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Mobile</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{user.Mobile}</Text>
+            </View>
+            
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>KYC Status</Text>
               <View style={styles.badgeContainer}>
                 {user.IsKycVerified ? (
-                  <View style={styles.verifiedBadge}>
-                    <Text style={styles.verifiedText}>✓ Verified</Text>
+                  <View style={[styles.verifiedBadge, { backgroundColor: colors.success + '20' }]}>
+                    <Text style={[styles.verifiedText, { color: colors.success }]}>✓ Verified</Text>
                   </View>
                 ) : (
-                  <View style={styles.unverifiedBadge}>
-                    <Text style={styles.unverifiedText}>Not Verified</Text>
+                  <View style={[styles.unverifiedBadge, { backgroundColor: colors.warning + '20' }]}>
+                    <Text style={[styles.unverifiedText, { color: colors.warning }]}>Not Verified</Text>
                   </View>
                 )}
               </View>
@@ -280,7 +288,7 @@ export default function AccountScreen() {
 
             {!user.IsKycVerified && (
               <TouchableOpacity
-                style={styles.verifyKycButton}
+                style={[styles.verifyKycButton, { backgroundColor: colors.tint }]}
                 onPress={() => router.push('/kyc-verification' as any)}
               >
                 <Text style={styles.verifyKycButtonText}>🔒 Verify Identity Now</Text>
@@ -288,25 +296,28 @@ export default function AccountScreen() {
             )}
 
             {user.UpiId && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>UPI ID</Text>
-                <Text style={styles.value}>{user.UpiId}</Text>
+              <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>UPI ID</Text>
+                <Text style={[styles.value, { color: colors.text }]}>{user.UpiId}</Text>
               </View>
             )}
           </View>
 
           {/* Wallet Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Wallet</Text>
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionIcon}>💳</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Wallet</Text>
+            </View>
             
-            <View style={styles.balanceContainer}>
-              <Text style={styles.balanceLabel}>Available Balance</Text>
-              <Text style={styles.balanceValue}>₹{balance.toFixed(2)}</Text>
+            <View style={[styles.balanceContainer, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Available Balance</Text>
+              <Text style={[styles.balanceValue, { color: colors.tint }]}>₹{balance.toFixed(2)}</Text>
             </View>
             
             <View style={styles.walletActions}>
               <TouchableOpacity 
-                style={[styles.walletButton, styles.topupButton, styles.disabledButton]} 
+                style={[styles.walletButton, { backgroundColor: colors.success }, styles.disabledButton]} 
                 onPress={() => Alert.alert(
                   'Feature Temporarily Disabled',
                   'Deposit feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
@@ -316,7 +327,7 @@ export default function AccountScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.walletButton, styles.payoutButton, styles.disabledButton]} 
+                style={[styles.walletButton, { backgroundColor: colors.error }, styles.disabledButton]} 
                 onPress={() => {
                   if (!user.IsKycVerified) {
                     Alert.alert(
@@ -339,35 +350,38 @@ export default function AccountScreen() {
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.disabledNotice}>
+            <Text style={[styles.disabledNotice, { color: colors.textSecondary, backgroundColor: colors.backgroundSecondary }]}>
               💡 Deposit and withdrawal features are temporarily disabled until Play Store publication. You can still use existing balance for rides.
             </Text>
           </View>
 
           {/* Recent Transactions */}
-          <View style={styles.section}>
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionIcon}>📊</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
+              </View>
               {transactions.length > 0 && (
                 <TouchableOpacity onPress={() => setShowTransactions(true)}>
-                  <Text style={styles.viewAllText}>View All</Text>
+                  <Text style={[styles.viewAllText, { color: colors.tint }]}>View All</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             {transactions.length === 0 ? (
-              <Text style={styles.emptyText}>No transactions yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No transactions yet</Text>
             ) : (
               transactions.slice(0, 5).map((tx) => (
-                <View key={tx.Id} style={styles.transactionItem}>
-                  <View style={styles.transactionIcon}>
+                <View key={tx.Id} style={[styles.transactionItem, { borderBottomColor: colors.border }]}>
+                  <View style={[styles.transactionIcon, { backgroundColor: getTransactionColor(tx.Type) + '20' }]}>
                     <Text style={styles.transactionIconText}>
                       {getTransactionIcon(tx.Type)}
                     </Text>
                   </View>
                   <View style={styles.transactionDetails}>
-                    <Text style={styles.transactionDescription}>{tx.Description}</Text>
-                    <Text style={styles.transactionDate}>
+                    <Text style={[styles.transactionDescription, { color: colors.text }]}>{tx.Description}</Text>
+                    <Text style={[styles.transactionDate, { color: colors.textSecondary }]}>
                       {new Date(tx.CreatedAt?.toDate?.() || tx.CreatedAt).toLocaleDateString()}
                     </Text>
                   </View>
@@ -385,11 +399,14 @@ export default function AccountScreen() {
 
           {/* Actions */}
           <View style={styles.actionsSection}>
-            <TouchableOpacity style={styles.refreshButton} onPress={loadAccountInfo}>
-              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            <TouchableOpacity 
+              style={[styles.refreshButton, { backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border }]} 
+              onPress={loadAccountInfo}
+            >
+              <Text style={[styles.refreshButtonText, { color: colors.text }]}>🔄 Refresh Balance</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.error }]} onPress={handleLogout}>
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
@@ -397,39 +414,39 @@ export default function AccountScreen() {
       </ScrollView>
 
       {/* Top-up Modal */}
-      <Modal visible={showTopupModal} transparent animationType="slide">
+      <Modal visible={showTopupModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Top Up Balance</Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>Top Up Balance</Text>
             
-            <Text style={styles.modalLabel}>Amount (₹)</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Amount (₹)</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
               placeholder="Enter amount (₹100 - ₹10,000)"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="numeric"
               value={topupAmount}
               onChangeText={setTopupAmount}
               editable={!isProcessing}
             />
-
-            <Text style={styles.modalHint}>
-              Minimum: ₹100 | Maximum: ₹10,000
+            
+            <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
+              Minimum: ₹100 • Maximum: ₹10,000
             </Text>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalCancelButton]}
+                style={[styles.modalButton, styles.modalCancelButton, { backgroundColor: colors.border }]}
                 onPress={() => {
                   setShowTopupModal(false);
                   setTopupAmount('');
                 }}
-                disabled={isProcessing}
               >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                <Text style={[styles.modalCancelButtonText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalConfirmButton]}
+                style={[styles.modalButton, styles.modalConfirmButton, { backgroundColor: colors.tint }]}
                 onPress={handleTopup}
                 disabled={isProcessing}
               >
@@ -445,51 +462,52 @@ export default function AccountScreen() {
       </Modal>
 
       {/* Payout Modal */}
-      <Modal visible={showPayoutModal} transparent animationType="slide">
+      <Modal visible={showPayoutModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Withdraw Funds</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Withdraw Balance</Text>
             
             {!showUpiInput ? (
               <>
-                <Text style={styles.modalLabel}>Amount (₹)</Text>
+                <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Amount (₹)</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
                   placeholder="Enter amount"
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   value={payoutAmount}
                   onChangeText={setPayoutAmount}
                   editable={!isProcessing}
                 />
-
-                <Text style={styles.modalHint}>
-                  Available: ₹{balance.toFixed(2)}
+                
+                <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
+                  Available balance: ₹{balance.toFixed(2)}
                 </Text>
 
-                {upiId && (
-                  <View style={styles.upiIdDisplay}>
-                    <Text style={styles.upiIdLabel}>Withdraw to:</Text>
-                    <Text style={styles.upiIdValue}>{upiId}</Text>
+                {upiId ? (
+                  <View style={[styles.upiIdDisplay, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Text style={[styles.upiIdLabel, { color: colors.textSecondary }]}>Withdraw to:</Text>
+                    <Text style={[styles.upiIdValue, { color: colors.text }]}>{upiId}</Text>
                     <TouchableOpacity onPress={() => setShowUpiInput(true)}>
-                      <Text style={styles.changeUpiText}>Change UPI ID</Text>
+                      <Text style={[styles.changeUpiText, { color: colors.tint }]}>Change UPI ID</Text>
                     </TouchableOpacity>
                   </View>
-                )}
+                ) : null}
 
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.modalCancelButton]}
+                    style={[styles.modalButton, { backgroundColor: colors.border }]}
                     onPress={() => {
                       setShowPayoutModal(false);
                       setPayoutAmount('');
                     }}
                     disabled={isProcessing}
                   >
-                    <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                    <Text style={[styles.modalCancelButtonText, { color: colors.text }]}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.modalConfirmButton]}
+                    style={[styles.modalButton, { backgroundColor: colors.success }]}
                     onPress={handlePayout}
                     disabled={isProcessing}
                   >
@@ -503,31 +521,31 @@ export default function AccountScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.modalLabel}>UPI ID</Text>
+                <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>UPI ID</Text>
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
                   placeholder="username@paytm"
+                  placeholderTextColor={colors.textSecondary}
                   value={upiId}
                   onChangeText={setUpiId}
-                  autoCapitalize="none"
                   editable={!isProcessing}
                 />
-
-                <Text style={styles.modalHint}>
-                  Enter your UPI ID (e.g., 9876543210@paytm)
+                
+                <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
+                  Enter your UPI ID (e.g., username@paytm, phone@ybl)
                 </Text>
 
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.modalCancelButton]}
+                    style={[styles.modalButton, { backgroundColor: colors.border }]}
                     onPress={() => setShowUpiInput(false)}
                     disabled={isProcessing}
                   >
-                    <Text style={styles.modalCancelButtonText}>Back</Text>
+                    <Text style={[styles.modalCancelButtonText, { color: colors.text }]}>Back</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.modalConfirmButton]}
+                    style={[styles.modalButton, { backgroundColor: colors.tint }]}
                     onPress={handleUpdateUpiId}
                     disabled={isProcessing}
                   >
@@ -545,29 +563,30 @@ export default function AccountScreen() {
       </Modal>
 
       {/* Transactions Modal */}
+      {/* Full Screen Transactions Modal */}
       <Modal visible={showTransactions} animationType="slide">
-        <View style={styles.fullScreenModal}>
-          <View style={styles.fullScreenHeader}>
-            <Text style={styles.fullScreenTitle}>All Transactions</Text>
-            <TouchableOpacity onPress={() => setShowTransactions(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.fullScreenModal, { backgroundColor: colors.backgroundSecondary }]}>
+        <View style={[styles.fullScreenHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.fullScreenTitle, { color: colors.text }]}>All Transactions</Text>
+          <TouchableOpacity onPress={() => setShowTransactions(false)}>
+            <Text style={[styles.closeButton, { color: colors.text }]}>✕</Text>
+          </TouchableOpacity>
+        </View>
           
           <ScrollView style={styles.fullScreenContent}>
             {transactions.map((tx) => (
-              <View key={tx.Id} style={styles.transactionItem}>
-                <View style={styles.transactionIcon}>
+              <View key={tx.Id} style={[styles.transactionItem, { borderBottomColor: colors.border }]}>
+                <View style={[styles.transactionIcon, { backgroundColor: getTransactionColor(tx.Type) + '20' }]}>
                   <Text style={styles.transactionIconText}>
                     {getTransactionIcon(tx.Type)}
                   </Text>
                 </View>
                 <View style={styles.transactionDetails}>
-                  <Text style={styles.transactionDescription}>{tx.Description}</Text>
-                  <Text style={styles.transactionDate}>
+                  <Text style={[styles.transactionDescription, { color: colors.text }]}>{tx.Description}</Text>
+                  <Text style={[styles.transactionDate, { color: colors.textSecondary }]}>
                     {new Date(tx.CreatedAt?.toDate?.() || tx.CreatedAt).toLocaleString()}
                   </Text>
-                  <Text style={styles.transactionStatus}>Status: {tx.Status}</Text>
+                  <Text style={[styles.transactionStatus, { color: colors.textSecondary }]}>Status: {tx.Status}</Text>
                 </View>
                 <Text style={[
                   styles.transactionAmount,
@@ -588,200 +607,183 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: Spacing.md,
     fontSize: 16,
-    color: '#666',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    paddingTop: 60,
+    padding: Spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
   },
   content: {
-    padding: 15,
+    padding: Spacing.md,
   },
   section: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    ...Shadow.medium,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  sectionIcon: {
+    fontSize: 24,
+    marginRight: Spacing.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
   },
   viewAllText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   label: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    fontWeight: '500',
   },
   value: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
   badgeContainer: {
     flexDirection: 'row',
   },
   verifiedBadge: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   verifiedText: {
-    color: '#4CAF50',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   unverifiedBadge: {
-    backgroundColor: '#FFF3CD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   unverifiedText: {
-    color: '#856404',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   verifyKycButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 12,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
     alignItems: 'center',
+    ...Shadow.small,
   },
   verifyKycButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   balanceContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   balanceValue: {
     fontSize: 42,
     fontWeight: 'bold',
-    color: '#333',
   },
   walletActions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: Spacing.md,
   },
   walletButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    ...Shadow.small,
   },
-  topupButton: {
-    backgroundColor: '#34C759',
-  },
-  payoutButton: {
-    backgroundColor: '#DC3545',
-  },
+
   disabledButton: {
-    backgroundColor: '#999',
-    opacity: 0.6,
+    opacity: 0.5,
   },
   disabledNotice: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 12,
     textAlign: 'center',
-    marginTop: 12,
-    padding: 10,
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
   },
   walletButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   transactionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   transactionIconText: {
     fontSize: 20,
+    fontWeight: 'bold',
   },
   transactionDetails: {
     flex: 1,
   },
   transactionDescription: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   transactionDate: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 13,
   },
   transactionStatus: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
   transactionAmount: {
     fontSize: 16,
@@ -789,148 +791,134 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
-    fontSize: 14,
-    paddingVertical: 20,
+    fontSize: 16,
+    paddingVertical: Spacing.lg,
   },
   actionsSection: {
-    marginTop: 10,
+    marginTop: Spacing.md,
   },
   refreshButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   refreshButtonText: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   logoutButton: {
-    backgroundColor: '#FF3B30',
-    padding: 15,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    ...Shadow.small,
   },
   logoutButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     width: '100%',
     maxWidth: 400,
+    ...Shadow.large,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   modalLabel: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '500',
+    marginBottom: Spacing.sm,
+    fontWeight: '600',
   },
   modalInput: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 15,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     fontSize: 16,
-    marginBottom: 8,
+    marginBottom: Spacing.md,
   },
   modalHint: {
     fontSize: 12,
-    color: '#999',
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   upiIdDisplay: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 20,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
   upiIdLabel: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
+    fontWeight: '600',
   },
   upiIdValue: {
     fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-    marginBottom: 8,
+    fontWeight: '700',
+    marginBottom: Spacing.sm,
   },
   changeUpiText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: Spacing.md,
   },
   modalButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    ...Shadow.small,
   },
   modalCancelButton: {
-    backgroundColor: '#f0f0f0',
+    // Color set inline
   },
   modalCancelButtonText: {
-    color: '#333',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   modalConfirmButton: {
-    backgroundColor: '#007AFF',
+    // Color set inline
   },
   modalConfirmButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   fullScreenModal: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   fullScreenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    padding: Spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   fullScreenTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
   },
   closeButton: {
     fontSize: 28,
-    color: '#666',
     fontWeight: '300',
   },
   fullScreenContent: {
     flex: 1,
-    padding: 15,
+    padding: Spacing.md,
   },
 });

@@ -2,6 +2,25 @@
 
 A ride-sharing application built with Expo and React Native, featuring real-time location tracking, route matching, and internal wallet-based payments.
 
+## 🎨 UI Design
+
+RouteMate features a modern, clean design with a consistent color scheme:
+
+- **Primary Brand Color**: `#e86713` (Vibrant Orange)
+- **Design System**: Custom theme with light/dark mode support
+- **Component Library**: Native components with enhanced styling
+- **Navigation**: Bottom tab bar with animated icons
+- **Card Design**: Elevated cards with shadows and rounded corners
+
+### Design Highlights
+
+- **Modern Bottom Navigation**: Enhanced tab bar with icon animations and proper spacing
+- **Consistent Theme**: Unified color palette across all screens
+- **Improved Typography**: Clear hierarchy with bold headings and readable body text
+- **Visual Feedback**: Smooth transitions, shadows, and haptic feedback
+- **Accessible Colors**: High contrast ratios for better readability
+- **Responsive Layout**: Optimized for both iOS and Android
+
 ## ⚠️ Important: Development Build Required
 
 **React Native Maps requires native modules and will NOT work with Expo Go.**
@@ -17,6 +36,28 @@ npx expo run:android
 ```
 
 See [Installation](#installation) section for complete setup instructions.
+
+### Screen Designs
+
+#### Home Screen
+- Interactive map with real-time markers
+- Floating search bar with shadow effects
+- Role toggle between Driver/Passenger modes
+- Color-coded location markers (green for pickup, red for destination)
+
+#### History Screen
+- Card-based ride history with visual hierarchy
+- Role badges with emoji icons
+- Distance, time, and fare information
+- Color-coded transaction states
+- Pull-to-refresh functionality
+
+#### Account Screen
+- Profile information with badges
+- Wallet balance prominently displayed
+- Transaction history with icon indicators
+- Modern modal dialogs for actions
+- KYC verification status with visual indicators
 
 ## Features
 

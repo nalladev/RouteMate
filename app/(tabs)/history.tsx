@@ -6,11 +6,14 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { RideConnection } from '@/types';
+import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -18,6 +21,8 @@ export default function HistoryScreen() {
   const [rides, setRides] = useState<RideConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -48,44 +53,62 @@ export default function HistoryScreen() {
   function renderRideItem({ item }: { item: RideConnection }) {
     const isDriver = item.DriverId === user?.Id;
     const date = item.CreatedAt ? new Date(item.CreatedAt).toLocaleDateString() : 'N/A';
-    const time = item.CreatedAt ? new Date(item.CreatedAt).toLocaleTimeString() : 'N/A';
+    const time = item.CreatedAt ? new Date(item.CreatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
     return (
-      <View style={styles.rideCard}>
+      <View style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.rideHeader}>
-          <Text style={styles.roleText}>{isDriver ? 'Driver' : 'Passenger'}</Text>
-          <Text style={styles.dateText}>{date}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: isDriver ? '#e8671320' : '#3B82F620' }]}>
+            <Text style={[styles.roleText, { color: isDriver ? colors.tint : colors.info }]}>
+              {isDriver ? '🚗 Driver' : '👤 Passenger'}
+            </Text>
+          </View>
+          <Text style={[styles.dateText, { color: colors.textSecondary }]}>{date}</Text>
         </View>
         
         <View style={styles.rideDetails}>
           <View style={styles.locationRow}>
-            <Text style={styles.label}>Pickup:</Text>
-            <Text style={styles.value}>
-              {item.PickupLocation.lat.toFixed(4)}, {item.PickupLocation.lng.toFixed(4)}
-            </Text>
+            <View style={[styles.locationDot, { backgroundColor: colors.success }]} />
+            <View style={styles.locationInfo}>
+              <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>Pickup</Text>
+              <Text style={[styles.locationValue, { color: colors.text }]}>
+                {item.PickupLocation.lat.toFixed(4)}, {item.PickupLocation.lng.toFixed(4)}
+              </Text>
+            </View>
           </View>
+          
+          <View style={[styles.locationConnector, { backgroundColor: colors.border }]} />
           
           <View style={styles.locationRow}>
-            <Text style={styles.label}>Destination:</Text>
-            <Text style={styles.value}>
-              {item.Destination.lat.toFixed(4)}, {item.Destination.lng.toFixed(4)}
-            </Text>
+            <View style={[styles.locationDot, { backgroundColor: colors.error }]} />
+            <View style={styles.locationInfo}>
+              <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>Destination</Text>
+              <Text style={[styles.locationValue, { color: colors.text }]}>
+                {item.Destination.lat.toFixed(4)}, {item.Destination.lng.toFixed(4)}
+              </Text>
+            </View>
           </View>
           
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { borderTopColor: colors.border }]}>
             <View style={styles.infoItem}>
-              <Text style={styles.label}>Distance</Text>
-              <Text style={styles.infoValue}>{item.Distance.toFixed(2)} km</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Distance</Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {item.Distance.toFixed(2)} km
+              </Text>
             </View>
             
-            <View style={styles.infoItem}>
-              <Text style={styles.label}>Fare</Text>
-              <Text style={styles.fareValue}>${item.Fare.toFixed(2)}</Text>
-            </View>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
             
             <View style={styles.infoItem}>
-              <Text style={styles.label}>Time</Text>
-              <Text style={styles.infoValue}>{time}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Time</Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>{time}</Text>
+            </View>
+            
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            
+            <View style={styles.infoItem}>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Fare</Text>
+              <Text style={[styles.fareValue, { color: colors.success }]}>₹{item.Fare.toFixed(2)}</Text>
             </View>
           </View>
         </View>
@@ -95,24 +118,29 @@ export default function HistoryScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading history...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading history...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Ride History</Text>
-        <Text style={styles.subtitle}>{rides.length} completed rides</Text>
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Ride History</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {rides.length} {rides.length === 1 ? 'ride' : 'rides'} completed
+        </Text>
       </View>
 
       {rides.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No completed rides yet</Text>
-          <Text style={styles.emptySubtext}>Your ride history will appear here</Text>
+          <Text style={styles.emptyIcon}>🚗</Text>
+          <Text style={[styles.emptyText, { color: colors.text }]}>No rides yet</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+            Your ride history will appear here
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -121,7 +149,12 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.Id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+            <RefreshControl 
+              refreshing={isRefreshing} 
+              onRefresh={handleRefresh}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+            />
           }
         />
       )}
@@ -132,126 +165,140 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: Spacing.md,
     fontSize: 16,
-    color: '#666',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    paddingTop: 60,
+    padding: Spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
   },
   listContent: {
-    padding: 15,
+    padding: Spacing.md,
   },
   rideCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    ...Shadow.medium,
   },
   rideHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: Spacing.md,
+  },
+  roleBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   roleText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   dateText: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: '500',
   },
   rideDetails: {
-    gap: 12,
+    gap: Spacing.sm,
   },
   locationRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    marginRight: 8,
-    minWidth: 80,
+  locationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: BorderRadius.full,
+    marginTop: 4,
+    marginRight: Spacing.sm,
   },
-  value: {
-    fontSize: 14,
-    color: '#333',
+  locationConnector: {
+    width: 2,
+    height: 20,
+    marginLeft: 5,
+    opacity: 0.3,
+  },
+  locationInfo: {
     flex: 1,
+  },
+  locationLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  locationValue: {
+    fontSize: 14,
   },
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   infoItem: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 4,
+    fontWeight: '700',
   },
   fareValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#34C759',
-    marginTop: 4,
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    opacity: 0.3,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing.xl,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
 });
