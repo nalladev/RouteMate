@@ -1,11 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 
 type AuthMode = 'login' | 'phone-email-login' | 'phone-email-signup' | 'signup-password';
+
+// Common country codes for India-focused app
+const COUNTRY_CODES = [
+  { code: '+91', country: 'India' },
+  { code: '+1', country: 'USA/Canada' },
+  { code: '+44', country: 'UK' },
+  { code: '+971', country: 'UAE' },
+  { code: '+65', country: 'Singapore' },
+];
 
 // Helper to get the correct API base URL
 function getApiBaseUrl(): string {
@@ -25,10 +34,12 @@ export default function LoginScreen() {
   const { login, isAuthenticated } = useAuth();
   
   const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [countryCode, setCountryCode] = useState('+91');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [phoneEmailToken, setPhoneEmailToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   // Get CLIENT_ID from environment variable
@@ -49,7 +60,9 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await login(mobile, password);
+      // Combine country code with mobile number
+      const fullMobile = countryCode + mobile;
+      await login(fullMobile, password);
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
@@ -250,59 +263,95 @@ export default function LoginScreen() {
   // Default login screen
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>RouteMate</Text>
-        <Text style={styles.subtitle}>Your ride-sharing companion</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.title}>RouteMate</Text>
+          <Text style={styles.subtitle}>Your ride-sharing companion</Text>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Mobile Number"
-            value={mobile}
-            onChangeText={setMobile}
-            keyboardType="phone-pad"
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
+          <View style={styles.form}>
+            {/* Mobile Number with Country Code */}
+            <View style={styles.phoneInputContainer}>
+              <TouchableOpacity
+                style={styles.countryCodeButton}
+                onPress={() => setShowCountryPicker(!showCountryPicker)}
+                disabled={isLoading}
+              >
+                <Text style={styles.countryCodeText}>{countryCode}</Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+              
+              <TextInput
+                style={styles.phoneInput}
+                placeholder="Mobile Number"
+                value={mobile}
+                onChangeText={setMobile}
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+            </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!isLoading}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
+            {/* Country Code Picker */}
+            {showCountryPicker && (
+              <View style={styles.countryPicker}>
+                {COUNTRY_CODES.map((item) => (
+                  <TouchableOpacity
+                    key={item.code}
+                    style={[
+                      styles.countryOption,
+                      countryCode === item.code && styles.countryOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setCountryCode(item.code);
+                      setShowCountryPicker(false);
+                    }}
+                  >
+                    <Text style={styles.countryCodeText}>{item.code}</Text>
+                    <Text style={styles.countryNameText}>{item.country}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={switchToPhoneEmailLogin}
-            disabled={isLoading}
-          >
-            <Text style={styles.secondaryButtonText}>Login with OTP</Text>
-          </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!isLoading}
+            />
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={switchToPhoneEmailSignup}
-            disabled={isLoading}
-          >
-            <Text style={styles.linkText}>Don&apos;t have an account? Sign Up with OTP</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={switchToPhoneEmailLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.secondaryButtonText}>Login with OTP</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={switchToPhoneEmailSignup}
+              disabled={isLoading}
+            >
+              <Text style={styles.linkText}>Don&apos;t have an account? Sign Up with OTP</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -312,9 +361,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+  },
+  content: {
     padding: 20,
   },
   title: {
@@ -408,5 +459,64 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
+  },
+  phoneInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    gap: 10,
+  },
+  countryCodeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    minWidth: 90,
+  },
+  countryCodeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  dropdownArrow: {
+    fontSize: 10,
+    color: '#666',
+    marginLeft: 5,
+  },
+  phoneInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  countryPicker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  countryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  countryOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  countryNameText: {
+    fontSize: 14,
+    color: '#666',
   },
 });
