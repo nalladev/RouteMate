@@ -32,7 +32,7 @@ function getApiBaseUrl(): string {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
   
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [countryCode, setCountryCode] = useState('+91');
@@ -49,10 +49,27 @@ export default function LoginScreen() {
   const API_BASE_URL = getApiBaseUrl();
 
   React.useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/(tabs)');
+    if (isAuthenticated && user) {
+      // Check KYC status and redirect accordingly
+      if (!user.IsKycVerified) {
+        router.replace('/kyc-verification' as any);
+      } else {
+        router.replace('/(tabs)');
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
+
+  // Show loading screen while checking authentication
+  if (authLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.authLoadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.authLoadingText}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
 
   async function handleLogin() {
     if (!mobile || !password) {
@@ -563,6 +580,17 @@ const styles = StyleSheet.create({
   },
   countryNameText: {
     fontSize: 14,
+    color: '#666',
+  },
+  authLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  authLoadingText: {
+    marginTop: 12,
+    fontSize: 16,
     color: '#666',
   },
   passwordContainer: {

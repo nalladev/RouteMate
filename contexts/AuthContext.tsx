@@ -40,21 +40,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(mobile: string, password: string) {
+    console.log('[AuthContext] Login called for:', mobile);
     const { token, user } = await api.login(mobile, password);
+    console.log('[AuthContext] Login API response received, user:', user);
     await setAuthToken(token);
+    console.log('[AuthContext] Auth token saved, setting user state');
     setUser(user);
+    console.log('[AuthContext] User state updated, IsKycVerified:', user.IsKycVerified);
   }
 
   async function otpLogin(otpToken: string) {
+    console.log('[AuthContext] OTP Login called');
     const { token, user } = await api.otpLogin(otpToken);
+    console.log('[AuthContext] OTP Login API response received, user:', user);
     await setAuthToken(token);
     setUser(user);
+    console.log('[AuthContext] User state updated after OTP login, IsKycVerified:', user.IsKycVerified);
   }
 
   async function signup(otpToken: string, password: string) {
+    console.log('[AuthContext] Signup called');
     const { token, user } = await api.signup(otpToken, password);
+    console.log('[AuthContext] Signup API response received, user:', user);
     await setAuthToken(token);
     setUser(user);
+    console.log('[AuthContext] User state updated after signup, IsKycVerified:', user.IsKycVerified);
   }
 
   async function logout() {
