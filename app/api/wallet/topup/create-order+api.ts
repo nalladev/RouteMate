@@ -1,5 +1,6 @@
-import { getAuthToken, validateSession } from '../../../../lib/middleware';
-import { createRazorpayOrder } from '../../../../lib/razorpay';
+// Imports commented out - feature temporarily disabled
+// import { getAuthToken, validateSession } from '../../../../lib/middleware';
+// import { createRazorpayOrder } from '../../../../lib/razorpay';
 
 export async function POST(request: Request) {
   // Feature temporarily disabled - Razorpay compliance requirement

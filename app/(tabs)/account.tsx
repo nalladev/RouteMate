@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -36,15 +36,7 @@ export default function AccountScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showTransactions, setShowTransactions] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace('/login');
-    } else {
-      loadAccountInfo();
-    }
-  }, [isAuthenticated]);
-
-  async function loadAccountInfo() {
+  const loadAccountInfo = useCallback(async () => {
     try {
       setIsLoading(true);
       const [balanceData, transactionsData] = await Promise.all([
@@ -64,7 +56,15 @@ export default function AccountScreen() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login');
+    } else {
+      loadAccountInfo();
+    }
+  }, [isAuthenticated, router, loadAccountInfo]);
 
   async function handleTopup() {
     const amount = parseFloat(topupAmount);

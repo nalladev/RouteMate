@@ -1,7 +1,7 @@
-import { getAuthToken, validateSession } from '../../../../lib/middleware';
-import { verifyRazorpayPayment } from '../../../../lib/razorpay';
-import { updateDocument, getDocumentById, addDocument } from '../../../../lib/firestore';
-import { User, Transaction } from '../../../../types';
+// Imports commented out - feature temporarily disabled
+// import { getAuthToken, validateSession } from '../../../../lib/middleware';
+// import { updateDocument, getDocumentById, addDocument } from '../../../../lib/firestore';
+// import { User, Transaction } from '../../../../types';
 
 export async function POST(request: Request) {
   // Feature temporarily disabled - Razorpay compliance requirement
