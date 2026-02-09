@@ -4,6 +4,17 @@ import { updateDocument, getDocumentById, addDocument } from '../../../../lib/fi
 import { User, Transaction } from '../../../../types';
 
 export async function POST(request: Request) {
+  // Feature temporarily disabled - Razorpay compliance requirement
+  return Response.json(
+    { 
+      error: 'Feature Temporarily Disabled',
+      message: 'Withdrawal feature is temporarily disabled. Razorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.',
+      disabled: true
+    },
+    { status: 503 }
+  );
+
+  /* DISABLED CODE - Will be re-enabled after Play Store publication
   try {
     const token = getAuthToken(request);
 
@@ -130,4 +141,5 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+  */
 }

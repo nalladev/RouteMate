@@ -153,9 +153,11 @@
 ## 7. Account/User Section
 * Show user name, phone, KYC verified badge.
 * Show wallet balance prominently.
-* **Top Up Balance Button:** Opens Razorpay payment gateway for adding funds.
-* **Payout/Withdraw Button:** Allows drivers to withdraw their earnings.
+* **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
+* **Payout/Withdraw Button:** ~~Allows drivers to withdraw their earnings.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * Display recent transaction history (top-ups and payouts).
+
+**Note:** Deposit and withdrawal features are disabled until app is published on Play Store. Razorpay regulations require a valid app store link for payment gateway integration. Users can still use existing wallet balance for rides, but cannot add funds or withdraw.
 
 ---
 
@@ -167,7 +169,8 @@
 * User balances are virtual accounting entries tracked in database.
 * **Critical Rule:** Balance can NEVER go negative. All deductions must be validated before processing.
 
-### Top-Up Flow (Razorpay Integration)
+### Top-Up Flow (Razorpay Integration) - **TEMPORARILY DISABLED**
+**Status:** Disabled until Play Store publication. Razorpay requires valid app store link for compliance.
 1. User clicks "Top Up" button in Account section.
 2. User enters amount to add (minimum ₹100, maximum ₹10,000 per transaction).
 3. Backend creates Razorpay order via API.
@@ -179,7 +182,8 @@
 9. Backend creates transaction record in `Transactions` collection.
 10. User sees updated balance immediately.
 
-### Payout/Withdrawal Flow (Backend-Only Processing)
+### Payout/Withdrawal Flow (Backend-Only Processing) - **TEMPORARILY DISABLED**
+**Status:** Disabled until Play Store publication. Razorpay requires valid app store link for compliance.
 1. Driver clicks "Withdraw" button in Account section.
 2. Backend checks if user has `UpiId` stored.
 3. If no UPI ID:
@@ -204,7 +208,9 @@
 10. Backend creates transaction record in `Transactions` collection.
 11. User sees updated balance and payout status (Pending/Success/Failed).
 
-### Ride Payment Processing (Backend-Only)
+### Ride Payment Processing (Backend-Only) - **ACTIVE**
+**Status:** This feature remains active. Users can use existing wallet balance for rides.
+
 1. When ride is completed, backend calculates fare.
 2. Backend atomically:
    - Checks passenger balance >= fare
@@ -214,6 +220,8 @@
    - Creates transaction records for both users
 3. Both users see updated balances immediately.
 4. All operations use Firestore transactions to ensure atomicity.
+
+**Note:** Users must have sufficient pre-loaded balance to request rides. Top-up functionality will be enabled after Play Store publication.
 
 ### Balance Validation Rules (Backend Enforced)
 * **CRITICAL:** Before any deduction, backend MUST check: `currentBalance - amount >= 0`
@@ -229,7 +237,7 @@
 * **Matching Engine:** API endpoint to filter markers based on route similarity and direction.
 * **Database:** Firestore (All operations via backend).
 * **Firestore Wrappers:** All DB calls use `addDocument`, `updateDocument`, `getDocument`, and `getDocumentById`.
-* **Payment Gateway:** Razorpay for top-ups and payouts.
+* **Payment Gateway:** Razorpay for top-ups and payouts (currently disabled pending Play Store publication).
 * **Payment Processing:** All payment logic runs on backend only, never on frontend.
 * Use polling to backend for all operations like live updates, try to bring together all polling to backend in a single place in codebase.
 
@@ -290,6 +298,6 @@
 * `DIDIT_API_KEY`
 * `PASSWORD_HASHING_SEED`
 * `GOOGLE_MAPS_API_KEY`
-* `RAZORPAY_KEY_ID`
-* `RAZORPAY_KEY_SECRET`
-* `RAZORPAY_WEBHOOK_SECRET`
+* `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)
+* `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
+* `RAZORPAY_WEBHOOK_SECRET` (optional - disabled until Play Store publication)

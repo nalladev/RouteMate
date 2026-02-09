@@ -284,19 +284,29 @@ export default function AccountScreen() {
             
             <View style={styles.walletActions}>
               <TouchableOpacity 
-                style={[styles.walletButton, styles.topupButton]} 
-                onPress={() => setShowTopupModal(true)}
+                style={[styles.walletButton, styles.topupButton, styles.disabledButton]} 
+                onPress={() => Alert.alert(
+                  'Feature Temporarily Disabled',
+                  'Deposit feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
+                )}
               >
-                <Text style={styles.walletButtonText}>💰 Top Up</Text>
+                <Text style={styles.walletButtonText}>💰 Top Up (Disabled)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.walletButton, styles.payoutButton]} 
-                onPress={() => setShowPayoutModal(true)}
+                style={[styles.walletButton, styles.payoutButton, styles.disabledButton]} 
+                onPress={() => Alert.alert(
+                  'Feature Temporarily Disabled',
+                  'Withdrawal feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
+                )}
               >
-                <Text style={styles.walletButtonText}>💸 Withdraw</Text>
+                <Text style={styles.walletButtonText}>💸 Withdraw (Disabled)</Text>
               </TouchableOpacity>
             </View>
+            
+            <Text style={styles.disabledNotice}>
+              💡 Deposit and withdrawal features are temporarily disabled until Play Store publication. You can still use existing balance for rides.
+            </Text>
           </View>
 
           {/* Recent Transactions */}
@@ -671,7 +681,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#34C759',
   },
   payoutButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#DC3545',
+  },
+  disabledButton: {
+    backgroundColor: '#999',
+    opacity: 0.6,
+  },
+  disabledNotice: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 12,
+    padding: 10,
   },
   walletButtonText: {
     color: '#fff',

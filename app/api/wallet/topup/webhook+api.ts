@@ -3,6 +3,17 @@ import { updateDocument, getDocumentById, addDocument } from '../../../../lib/fi
 import { User, Transaction } from '../../../../types';
 
 export async function POST(request: Request) {
+  // Feature temporarily disabled - Razorpay compliance requirement
+  return Response.json(
+    { 
+      error: 'Feature Temporarily Disabled',
+      message: 'Deposit feature is temporarily disabled. Razorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.',
+      disabled: true
+    },
+    { status: 503 }
+  );
+
+  /* DISABLED CODE - Will be re-enabled after Play Store publication
   try {
     // Get raw body for signature verification
     const rawBody = await request.text();
@@ -104,4 +115,5 @@ export async function POST(request: Request) {
     // Return 200 to acknowledge receipt even on error to prevent retries
     return Response.json({ received: true });
   }
+  */
 }
