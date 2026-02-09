@@ -326,13 +326,15 @@ PHONE_EMAIL_WEBHOOK_SECRET=<webhook-secret>
 DIDIT_API_KEY=<your-api-key>
 DIDIT_WEBHOOK_SECRET=<webhook-secret>
 
-# Google Maps
+# Google Maps (used by app.config.js)
 GOOGLE_MAPS_API_KEY=<your-api-key>
 
 # Security
 WALLET_ENCRYPTION_KEY=<32-byte-hex-string>
 PASSWORD_HASHING_SEED=<random-string>
 ```
+
+**Note**: The `GOOGLE_MAPS_API_KEY` is automatically configured in both iOS and Android via `app.config.js`.
 
 ## Testing Integrations
 

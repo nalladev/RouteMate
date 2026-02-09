@@ -19,6 +19,9 @@ Before you begin, ensure you have the following:
 ```bash
 cd routemate
 npm install
+
+# Install maps packages
+npx expo install react-native-maps expo-maps
 ```
 
 ## Step 2: Firebase Setup
@@ -88,6 +91,9 @@ PHONE_EMAIL_API_KEY=<your-phone-email-api-key>
 # Didit API (for KYC verification)
 DIDIT_API_KEY=<your-didit-api-key>
 
+# Google Maps API
+GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
+
 # Wallet Security
 WALLET_ENCRYPTION_KEY=<generate-with-openssl-rand-hex-32>
 PASSWORD_HASHING_SEED=<generate-with-openssl-rand-base64-32>
@@ -133,26 +139,13 @@ openssl rand -base64 32
 
 ### 6.2 Configure API Key
 
-Edit `app.json` and replace `YOUR_GOOGLE_MAPS_API_KEY` with your actual key:
+Add your Google Maps API key to `.env.local`:
 
-```json
-{
-  "expo": {
-    "ios": {
-      "config": {
-        "googleMapsApiKey": "YOUR_ACTUAL_API_KEY"
-      }
-    },
-    "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_ACTUAL_API_KEY"
-        }
-      }
-    }
-  }
-}
+```bash
+GOOGLE_MAPS_API_KEY=YOUR_ACTUAL_API_KEY
 ```
+
+The app uses `app.config.js` which automatically reads the API key from environment variables and configures it for both iOS and Android.
 
 ### 6.3 Restrict API Key (Recommended)
 
@@ -180,35 +173,50 @@ In Google Cloud Console:
 
 ## Step 8: Run the Application
 
-### Start Development Server
+**Important:** React Native Maps requires native modules and won't work with Expo Go. You must build a development client.
+
+### Build and Run Development Client
+
+#### For iOS Simulator
+
+```bash
+npx expo run:ios
+```
+
+This will:
+1. Generate native iOS project
+2. Install CocoaPods dependencies
+3. Build the app
+4. Launch in iOS Simulator
+
+#### For Android Emulator
+
+```bash
+npx expo run:android
+```
+
+This will:
+1. Generate native Android project
+2. Install Gradle dependencies
+3. Build the app
+4. Launch in Android Emulator
+
+#### First-Time Setup Notes
+
+- **iOS**: Requires Xcode installed (macOS only)
+- **Android**: Requires Android Studio and Android SDK
+- Build time: 5-10 minutes on first run
+- Subsequent builds are much faster
+
+### Alternative: Test Without Maps
+
+If you want to quickly test other features without maps:
 
 ```bash
 npm start
 ```
 
-This will start the Expo development server and show a QR code.
-
-### Run on iOS
-
-```bash
-npm run ios
-```
-
-Or press `i` in the terminal after starting the dev server.
-
-### Run on Android
-
-```bash
-npm run android
-```
-
-Or press `a` in the terminal after starting the dev server.
-
-### Run on Physical Device
-
-1. Install Expo Go app from App Store or Play Store
-2. Scan the QR code from the terminal
-3. The app will load on your device
+Then scan QR code with Expo Go app. Note: Map screen will not work, but login/auth/API endpoints can be tested.
 
 ## Step 9: Testing the API
 
@@ -281,9 +289,12 @@ You can manually create test users in Firestore Console:
 
 ### Map Not Showing
 
-- Verify Google Maps API key is valid
+- **Most Common**: Using Expo Go instead of development build
+  - Solution: Run `npx expo run:ios` or `npx expo run:android`
+- Verify `GOOGLE_MAPS_API_KEY` is set in `.env.local`
 - Check if Maps SDK is enabled in Google Cloud Console
-- Ensure API key has proper restrictions (or no restrictions for testing)
+- Ensure both `react-native-maps` and `expo-maps` are installed
+- Clear cache and rebuild: `npx expo run:ios --clear` or `npx expo run:android --clear`
 
 ### Wallet Issues
 
@@ -320,16 +331,33 @@ Monitor Firestore queries in Firebase Console under "Firestore Database".
 
 ## Production Deployment
 
-### Build for iOS
+### Using EAS Build (Recommended)
 
 ```bash
-expo build:ios
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login to Expo account
+eas login
+
+# Configure EAS
+eas build:configure
+
+# Build for iOS
+eas build --platform ios
+
+# Build for Android
+eas build --platform android
 ```
 
-### Build for Android
+### Using Local Builds
 
 ```bash
-expo build:android
+# Build for iOS
+npx expo run:ios --configuration Release
+
+# Build for Android
+npx expo run:android --variant release
 ```
 
 ### Environment Variables for Production

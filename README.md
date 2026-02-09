@@ -2,6 +2,22 @@
 
 A ride-sharing application built with Expo and React Native, featuring real-time location tracking, route matching, and Solana-based payments.
 
+## ⚠️ Important: Development Build Required
+
+**React Native Maps requires native modules and will NOT work with Expo Go.**
+
+You must build a development client to run this app:
+
+```bash
+# For iOS
+npx expo run:ios
+
+# For Android
+npx expo run:android
+```
+
+See [Installation](#installation) section for complete setup instructions.
+
 ## Features
 
 - Password and OTP-based authentication
@@ -36,18 +52,24 @@ npm install
 FIREBASE_SERVICE_ACCOUNT_ENCODED=<base64-encoded-firebase-service-account-json>
 PHONE_EMAIL_API_KEY=<your-phone-email-api-key>
 DIDIT_API_KEY=<your-didit-api-key>
+GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
 WALLET_ENCRYPTION_KEY=<random-32-character-string>
 PASSWORD_HASHING_SEED=<random-string>
 ```
 
-3. Start the Expo development server:
+3. Build and run the development client (required for react-native-maps):
+
+**iOS:**
 ```bash
-npm start
+npx expo run:ios
 ```
 
-4. Run on your device:
-- iOS: Press `i` or scan QR code with Camera app
-- Android: Press `a` or scan QR code with Expo Go app
+**Android:**
+```bash
+npx expo run:android
+```
+
+**Note:** React Native Maps requires native modules and won't work with Expo Go. You must use a development build.
 
 ## Environment Variables Setup
 
@@ -219,12 +241,30 @@ The API routes run on Expo's backend. For production deployment:
 3. Update `API_URL` in `utils/api.ts` to production URL
 
 ### Mobile App
+
+For production builds, use EAS Build:
+
 ```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Configure EAS
+eas build:configure
+
 # Build for iOS
-expo build:ios
+eas build --platform ios
 
 # Build for Android
-expo build:android
+eas build --platform android
+```
+
+Or use local builds:
+```bash
+# Build for iOS locally
+npx expo run:ios --configuration Release
+
+# Build for Android locally
+npx expo run:android --variant release
 ```
 
 ## Security Notes
@@ -237,6 +277,14 @@ expo build:android
 - Enable Firebase security rules
 
 ## Troubleshooting
+
+### Map not showing
+- **Most Common Issue:** Using Expo Go instead of development build
+  - Solution: Run `npx expo run:ios` or `npx expo run:android`
+- Verify `GOOGLE_MAPS_API_KEY` is set in `.env.local`
+- Check if Maps SDK is enabled in Google Cloud Console
+- Ensure both `react-native-maps` and `expo-maps` packages are installed
+- Run `npx expo-doctor` to check for package version mismatches
 
 ### Location permission not granted
 - iOS: Settings > RouteMate > Location > Always

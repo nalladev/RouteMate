@@ -8,19 +8,36 @@ async function verifyWithDidit(kycData: any): Promise<boolean> {
   }
 
   try {
-    // TODO: Implement actual Didit API verification
-    // const response = await fetch('https://api.didit.com/verify', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Bearer ${diditApiKey}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(kycData),
-    // });
-    // const result = await response.json();
-    // return result.verified;
+    // Call Didit API for KYC verification
+    const response = await fetch('https://api.didit.me/v1/kyc/verify', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${diditApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: kycData.userId,
+        full_name: kycData.fullName || kycData.name,
+        date_of_birth: kycData.dateOfBirth,
+        nationality: kycData.nationality,
+        document_type: kycData.documentType, // passport, drivers_license, national_id
+        document_number: kycData.documentNumber,
+        document_front: kycData.documentFront, // base64 image
+        document_back: kycData.documentBack, // base64 image (if applicable)
+        selfie: kycData.selfie, // base64 image
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Didit API error:', response.status, errorData);
+      return false;
+    }
+
+    const result = await response.json();
     
-    return false;
+    // Didit returns verification status and confidence score
+    return result.verified === true && (result.confidence_score || 0) >= 0.8;
   } catch (error) {
     console.error('Didit verification error:', error);
     return false;

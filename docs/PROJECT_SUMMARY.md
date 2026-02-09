@@ -303,6 +303,7 @@ routemate/
 ```bash
 # Required
 FIREBASE_SERVICE_ACCOUNT_ENCODED  # Base64 encoded Firebase service account
+GOOGLE_MAPS_API_KEY               # Google Maps API key (auto-configured via app.config.js)
 WALLET_ENCRYPTION_KEY             # 32-byte hex string for wallet encryption
 PASSWORD_HASHING_SEED             # Random string for password hashing
 

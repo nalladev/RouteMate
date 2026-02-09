@@ -3,23 +3,37 @@ import { getDocument, updateDocument } from '../../../lib/firestore';
 import { User } from '../../../types';
 
 async function verifyPhoneEmailToken(token: string): Promise<{ mobile: string; email?: string } | null> {
-  // TODO: Implement phone.email API verification
-  // This should call phone.email API to verify the token
-  // For now, returning mock data
   const phoneEmailApiKey = process.env.PHONE_EMAIL_API_KEY;
   if (!phoneEmailApiKey) {
     throw new Error('PHONE_EMAIL_API_KEY is not set');
   }
 
   try {
-    // Mock implementation - replace with actual phone.email API call
-    // const response = await fetch('https://api.phone.email/verify', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${phoneEmailApiKey}` },
-    //   body: JSON.stringify({ token })
-    // });
-    // const data = await response.json();
-    // return { mobile: data.phone, email: data.email };
+    // Verify token with phone.email API
+    const response = await fetch('https://api.phone.email/v1/verify', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${phoneEmailApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Phone.email API error:', response.status, errorData);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    // phone.email returns the verified phone number and optional email
+    if (data.phone_number) {
+      return {
+        mobile: data.phone_number,
+        email: data.email || undefined,
+      };
+    }
     
     return null;
   } catch (error) {

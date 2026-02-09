@@ -9,8 +9,10 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
@@ -31,7 +33,6 @@ export default function HomeScreen() {
     pendingRequests,
     isActive,
     updateUserState,
-    refreshMarkers,
   } = useAppState();
 
   const mapRef = useRef<MapView>(null);
@@ -42,12 +43,13 @@ export default function HomeScreen() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
+  const [showPlacesSearch, setShowPlacesSearch] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -94,8 +96,32 @@ export default function HomeScreen() {
   }
 
   function handleSearchDestination() {
-    // Mock destination selection - in real app, use Google Places API
-    Alert.alert('Search', 'Destination search will be implemented with Google Places API');
+    setShowPlacesSearch(true);
+  }
+
+  function handlePlaceSelected(data: any, details: any) {
+    if (details?.geometry?.location) {
+      const { lat, lng } = details.geometry.location;
+      setDestination({ lat, lng });
+      setSearchQuery(data.description || '');
+      setShowPlacesSearch(false);
+      Keyboard.dismiss();
+      
+      // Center map on destination
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    }
+  }
+
+  function handleCancelPlacesSearch() {
+    setShowPlacesSearch(false);
+    Keyboard.dismiss();
   }
 
   function handleExitActive() {
@@ -129,7 +155,7 @@ export default function HomeScreen() {
     }
 
     try {
-      const { requestId } = await api.requestRide(marker.userId, userLocation, destination);
+      await api.requestRide(marker.userId, userLocation, destination);
       Alert.alert('Success', 'Ride requested! Waiting for driver response.');
       setSelectedMarker(null);
     } catch (error: any) {
@@ -203,7 +229,6 @@ export default function HomeScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
         initialRegion={{
           latitude: userLocation.lat,
           longitude: userLocation.lng,
@@ -244,13 +269,57 @@ export default function HomeScreen() {
 
       {/* Search bar */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search destination..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onFocus={handleSearchDestination}
-        />
+        {!showPlacesSearch ? (
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search destination..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={handleSearchDestination}
+          />
+        ) : (
+          <View style={styles.placesSearchContainer}>
+            <GooglePlacesAutocomplete
+              placeholder="Search destination..."
+              onPress={handlePlaceSelected}
+              query={{
+                key: process.env.GOOGLE_MAPS_API_KEY || '',
+                language: 'en',
+              }}
+              fetchDetails={true}
+              enablePoweredByContainer={false}
+              styles={{
+                container: {
+                  flex: 0,
+                },
+                textInputContainer: {
+                  backgroundColor: '#fff',
+                  borderTopWidth: 0,
+                  borderBottomWidth: 0,
+                },
+                textInput: {
+                  height: 44,
+                  color: '#000',
+                  fontSize: 16,
+                  backgroundColor: '#fff',
+                  borderRadius: 8,
+                  paddingHorizontal: 15,
+                },
+                listView: {
+                  backgroundColor: '#fff',
+                  borderRadius: 8,
+                  marginTop: 4,
+                },
+              }}
+            />
+            <TouchableOpacity
+              style={styles.cancelPlacesButton}
+              onPress={handleCancelPlacesSearch}
+            >
+              <Text style={styles.cancelPlacesButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {isActive && (
           <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
             <Text style={styles.exitButtonText}>✕</Text>
@@ -422,16 +491,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchInput: {
-    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 15,
+    padding: 12,
     fontSize: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  placesSearchContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelPlacesButton: {
+    marginTop: 8,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelPlacesButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
   },
   exitButton: {
     marginLeft: 10,

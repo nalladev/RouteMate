@@ -22,6 +22,7 @@ Create `.env.local` file in the root directory:
 ```bash
 # Minimum required for local development
 FIREBASE_SERVICE_ACCOUNT_ENCODED=your_base64_encoded_firebase_key
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 WALLET_ENCRYPTION_KEY=your_32_character_random_key
 PASSWORD_HASHING_SEED=your_random_seed
 
@@ -55,39 +56,37 @@ openssl rand -base64 32
 
 ## 4. Configure Google Maps
 
-Edit `app.json` and add your Google Maps API key:
+Add your Google Maps API key to `.env.local`:
 
-```json
-{
-  "expo": {
-    "ios": {
-      "config": {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-      }
-    },
-    "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      }
-    }
-  }
-}
+```bash
+GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
 ```
+
+The app uses `app.config.js` which automatically reads the API key from environment variables.
 
 Get API key from: https://console.cloud.google.com/
 
-## 5. Start the App
+## 5. Build Development Client (Required for Maps)
 
+**Note**: React Native Maps requires native modules and won't work with Expo Go. You need to create a development build:
+
+### For iOS Simulator:
+```bash
+npx expo run:ios
+```
+
+### For Android Emulator:
+```bash
+npx expo run:android
+```
+
+### Alternative: Use Expo Go without Maps
+If you want to test without maps initially:
 ```bash
 npm start
 ```
 
-Then:
-- Press `i` for iOS simulator
-- Press `a` for Android emulator
-- Scan QR code with Expo Go app on physical device
+Then scan QR code with Expo Go app. The app will work but maps won't display.
 
 ## 6. Create Test User
 
@@ -187,9 +186,13 @@ curl -X POST http://localhost:8081/api/auth/login \
 - Try on physical device (simulator may have issues)
 
 ### Map Not Showing
-- Verify Google Maps API key is correct
+- **Most Common**: You're using Expo Go instead of development build
+  - Solution: Run `npx expo run:ios` or `npx expo run:android`
+- Verify Google Maps API key is correct in `.env.local`
 - Check if Maps SDK is enabled in Google Cloud Console
 - Clear cache: `expo start -c`
+- Ensure both `react-native-maps` and `expo-maps` packages are installed
+- Run `npx expo-doctor` to check for package version mismatches
 
 ### Firebase Connection Error
 - Verify service account JSON is correctly base64 encoded
@@ -234,20 +237,23 @@ Once basic setup is working:
 ## Useful Commands
 
 ```bash
+# Build and run on iOS (Required for maps)
+npx expo run:ios
+
+# Build and run on Android (Required for maps)
+npx expo run:android
+
 # Start with cache clear
 npm start -- --clear
-
-# Run on iOS
-npm run ios
-
-# Run on Android
-npm run android
 
 # Check diagnostics
 npx tsc --noEmit
 
 # Format code (if configured)
 npm run lint
+
+# Prebuild native folders (for inspection)
+npx expo prebuild
 ```
 
 ## Ready to Deploy?

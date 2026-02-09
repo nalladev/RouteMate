@@ -9,14 +9,31 @@ async function verifyPhoneEmailToken(token: string): Promise<{ mobile: string; e
   }
 
   try {
-    // TODO: Replace with actual phone.email API call
-    // const response = await fetch('https://api.phone.email/verify', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${phoneEmailApiKey}` },
-    //   body: JSON.stringify({ token })
-    // });
-    // const data = await response.json();
-    // return { mobile: data.phone, email: data.email };
+    // Verify token with phone.email API
+    const response = await fetch('https://api.phone.email/v1/verify', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${phoneEmailApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Phone.email API error:', response.status, errorData);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    // phone.email returns the verified phone number and optional email
+    if (data.phone_number) {
+      return {
+        mobile: data.phone_number,
+        email: data.email || undefined,
+      };
+    }
     
     return null;
   } catch (error) {
