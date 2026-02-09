@@ -1,7 +1,7 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { addDocument, getDocument, getDocumentById } from '../../../lib/firestore';
 import { generateOTP } from '../../../lib/auth';
-import { getWalletBalance } from '../../../lib/wallet';
+import { User } from '../../../types';
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
@@ -51,13 +51,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check wallet balance
-    const balance = await getWalletBalance(user.Wallet.address);
-    const minBalance = 10 / 100; // $10 worth of SOL (assuming SOL = $100, adjust as needed)
+    // Calculate estimated fare first
+    const distance = calculateDistance(
+      pickupLocation.lat,
+      pickupLocation.lng,
+      destination.lat,
+      destination.lng
+    );
+
+    const fare = calculateFare(distance);
+
+    // Get current user with balance
+    const currentUser = await getDocumentById('users', user.Id) as User;
+    const balance = currentUser.WalletBalance || 0;
     
-    if (balance < minBalance) {
+    // Check if balance is sufficient for the fare
+    if (balance < fare) {
       return Response.json(
-        { error: 'Insufficient balance. Minimum $10 worth of SOL required.' },
+        { error: `Insufficient balance. Required: ₹${fare.toFixed(2)}, Available: ₹${balance.toFixed(2)}` },
         { status: 400 }
       );
     }
@@ -84,14 +95,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const distance = calculateDistance(
-      pickupLocation.lat,
-      pickupLocation.lng,
-      destination.lat,
-      destination.lng
-    );
 
-    const fare = calculateFare(distance);
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
@@ -104,6 +108,7 @@ export async function POST(request: Request) {
       Fare: fare,
       OtpCode: otpCode,
       State: 'requested',
+      PaymentStatus: 'pending',
       CreatedAt: new Date(),
       ExpiresAt: expiresAt,
     });

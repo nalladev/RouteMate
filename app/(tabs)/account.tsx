@@ -6,43 +6,179 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Clipboard,
+  TextInput,
+  ScrollView,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
+import { Transaction } from '@/types';
 
 export default function AccountScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
   const [balance, setBalance] = useState<number>(0);
-  const [walletAddress, setWalletAddress] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Top-up state
+  const [showTopupModal, setShowTopupModal] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  
+  // Payout state
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [showUpiInput, setShowUpiInput] = useState(false);
+  
+  // Transactions
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
     } else {
-      loadWalletInfo();
+      loadAccountInfo();
     }
   }, [isAuthenticated]);
 
-  async function loadWalletInfo() {
+  async function loadAccountInfo() {
     try {
       setIsLoading(true);
-      const { balance: bal, address } = await api.getWalletBalance();
-      setBalance(bal);
-      setWalletAddress(address);
+      const [balanceData, transactionsData] = await Promise.all([
+        api.getWalletBalance(),
+        api.getTransactions(10, 0)
+      ]);
+      setBalance(balanceData.balance);
+      setTransactions(transactionsData.transactions);
+      
+      // Set UPI ID if user has one
+      if (user?.UpiId) {
+        setUpiId(user.UpiId);
+      }
     } catch (error) {
-      console.error('Failed to load wallet info:', error);
+      console.error('Failed to load account info:', error);
+      Alert.alert('Error', 'Failed to load account information');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function handleCopyAddress() {
-    Clipboard.setString(walletAddress);
-    Alert.alert('Copied', 'Wallet address copied to clipboard');
+  async function handleTopup() {
+    const amount = parseFloat(topupAmount);
+    
+    if (isNaN(amount) || amount < 100 || amount > 10000) {
+      Alert.alert('Invalid Amount', 'Amount must be between ₹100 and ₹10,000');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      const orderData = await api.createTopupOrder(amount);
+      
+      // In production, you would integrate Razorpay Checkout here
+      // For now, we'll simulate a successful payment
+      Alert.alert(
+        'Razorpay Payment',
+        `Order created for ₹${amount}\n\nIn production, Razorpay checkout would open here.\n\nOrder ID: ${orderData.orderId}`,
+        [
+          {
+            text: 'Simulate Success',
+            onPress: async () => {
+              // In production, this would come from Razorpay callback
+              try {
+                await api.verifyTopup(
+                  orderData.orderId,
+                  'simulated_payment_id',
+                  'simulated_signature'
+                );
+                Alert.alert('Success', 'Balance updated successfully!');
+                setShowTopupModal(false);
+                setTopupAmount('');
+                loadAccountInfo();
+              } catch (error: any) {
+                Alert.alert('Error', error.message || 'Payment verification failed');
+              }
+            }
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to create order');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handlePayout() {
+    const amount = parseFloat(payoutAmount);
+    
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount');
+      return;
+    }
+
+    if (amount > balance) {
+      Alert.alert('Insufficient Balance', 'You do not have enough balance for this payout');
+      return;
+    }
+
+    if (!upiId) {
+      setShowUpiInput(true);
+      return;
+    }
+
+    // Confirm UPI ID
+    Alert.alert(
+      'Confirm Payout',
+      `Withdraw ₹${amount.toFixed(2)} to UPI ID:\n${upiId}\n\nPlease verify your UPI ID is correct. Incorrect UPI ID may result in loss of funds.`,
+      [
+        { text: 'Change UPI ID', onPress: () => setShowUpiInput(true) },
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsProcessing(true);
+              const result = await api.requestPayout(amount, upiId);
+              Alert.alert(
+                'Payout Initiated',
+                `Your payout of ₹${amount.toFixed(2)} has been initiated.\n\nStatus: ${result.status}\nPayout ID: ${result.payoutId}\n\nFunds will be transferred to your UPI ID within 1-2 business days.`
+              );
+              setShowPayoutModal(false);
+              setPayoutAmount('');
+              loadAccountInfo();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to process payout');
+            } finally {
+              setIsProcessing(false);
+            }
+          }
+        }
+      ]
+    );
+  }
+
+  async function handleUpdateUpiId() {
+    if (!upiId || !upiId.includes('@')) {
+      Alert.alert('Invalid UPI ID', 'Please enter a valid UPI ID (e.g., username@paytm)');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await api.updateUpiId(upiId);
+      Alert.alert('Success', 'UPI ID updated successfully');
+      setShowUpiInput(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update UPI ID');
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   async function handleLogout() {
@@ -57,6 +193,26 @@ export default function AccountScreen() {
         },
       },
     ]);
+  }
+
+  function getTransactionIcon(type: string): string {
+    switch (type) {
+      case 'topup': return '💰';
+      case 'payout': return '💸';
+      case 'ride_payment': return '🚗';
+      case 'ride_earning': return '✅';
+      default: return '💳';
+    }
+  }
+
+  function getTransactionColor(type: string): string {
+    switch (type) {
+      case 'topup': return '#34C759';
+      case 'ride_earning': return '#34C759';
+      case 'payout': return '#FF3B30';
+      case 'ride_payment': return '#FF9500';
+      default: return '#666';
+    }
   }
 
   if (isLoading) {
@@ -74,78 +230,312 @@ export default function AccountScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Account</Text>
-      </View>
-
-      <View style={styles.content}>
-        {/* Profile Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profile</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Name</Text>
-            <Text style={styles.value}>{user.Name || 'Not set'}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Mobile</Text>
-            <Text style={styles.value}>{user.Mobile}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>KYC Status</Text>
-            <View style={styles.badgeContainer}>
-              {user.IsKycVerified ? (
-                <View style={styles.verifiedBadge}>
-                  <Text style={styles.verifiedText}>✓ Verified</Text>
-                </View>
-              ) : (
-                <View style={styles.unverifiedBadge}>
-                  <Text style={styles.unverifiedText}>Not Verified</Text>
-                </View>
-              )}
-            </View>
-          </View>
+      <ScrollView>
+        <View style={styles.header}>
+          <Text style={styles.title}>Account</Text>
         </View>
 
-        {/* Wallet Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wallet</Text>
-          
-          <View style={styles.balanceContainer}>
-            <Text style={styles.balanceLabel}>Balance</Text>
-            <Text style={styles.balanceValue}>{balance.toFixed(4)} SOL</Text>
-            <Text style={styles.balanceUsd}>≈ ${(balance * 100).toFixed(2)} USD</Text>
+        <View style={styles.content}>
+          {/* Profile Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Profile</Text>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Name</Text>
+              <Text style={styles.value}>{user.Name || 'Not set'}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Mobile</Text>
+              <Text style={styles.value}>{user.Mobile}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>KYC Status</Text>
+              <View style={styles.badgeContainer}>
+                {user.IsKycVerified ? (
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedText}>✓ Verified</Text>
+                  </View>
+                ) : (
+                  <View style={styles.unverifiedBadge}>
+                    <Text style={styles.unverifiedText}>Not Verified</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {user.UpiId && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>UPI ID</Text>
+                <Text style={styles.value}>{user.UpiId}</Text>
+              </View>
+            )}
           </View>
-          
-          <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>Wallet Address</Text>
-            <View style={styles.addressRow}>
-              <Text style={styles.addressText} numberOfLines={1} ellipsizeMode="middle">
-                {walletAddress}
-              </Text>
-              <TouchableOpacity style={styles.copyButton} onPress={handleCopyAddress}>
-                <Text style={styles.copyButtonText}>Copy</Text>
+
+          {/* Wallet Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Wallet</Text>
+            
+            <View style={styles.balanceContainer}>
+              <Text style={styles.balanceLabel}>Available Balance</Text>
+              <Text style={styles.balanceValue}>₹{balance.toFixed(2)}</Text>
+            </View>
+            
+            <View style={styles.walletActions}>
+              <TouchableOpacity 
+                style={[styles.walletButton, styles.topupButton]} 
+                onPress={() => setShowTopupModal(true)}
+              >
+                <Text style={styles.walletButtonText}>💰 Top Up</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.walletButton, styles.payoutButton]} 
+                onPress={() => setShowPayoutModal(true)}
+              >
+                <Text style={styles.walletButtonText}>💸 Withdraw</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.instructionText}>
-              Send SOL to this address to use the app
-            </Text>
+          </View>
+
+          {/* Recent Transactions */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              {transactions.length > 0 && (
+                <TouchableOpacity onPress={() => setShowTransactions(true)}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {transactions.length === 0 ? (
+              <Text style={styles.emptyText}>No transactions yet</Text>
+            ) : (
+              transactions.slice(0, 5).map((tx) => (
+                <View key={tx.Id} style={styles.transactionItem}>
+                  <View style={styles.transactionIcon}>
+                    <Text style={styles.transactionIconText}>
+                      {getTransactionIcon(tx.Type)}
+                    </Text>
+                  </View>
+                  <View style={styles.transactionDetails}>
+                    <Text style={styles.transactionDescription}>{tx.Description}</Text>
+                    <Text style={styles.transactionDate}>
+                      {new Date(tx.CreatedAt?.toDate?.() || tx.CreatedAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text style={[
+                    styles.transactionAmount,
+                    { color: getTransactionColor(tx.Type) }
+                  ]}>
+                    {tx.Type === 'topup' || tx.Type === 'ride_earning' ? '+' : '-'}
+                    ₹{tx.Amount.toFixed(2)}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+
+          {/* Actions */}
+          <View style={styles.actionsSection}>
+            <TouchableOpacity style={styles.refreshButton} onPress={loadAccountInfo}>
+              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      </ScrollView>
 
-        {/* Actions */}
-        <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.refreshButton} onPress={loadWalletInfo}>
-            <Text style={styles.refreshButtonText}>Refresh Balance</Text>
-          </TouchableOpacity>
+      {/* Top-up Modal */}
+      <Modal visible={showTopupModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Top Up Balance</Text>
+            
+            <Text style={styles.modalLabel}>Amount (₹)</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter amount (₹100 - ₹10,000)"
+              keyboardType="numeric"
+              value={topupAmount}
+              onChangeText={setTopupAmount}
+              editable={!isProcessing}
+            />
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+            <Text style={styles.modalHint}>
+              Minimum: ₹100 | Maximum: ₹10,000
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => {
+                  setShowTopupModal(false);
+                  setTopupAmount('');
+                }}
+                disabled={isProcessing}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={handleTopup}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalConfirmButtonText}>Proceed to Pay</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </Modal>
+
+      {/* Payout Modal */}
+      <Modal visible={showPayoutModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Withdraw Funds</Text>
+            
+            {!showUpiInput ? (
+              <>
+                <Text style={styles.modalLabel}>Amount (₹)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter amount"
+                  keyboardType="numeric"
+                  value={payoutAmount}
+                  onChangeText={setPayoutAmount}
+                  editable={!isProcessing}
+                />
+
+                <Text style={styles.modalHint}>
+                  Available: ₹{balance.toFixed(2)}
+                </Text>
+
+                {upiId && (
+                  <View style={styles.upiIdDisplay}>
+                    <Text style={styles.upiIdLabel}>Withdraw to:</Text>
+                    <Text style={styles.upiIdValue}>{upiId}</Text>
+                    <TouchableOpacity onPress={() => setShowUpiInput(true)}>
+                      <Text style={styles.changeUpiText}>Change UPI ID</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalCancelButton]}
+                    onPress={() => {
+                      setShowPayoutModal(false);
+                      setPayoutAmount('');
+                    }}
+                    disabled={isProcessing}
+                  >
+                    <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalConfirmButton]}
+                    onPress={handlePayout}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.modalConfirmButtonText}>Withdraw</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalLabel}>UPI ID</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="username@paytm"
+                  value={upiId}
+                  onChangeText={setUpiId}
+                  autoCapitalize="none"
+                  editable={!isProcessing}
+                />
+
+                <Text style={styles.modalHint}>
+                  Enter your UPI ID (e.g., 9876543210@paytm)
+                </Text>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalCancelButton]}
+                    onPress={() => setShowUpiInput(false)}
+                    disabled={isProcessing}
+                  >
+                    <Text style={styles.modalCancelButtonText}>Back</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalConfirmButton]}
+                    onPress={handleUpdateUpiId}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.modalConfirmButtonText}>Save</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Transactions Modal */}
+      <Modal visible={showTransactions} animationType="slide">
+        <View style={styles.fullScreenModal}>
+          <View style={styles.fullScreenHeader}>
+            <Text style={styles.fullScreenTitle}>All Transactions</Text>
+            <TouchableOpacity onPress={() => setShowTransactions(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.fullScreenContent}>
+            {transactions.map((tx) => (
+              <View key={tx.Id} style={styles.transactionItem}>
+                <View style={styles.transactionIcon}>
+                  <Text style={styles.transactionIconText}>
+                    {getTransactionIcon(tx.Type)}
+                  </Text>
+                </View>
+                <View style={styles.transactionDetails}>
+                  <Text style={styles.transactionDescription}>{tx.Description}</Text>
+                  <Text style={styles.transactionDate}>
+                    {new Date(tx.CreatedAt?.toDate?.() || tx.CreatedAt).toLocaleString()}
+                  </Text>
+                  <Text style={styles.transactionStatus}>Status: {tx.Status}</Text>
+                </View>
+                <Text style={[
+                  styles.transactionAmount,
+                  { color: getTransactionColor(tx.Type) }
+                ]}>
+                  {tx.Type === 'topup' || tx.Type === 'ride_earning' ? '+' : '-'}
+                  ₹{tx.Amount.toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -179,7 +569,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   content: {
-    flex: 1,
     padding: 15,
   },
   section: {
@@ -193,11 +582,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 15,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   infoRow: {
     flexDirection: 'row',
@@ -246,6 +645,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    marginBottom: 20,
   },
   balanceLabel: {
     fontSize: 14,
@@ -253,53 +653,76 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceValue: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
   },
-  balanceUsd: {
-    fontSize: 18,
-    color: '#666',
-  },
-  addressContainer: {
-    marginTop: 20,
-  },
-  addressLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  addressRow: {
+  walletActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    gap: 10,
   },
-  addressText: {
+  walletButton: {
     flex: 1,
-    fontSize: 12,
-    color: '#333',
-    fontFamily: 'monospace',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  copyButton: {
+  topupButton: {
+    backgroundColor: '#34C759',
+  },
+  payoutButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginLeft: 8,
   },
-  copyButtonText: {
+  walletButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
   },
-  instructionText: {
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  transactionIconText: {
+    fontSize: 20,
+  },
+  transactionDetails: {
+    flex: 1,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 2,
+  },
+  transactionDate: {
     fontSize: 12,
     color: '#999',
-    fontStyle: 'italic',
+  },
+  transactionStatus: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 2,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 14,
+    paddingVertical: 20,
   },
   actionsSection: {
     marginTop: 10,
@@ -326,5 +749,119 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  modalInput: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  modalHint: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 20,
+  },
+  upiIdDisplay: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+  },
+  upiIdLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  upiIdValue: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  changeUpiText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  modalCancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalConfirmButton: {
+    backgroundColor: '#007AFF',
+  },
+  modalConfirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  fullScreenHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  fullScreenTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    fontSize: 28,
+    color: '#666',
+    fontWeight: '300',
+  },
+  fullScreenContent: {
+    flex: 1,
+    padding: 15,
   },
 });

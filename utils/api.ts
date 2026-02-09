@@ -122,7 +122,7 @@ export const api = {
     });
   },
 
-  completeRide: async (connectionId: string): Promise<{ success: boolean; paymentTx?: string }> => {
+  completeRide: async (connectionId: string): Promise<{ success: boolean; paymentStatus: string; fare: number }> => {
     return request('/api/rides/connection/complete', {
       method: 'POST',
       body: JSON.stringify({ connectionId }),
@@ -138,8 +138,44 @@ export const api = {
   },
 
   // Wallet
-  getWalletBalance: async (): Promise<{ balance: number; address: string }> => {
+  getWalletBalance: async (): Promise<{ balance: number }> => {
     return request('/api/wallet/balance');
+  },
+
+  createTopupOrder: async (amount: number): Promise<{ orderId: string; amount: number; currency: string; razorpayKeyId: string }> => {
+    return request('/api/wallet/topup/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  },
+
+  verifyTopup: async (razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string): Promise<{ success: boolean; balance: number; amount: number }> => {
+    return request('/api/wallet/topup/verify', {
+      method: 'POST',
+      body: JSON.stringify({ razorpayOrderId, razorpayPaymentId, razorpaySignature }),
+    });
+  },
+
+  requestPayout: async (amount: number, upiId?: string): Promise<{ success: boolean; payoutId: string; status: string; balance: number }> => {
+    return request('/api/wallet/payout/request', {
+      method: 'POST',
+      body: JSON.stringify({ amount, upiId }),
+    });
+  },
+
+  getTransactions: async (limit?: number, offset?: number): Promise<{ transactions: any[]; total: number; limit: number; offset: number; hasMore: boolean }> => {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
+    const queryString = params.toString();
+    return request(`/api/wallet/transactions${queryString ? '?' + queryString : ''}`);
+  },
+
+  updateUpiId: async (upiId: string): Promise<{ success: boolean; upiId: string }> => {
+    return request('/api/wallet/upi/update', {
+      method: 'POST',
+      body: JSON.stringify({ upiId }),
+    });
   },
 
   // KYC

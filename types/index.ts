@@ -7,11 +7,6 @@ export interface Session {
   token: string;
 }
 
-export interface Wallet {
-  address: string;
-  EncryptedKey: string;
-}
-
 export type UserState = 'driving' | 'riding' | 'idle';
 
 export interface User {
@@ -20,7 +15,8 @@ export interface User {
   Mobile: string;
   PasswordHash: string;
   Session: Session;
-  Wallet: Wallet;
+  WalletBalance: number;
+  UpiId?: string;
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
@@ -29,6 +25,7 @@ export interface User {
 }
 
 export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed';
+export type PaymentStatus = 'pending' | 'success' | 'failed';
 
 export interface RideConnection {
   Id: string;
@@ -41,6 +38,7 @@ export interface RideConnection {
   RideTotalTime?: number;
   OtpCode?: string;
   State: RideConnectionState;
+  PaymentStatus: PaymentStatus;
   CreatedAt: any;
 }
 
@@ -60,6 +58,28 @@ export interface UserPublic {
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
-  Wallet: { address: string };
+  WalletBalance: number;
+  UpiId?: string;
   IsKycVerified: boolean;
+}
+
+export type TransactionType = 'topup' | 'payout' | 'ride_payment' | 'ride_earning';
+export type TransactionStatus = 'pending' | 'success' | 'failed';
+
+export interface Transaction {
+  Id: string;
+  UserId: string;
+  Type: TransactionType;
+  Amount: number;
+  BalanceBefore: number;
+  BalanceAfter: number;
+  Status: TransactionStatus;
+  RazorpayOrderId?: string;
+  RazorpayPaymentId?: string;
+  RazorpayPayoutId?: string;
+  UpiId?: string;
+  RideConnectionId?: string;
+  Description: string;
+  CreatedAt: any;
+  UpdatedAt: any;
 }

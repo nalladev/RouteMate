@@ -50,11 +50,13 @@ components:
           $ref: '#/components/schemas/Location'
         Destination:
           $ref: '#/components/schemas/Location'
-        Wallet:
-          type: object
-          properties:
-            address:
-              type: string
+        WalletBalance:
+          type: number
+          format: double
+          description: Internal wallet balance in INR
+        UpiId:
+          type: string
+          description: User's UPI ID for payouts
         IsKycVerified:
           type: boolean
     
@@ -66,6 +68,21 @@ components:
         - rejected
         - picked_up
         - completed
+    
+    PaymentStatus:
+      type: string
+      enum:
+        - pending
+        - success
+        - failed
+    
+    TransactionType:
+      type: string
+      enum:
+        - topup
+        - payout
+        - ride_payment
+        - ride_earning
     
     RideConnection:
       type: object
@@ -93,10 +110,44 @@ components:
           type: string
         State:
           $ref: '#/components/schemas/RideConnectionState'
+        PaymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
         CreatedAt:
           type: string
           format: date-time
         ExpiresAt:
+          type: string
+          format: date-time
+    
+    Transaction:
+      type: object
+      properties:
+        Id:
+          type: string
+        UserId:
+          type: string
+        Type:
+          $ref: '#/components/schemas/TransactionType'
+        Amount:
+          type: number
+          format: double
+        BalanceBefore:
+          type: number
+          format: double
+        BalanceAfter:
+          type: number
+          format: double
+        Status:
+          $ref: '#/components/schemas/PaymentStatus'
+        Description:
+          type: string
+        RazorpayOrderId:
+          type: string
+        RazorpayPaymentId:
+          type: string
+        RazorpayPayoutId:
+          type: string
+        CreatedAt:
           type: string
           format: date-time
     
@@ -460,7 +511,7 @@ paths:
   /api/rides/request:
     post:
       summary: Request a ride
-      description: Passenger requests ride from a driver
+      description: Passenger requests ride from a driver. Validates passenger has sufficient balance before creating request.
       tags:
         - Rides
       security:
@@ -483,7 +534,7 @@ paths:
                 - pickupLocation
                 - destination
       responses:
-        '200':
+        '201':
           description: Ride requested successfully
           content:
             application/json:
@@ -496,7 +547,7 @@ paths:
                     type: string
                     format: date-time
         '400':
-          description: Bad request
+          description: Bad request or insufficient balance
           content:
             application/json:
               schema:
@@ -715,7 +766,7 @@ paths:
   /api/rides/connection/complete:
     post:
       summary: Complete ride
-      description: Marks ride as completed and triggers payment
+      description: Marks ride as completed and processes payment atomically. Deducts fare from passenger balance and credits driver balance. Creates transaction records.
       tags:
         - Rides
       security:
@@ -733,7 +784,7 @@ paths:
                 - connectionId
       responses:
         '200':
-          description: Ride completed successfully
+          description: Ride completed and payment processed successfully
           content:
             application/json:
               schema:
@@ -741,10 +792,14 @@ paths:
                 properties:
                   success:
                     type: boolean
-                  paymentTx:
+                  paymentStatus:
+                    type: string
+                  passengerTxId:
+                    type: string
+                  driverTxId:
                     type: string
         '400':
-          description: Bad request
+          description: Bad request or insufficient balance
           content:
             application/json:
               schema:
@@ -831,7 +886,7 @@ paths:
   /api/wallet/balance:
     get:
       summary: Get wallet balance
-      description: Fetch wallet balance and address
+      description: Fetch wallet balance in INR
       tags:
         - Wallet
       security:
@@ -847,10 +902,274 @@ paths:
                   balance:
                     type: number
                     format: double
-                    description: Balance in SOL
-                  address:
+                    description: Balance in INR
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/topup/create-order:
+    post:
+      summary: Create Razorpay order for wallet top-up
+      description: Creates a Razorpay order for adding funds to wallet
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  format: double
+                  description: Amount in INR (min 100, max 10000)
+              required:
+                - amount
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
                     type: string
-                    description: Wallet address
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+                  razorpayKeyId:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/topup/verify:
+    post:
+      summary: Verify Razorpay payment
+      description: Verifies Razorpay payment signature and credits wallet
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                razorpayOrderId:
+                  type: string
+                razorpayPaymentId:
+                  type: string
+                razorpaySignature:
+                  type: string
+              required:
+                - razorpayOrderId
+                - razorpayPaymentId
+                - razorpaySignature
+      responses:
+        '200':
+          description: Payment verified and wallet updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  balance:
+                    type: number
+                    format: double
+        '400':
+          description: Invalid signature or payment verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/topup/webhook:
+    post:
+      summary: Razorpay webhook handler
+      description: Handles Razorpay payment notifications (no authentication required)
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Razorpay webhook payload
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+        '400':
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/payout/request:
+    post:
+      summary: Request payout to UPI
+      description: Request withdrawal of funds to user's UPI ID
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  format: double
+                  description: Amount to withdraw in INR
+                upiId:
+                  type: string
+                  description: UPI ID (optional if already stored)
+              required:
+                - amount
+      responses:
+        '200':
+          description: Payout initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  payoutId:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Bad request or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/transactions:
+    get:
+      summary: Get transaction history
+      description: Returns wallet transaction history for the user
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/wallet/upi/update:
+    post:
+      summary: Update UPI ID
+      description: Update or set user's UPI ID for payouts
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upiId:
+                  type: string
+                  description: UPI ID in format user@bank
+              required:
+                - upiId
+      responses:
+        '200':
+          description: UPI ID updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  upiId:
+                    type: string
+        '400':
+          description: Invalid UPI ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
           content:

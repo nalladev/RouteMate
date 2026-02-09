@@ -1,6 +1,5 @@
 import { hashPassword, generateSessionToken } from '../../../lib/auth';
 import { addDocument, getDocument } from '../../../lib/firestore';
-import { generateWallet, encryptPrivateKey } from '../../../lib/wallet';
 
 async function verifyPhoneEmailToken(token: string): Promise<{ mobile: string; email?: string } | null> {
   const phoneEmailApiKey = process.env.PHONE_EMAIL_API_KEY;
@@ -74,18 +73,14 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
     const token = generateSessionToken();
-    const wallet = generateWallet();
-    const encryptedKey = encryptPrivateKey(wallet.privateKey);
 
     const userId = await addDocument('users', {
       Name: '',
       Mobile: verificationResult.mobile,
       PasswordHash: passwordHash,
       Session: { token },
-      Wallet: {
-        address: wallet.publicKey,
-        EncryptedKey: encryptedKey,
-      },
+      WalletBalance: 0,
+      UpiId: '',
       state: 'idle',
       IsKycVerified: false,
     });
@@ -96,7 +91,8 @@ export async function POST(request: Request) {
       Mobile: verificationResult.mobile,
       state: 'idle' as const,
       Session: { token },
-      Wallet: { address: wallet.publicKey },
+      WalletBalance: 0,
+      UpiId: '',
       IsKycVerified: false,
     };
 

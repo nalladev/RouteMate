@@ -1,5 +1,4 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
-import { getWalletBalance } from '../../../lib/wallet';
 
 export async function GET(request: Request) {
   try {
@@ -21,14 +20,11 @@ export async function GET(request: Request) {
       );
     }
 
-    const balance = await getWalletBalance(user.Wallet.address);
-
     return Response.json({
-      balance,
-      address: user.Wallet.address,
+      balance: user.WalletBalance || 0,
     });
   } catch (error) {
-    console.error('Get wallet balance error:', error);
+    console.error('Wallet balance fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
       { status: 500 }
