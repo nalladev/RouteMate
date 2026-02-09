@@ -13,13 +13,17 @@ module.exports = {
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "RouteMate needs your location to show nearby drivers and track rides.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "RouteMate needs your location to provide real-time ride tracking and match you with drivers.",
-        NSLocationAlwaysUsageDescription: "RouteMate needs your location in the background to track active rides."
+        NSLocationAlwaysUsageDescription: "RouteMate needs your location in the background to track active rides.",
+        NSAppTransportSecurity: {
+          NSAllowsArbitraryLoads: true
+        }
       },
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
       }
     },
     android: {
+      package: "tech.routemate.app",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -31,13 +35,15 @@ module.exports = {
       permissions: [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_BACKGROUND_LOCATION",
+        "INTERNET"
       ],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
         }
-      }
+      },
+      usesCleartextTraffic: true
     },
     web: {
       output: "server",

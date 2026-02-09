@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, RideConnection, MarkerData, Location } from '../types';
 
-const API_URL = 'http://localhost:8081';
+// Use relative URLs for Expo Router API routes
+// This works with tunnel mode, local network, and production
+const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 async function getAuthToken(): Promise<string | null> {
   return await AsyncStorage.getItem('authToken');

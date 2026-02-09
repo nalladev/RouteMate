@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { WebView } from 'react-native-webview';
+import Constants from 'expo-constants';
 
-type AuthMode = 'login' | 'otp-login' | 'otp-signup';
+type AuthMode = 'login' | 'phone-email-login' | 'phone-email-signup' | 'signup-password';
+
+// Helper to get the correct API base URL
+function getApiBaseUrl(): string {
+  // If EXPO_PUBLIC_API_URL is set, use it
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // For development with tunnel or local network
+  // Expo Router API routes are served from the same origin
+  // Use relative URLs (empty string) to hit the same server
+  return '';
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,10 +27,13 @@ export default function LoginScreen() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpToken, setOtpToken] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [phoneEmailToken, setPhoneEmailToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+
+  // Get CLIENT_ID from environment variable
+  const CLIENT_ID = process.env.EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID || '';
+  const API_BASE_URL = getApiBaseUrl();
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -40,91 +58,65 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleSendOtp() {
-    if (!mobile) {
-      Alert.alert('Error', 'Please enter your mobile number');
-      return;
-    }
-
+  async function handlePhoneEmailLogin(jwt: string) {
     setIsLoading(true);
     try {
-      // Send OTP via phone.email API
-      const response = await fetch('https://api.phone.email/v1/send', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/otp-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone_number: mobile,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send OTP');
-      }
-
-      const data = await response.json();
-      setOtpToken(data.token || '');
-      setOtpSent(true);
-      Alert.alert('Success', 'OTP sent to your mobile number');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleVerifyOtpLogin() {
-    if (!otp) {
-      Alert.alert('Error', 'Please enter the OTP');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Verify OTP and login
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || ''}/api/auth/otp-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          otpToken: `${otpToken}:${otp}`,
+          otpToken: jwt,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Invalid OTP');
+        throw new Error(data.error || 'Authentication failed');
       }
 
-      // Store token and navigate
-      await login(mobile, data.token);
+      // Check if user exists
+      if (data.userExists === false) {
+        // User doesn't exist - transition to signup password entry
+        setPhoneEmailToken(jwt);
+        setAuthMode('signup-password');
+        setIsLoading(false);
+        return;
+      }
+
+      // User exists - complete login
+      await login(data.user.Mobile, data.token);
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'OTP verification failed');
+      Alert.alert('Error', error.message || 'Authentication failed');
+      setAuthMode('login');
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function handleVerifyOtpSignup() {
-    if (!otp || !password) {
-      Alert.alert('Error', 'Please enter OTP and create a password');
+  async function handleSignupWithPassword() {
+    if (!password) {
+      Alert.alert('Error', 'Please create a password');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Verify OTP and signup
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || ''}/api/auth/signup`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          otpToken: `${otpToken}:${otp}`,
+          otpToken: phoneEmailToken,
           password,
         }),
       });
@@ -136,37 +128,126 @@ export default function LoginScreen() {
       }
 
       // Store token and navigate
-      await login(mobile, data.token);
+      await login(data.user.Mobile, data.token);
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Signup failed');
+      setAuthMode('login');
+      setPhoneEmailToken('');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function resetOtpFlow() {
-    setOtpSent(false);
-    setOtp('');
-    setOtpToken('');
+  function handleWebViewMessage(event: any) {
+    const jwt = event.nativeEvent.data;
+    
+    if (jwt && jwt.length > 0) {
+      // Both login and signup use the same unified flow
+      // Backend will determine if user exists and frontend will handle accordingly
+      handlePhoneEmailLogin(jwt);
+    }
+  }
+
+  function switchToPhoneEmailLogin() {
+    setAuthMode('phone-email-login');
     setPassword('');
   }
 
-  function switchToOtpLogin() {
-    setAuthMode('otp-login');
-    resetOtpFlow();
-  }
-
-  function switchToOtpSignup() {
-    setAuthMode('otp-signup');
-    resetOtpFlow();
+  function switchToPhoneEmailSignup() {
+    setAuthMode('phone-email-signup');
+    setPassword('');
+    setPhoneEmailToken('');
   }
 
   function switchToPasswordLogin() {
     setAuthMode('login');
-    resetOtpFlow();
+    setPassword('');
+    setPhoneEmailToken('');
   }
 
+  // Phone.email WebView URL
+  const getPhoneEmailUrl = () => {
+    const deviceId = Constants.sessionId || Constants.deviceId || 'unknown-device';
+    return `https://auth.phone.email/log-in?client_id=${CLIENT_ID}&auth_type=4&device=${deviceId}`;
+  };
+
+  // Render WebView for phone.email authentication
+  if (authMode === 'phone-email-login' || authMode === 'phone-email-signup') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.webViewHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={switchToPasswordLogin}
+          >
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.webViewTitle}>
+            {authMode === 'phone-email-login' ? 'Login with Phone' : 'Sign Up with Phone'}
+          </Text>
+        </View>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: getPhoneEmailUrl() }}
+          style={styles.webView}
+          onMessage={handleWebViewMessage}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+          )}
+        />
+      </View>
+    );
+  }
+
+  // Render password entry screen after phone verification for new users
+  if (authMode === 'signup-password') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome!</Text>
+          <Text style={styles.subtitle}>Create a password to complete your account setup</Text>
+
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Create Password (min 6 characters)"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!isLoading}
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={handleSignupWithPassword}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Complete Signup</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={switchToPasswordLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.linkText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Default login screen
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -174,213 +255,52 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Your ride-sharing companion</Text>
 
         <View style={styles.form}>
-          {authMode === 'login' && (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Mobile Number"
-                value={mobile}
-                onChangeText={setMobile}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
+          <TextInput
+            style={styles.input}
+            placeholder="Mobile Number"
+            value={mobile}
+            onChangeText={setMobile}
+            keyboardType="phone-pad"
+            autoCapitalize="none"
+            editable={!isLoading}
+          />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!isLoading}
-              />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!isLoading}
+          />
 
-              <TouchableOpacity
-                style={[styles.button, styles.primaryButton]}
-                onPress={handleLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Login</Text>
-                )}
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.button, styles.secondaryButton]}
-                onPress={switchToOtpLogin}
-                disabled={isLoading}
-              >
-                <Text style={styles.secondaryButtonText}>Login with OTP</Text>
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={switchToPhoneEmailLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.secondaryButtonText}>Login with OTP</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={switchToOtpSignup}
-                disabled={isLoading}
-              >
-                <Text style={styles.linkText}>Don&apos;t have an account? Sign Up</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {authMode === 'otp-login' && (
-            <>
-              <Text style={styles.modeTitle}>Login with OTP</Text>
-              
-              {!otpSent ? (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Mobile Number"
-                    value={mobile}
-                    onChangeText={setMobile}
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.primaryButton]}
-                    onPress={handleSendOtp}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Send OTP</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.infoText}>OTP sent to {mobile}</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!isLoading}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.primaryButton]}
-                    onPress={handleVerifyOtpLogin}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Verify & Login</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.linkButton}
-                    onPress={resetOtpFlow}
-                    disabled={isLoading}
-                  >
-                    <Text style={styles.linkText}>Resend OTP</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={switchToPasswordLogin}
-                disabled={isLoading}
-              >
-                <Text style={styles.linkText}>Back to Password Login</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {authMode === 'otp-signup' && (
-            <>
-              <Text style={styles.modeTitle}>Sign Up with OTP</Text>
-              
-              {!otpSent ? (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Mobile Number"
-                    value={mobile}
-                    onChangeText={setMobile}
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.primaryButton]}
-                    onPress={handleSendOtp}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Send OTP</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.infoText}>OTP sent to {mobile}</Text>
-                  
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!isLoading}
-                  />
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Create Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    editable={!isLoading}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.primaryButton]}
-                    onPress={handleVerifyOtpSignup}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Verify & Sign Up</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.linkButton}
-                    onPress={resetOtpFlow}
-                    disabled={isLoading}
-                  >
-                    <Text style={styles.linkText}>Resend OTP</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={switchToPasswordLogin}
-                disabled={isLoading}
-              >
-                <Text style={styles.linkText}>Already have an account? Login</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={switchToPhoneEmailSignup}
+            disabled={isLoading}
+          >
+            <Text style={styles.linkText}>Don&apos;t have an account? Sign Up with OTP</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -454,17 +374,39 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
   },
-  modeTitle: {
-    fontSize: 24,
+  webView: {
+    flex: 1,
+  },
+  webViewHeader: {
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  backButton: {
+    paddingVertical: 5,
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+  },
+  webViewTitle: {
+    fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 20,
     color: '#333',
+    marginTop: 5,
   },
-  infoText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 15,
-    color: '#666',
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
 });

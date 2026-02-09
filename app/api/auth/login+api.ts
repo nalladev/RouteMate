@@ -51,8 +51,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Login error:', error);
+    
     return Response.json(
-      { error: 'Internal server error' },
+      { error: 'Unable to process login request. Please try again later.' },
       { status: 500 }
     );
   }

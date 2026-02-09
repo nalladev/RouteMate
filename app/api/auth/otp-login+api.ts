@@ -66,10 +66,11 @@ export async function POST(request: Request) {
     const users = await getDocument('users', { Mobile: verificationResult.mobile });
 
     if (users.length === 0) {
-      return Response.json(
-        { error: 'User not found. Please sign up first.' },
-        { status: 404 }
-      );
+      // User doesn't exist - return flag to frontend for signup flow
+      return Response.json({
+        userExists: false,
+        mobile: verificationResult.mobile,
+      });
     }
 
     const user = users[0] as User;
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
     };
 
     return Response.json({
+      userExists: true,
       token,
       user: updatedUser,
     });

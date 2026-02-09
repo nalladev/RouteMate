@@ -1,6 +1,6 @@
 # RouteMate
 
-A ride-sharing application built with Expo and React Native, featuring real-time location tracking, route matching, and Solana-based payments.
+A ride-sharing application built with Expo and React Native, featuring real-time location tracking, route matching, and internal wallet-based payments.
 
 ## ⚠️ Important: Development Build Required
 
@@ -26,7 +26,7 @@ See [Installation](#installation) section for complete setup instructions.
 - Driver and Passenger modes
 - Ride request management with auto-expiry
 - OTP verification for pickup confirmation
-- Solana wallet integration for payments
+- Internal wallet system with Razorpay integration (top-up and payout)
 - Ride history tracking
 - KYC verification support
 
@@ -35,7 +35,7 @@ See [Installation](#installation) section for complete setup instructions.
 - Node.js 16+ and npm
 - Expo CLI (`npm install -g expo-cli`)
 - Firebase project with Firestore
-- Solana devnet/mainnet access
+- Razorpay account (for payment processing - optional, disabled until Play Store publication)
 - Phone.email API key (for OTP authentication)
 - Didit API credentials (for KYC verification)
 
@@ -296,7 +296,7 @@ npx expo run:android --variant release
 - Verify network connectivity
 
 ### Wallet balance not updating
-- Confirm Solana RPC URL is accessible
+- Confirm Razorpay credentials are correct
 - Check wallet address is correct
 - Ensure sufficient devnet/mainnet SOL
 

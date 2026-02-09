@@ -14,24 +14,37 @@
 ### Password Login (Pressing Login Button)
 1. Submit credentials to Backend
 2. Backend compares password with `PasswordHash`
-3. Create and return session token
+3. If user doesn't exist, return "Invalid Credentials" error
+4. Create and return session token
 
-### OTP Login (When pressing OTP login)
+### OTP Login / Signup (Unified Flow - When pressing "Login with OTP" or "Sign Up")
+Both buttons open the same phone.email verification flow. The system automatically handles whether it's a login or signup based on whether the user exists.
+
 1. Open phone.email view
-2. Collect custom token upon completion
-3. Send token to backend
-4. Verify via phone.email API and create session
+2. User completes phone verification (OTP sent and verified by phone.email)
+3. Collect JWT token from phone.email upon completion
+4. Send token to backend for verification
+5. Backend verifies JWT with phone.email API
+6. **Backend checks if user exists:**
+   - **If user exists:** Create session and return success → User logged in
+   - **If user doesn't exist:** Return `userExists: false` flag → Frontend shows password entry screen
+7. **If new user (userExists: false):**
+   - Frontend shows password entry page
+   - User creates password
+   - Frontend sends JWT + password to signup endpoint
+   - Backend verifies JWT again, creates user with hashed password
+   - Backend initializes user wallet with 0 balance
+   - Create session and return success → User logged in
+8. **After successful login (existing or new user):**
+   - If not KYC verified, show Didit KYC verification page
+   - On KYC completion, send data to server
+   - Extract `name` to common field and store full payload in `KycData`
+   - Mark user as `IsKycVerified: true`
 
-### Create Account / Signup (When pressing signup)
-1. Complete phone.email login
-2. Verify token on backend; create user and session
-3. Show password entry page
-4. Backend hashes (one-way) password and stores it in Firestore under the user
-5. Show Didit KYC verification page
-6. On completion, send data to server
-7. Extract `name` to common field and store full payload in `KycData`
-8. Mark user as `IsKycVerified: true`
-9. Initialize user wallet with 0 balance
+**Benefits of Unified Flow:**
+- Saves OTP credits (user only verifies phone once)
+- Better UX (seamless transition from login attempt to signup)
+- No need for user to manually switch between login/signup modes
 
 ---
 
@@ -294,6 +307,7 @@
 
 ## 11. Environment Variables (Backend Only)
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
+* `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
 * `PHONE_EMAIL_API_KEY`
 * `DIDIT_API_KEY`
 * `PASSWORD_HASHING_SEED`
