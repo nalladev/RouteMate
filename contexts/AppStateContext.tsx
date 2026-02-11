@@ -137,13 +137,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  useEffect(() => {
-    if (destination) {
-      const state = role === 'driver' ? 'driving' : 'riding';
-      updateUserState(state, destination);
-      setIsActive(true);
-    }
-  }, [destination]);
+
 
   return (
     <AppStateContext.Provider

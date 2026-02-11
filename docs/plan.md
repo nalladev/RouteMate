@@ -79,20 +79,42 @@ Both buttons open the same phone.email verification flow. The system automatical
 ---
 
 ## 4. App UI (after session available) & State Management
-1. Full-screen map (custom markers + route drawing)
+
+### Idle Mode (Default State)
+1. Full-screen map (custom markers visible - other users in idle/active states)
 2. Mandatory location access permission (blocks interaction until granted)
 3. Blue glowing dot for user's live location
 4. Log live location to Firestore via backend at set intervals
 5. A navigation menu at the bottom with 3 icons (home, history/previous/rides, user/profile/account)
-6. Toggle Driver / Passenger just above the nav bar
-7. Destination search input with results list overlay at the top of the page
-8. Focus/zoom/scroll back to my location marker on map button just below the input at the right side of the screen
-9. **Active State:** Once destination is chosen, app enters "Active" mode:
-   - Polyline route is drawn.
-   - `user.state` updated to 'driving' or 'riding'.
-   - `user.Destination` updated in Firestore.
-   - UI shows a **Cross (X) button** at top right or listens for **Back** press to exit.
-10. **Exit/Idle State:** Pressing X or Back resets `user.state` to 'idle' and clears destination in Firestore.
+6. **Destination search input** at the top of the page with:
+   - Built-in autocomplete for destination suggestions
+   - Ability to select a place from the map (using Places API or similar)
+7. Focus/zoom/scroll back to my location marker on map button just below the input at the right side of the screen
+8. **No route is shown in idle mode** - only live location tracking
+
+### Mode Selection (After Destination Selected)
+9. Once a destination is chosen (from autocomplete suggestions or map selection):
+   - The destination is saved temporarily (not yet in Firestore)
+   - Two buttons appear: **"Start Driving"** and **"Find a Ride"** (or similar)
+   - User selects their mode choice (driver or passenger)
+   - This selection triggers transition to **Active State**
+
+### Active State (Driving or Riding Mode)
+10. After mode selection, app enters "Active" mode:
+    - `user.state` updated to 'driving' or 'riding' in Firestore
+    - `user.Destination` updated in Firestore
+    - **Route is displayed** from current location to destination (using Google Maps Directions API)
+    - Top input transforms into a **destination name display area**
+    - A **Cross (X) button** appears on the right side of the destination area to exit to idle mode
+    - In **driving mode**: user becomes discoverable to passengers looking for rides
+    - In **riding mode**: user can discover drivers whose routes align with their destination
+
+### Exit/Idle State
+11. Pressing the **X button** returns to idle mode:
+    - Resets `user.state` to 'idle' in Firestore
+    - Clears destination in Firestore
+    - Removes route from map
+    - Restores destination search input UI
 
 ---
 

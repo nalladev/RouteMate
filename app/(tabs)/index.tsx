@@ -38,6 +38,7 @@ export default function HomeScreen() {
   } = useAppState();
 
   const mapRef = useRef<MapView>(null);
+  const searchInputRef = useRef<TextInput>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [activeRequest, setActiveRequest] = useState<RideConnection | null>(null);
@@ -47,6 +48,11 @@ export default function HomeScreen() {
   const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
   const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+
+  // New state for mode selection flow
+  const [tempDestination, setTempDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [isSelectingMode, setIsSelectingMode] = useState(false);
+
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -102,49 +108,101 @@ export default function HomeScreen() {
     setShowPlacesSearch(true);
   }
 
+  function handleSearchBlur() {
+    if (!tempDestination && !showPlacesSearch) {
+      searchInputRef.current?.blur();
+    }
+  }
+
   async function handlePlaceSelected(data: any, details: any) {
     if (details?.geometry?.location) {
       const { lat, lng } = details.geometry.location;
-      setDestination({ lat, lng });
-      setSearchQuery(data.description || '');
+      const destinationName = data.description || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+      // Store temporarily and show mode selection buttons
+      setTempDestination({ lat, lng, name: destinationName });
+      setSearchQuery(destinationName);
       setShowPlacesSearch(false);
       Keyboard.dismiss();
-      
-      // Fetch route from Google Directions API
-      if (userLocation) {
-        try {
-          const origin = `${userLocation.lat},${userLocation.lng}`;
-          const destination = `${lat},${lng}`;
-          const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
-          
-          const response = await fetch(url);
-          const result = await response.json();
-          
-          if (result.routes && result.routes.length > 0) {
-            const points = result.routes[0].overview_polyline.points;
-            const decodedPoints = decodePolyline(points);
-            setRouteCoordinates(decodedPoints);
-            
-            // Fit map to show entire route
-            if (mapRef.current) {
-              mapRef.current.fitToCoordinates(decodedPoints, {
-                edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
-                animated: true,
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching route:', error);
+    }
+  }
+
+  async function handleModeSelection(selectedMode: 'driver' | 'passenger') {
+    if (!tempDestination || isSelectingMode) return;
+
+    // Disable buttons during processing
+    setIsSelectingMode(true);
+
+    // Set the role first
+    setRole(selectedMode);
+
+    // Check KYC for both modes - now mandatory
+    if (!user?.IsKycVerified) {
+      const modeText = selectedMode === 'driver' ? 'becoming a driver' : 'finding rides';
+      Alert.alert(
+        'KYC Verification Required',
+        `You must complete KYC verification before ${modeText}. This ensures the safety and security of all users.`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => {
+            setTempDestination(null);
+            setSearchQuery('');
+            setIsSelectingMode(false);
+          }},
+          { text: 'Verify Now', onPress: () => {
+            router.push('/kyc-verification' as any);
+            setTempDestination(null);
+            setSearchQuery('');
+            setIsSelectingMode(false);
+          }}
+        ]
+      );
+      return;
+    }
+
+    proceedWithModeActivation(selectedMode);
+  }
+
+  async function proceedWithModeActivation(selectedMode: 'driver' | 'passenger') {
+    if (!tempDestination || !userLocation) return;
+
+    try {
+      // Set destination
+      setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
+
+      // Fetch and draw route using Google Directions API
+      const origin = `${userLocation.lat},${userLocation.lng}`;
+      const dest = `${tempDestination.lat},${tempDestination.lng}`;
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&key=${GOOGLE_MAPS_API_KEY}`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (result.routes && result.routes.length > 0) {
+        const points = result.routes[0].overview_polyline.points;
+        const decodedPoints = decodePolyline(points);
+        setRouteCoordinates(decodedPoints);
+
+        // Fit map to show entire route
+        if (mapRef.current) {
+          mapRef.current.fitToCoordinates(decodedPoints, {
+            edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
+            animated: true,
+          });
         }
       }
-      
-      // Automatically enter active mode (riding or driving based on role)
-      try {
-        const state = role === 'driver' ? 'driving' : 'riding';
-        await updateUserState(state, { lat, lng });
-      } catch (error: any) {
-        Alert.alert('Error', error.message);
-      }
+
+      // Update user state to active mode
+      const state = selectedMode === 'driver' ? 'driving' : 'riding';
+      await updateUserState(state, { lat: tempDestination.lat, lng: tempDestination.lng });
+
+      // Clear temporary state
+      setTempDestination(null);
+      setIsSelectingMode(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to activate mode');
+      setTempDestination(null);
+      setSearchQuery('');
+      setIsSelectingMode(false);
     }
   }
 
@@ -190,6 +248,7 @@ export default function HomeScreen() {
   function handleCancelPlacesSearch() {
     setShowPlacesSearch(false);
     Keyboard.dismiss();
+    searchInputRef.current?.blur();
   }
 
   function handleExitActive() {
@@ -202,6 +261,7 @@ export default function HomeScreen() {
             await updateUserState('idle', null);
             setDestination(null);
             setRouteCoordinates([]);
+            setSearchQuery('');
           } catch (error: any) {
             Alert.alert('Error', error.message);
           }
@@ -210,26 +270,24 @@ export default function HomeScreen() {
     ]);
   }
 
-  async function handleRequestRide(marker: MarkerData) {
-    if (!userLocation || !destination) return;
-
-    // Recommend KYC verification for passengers (non-blocking)
-    if (!user?.IsKycVerified) {
-      Alert.alert(
-        'KYC Verification Recommended',
-        'For enhanced security and trust, we recommend completing KYC verification. You can still request rides without it.',
-        [
-          { text: 'Verify Later', style: 'cancel', onPress: () => proceedWithRideRequest(marker) },
-          { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
-        ]
-      );
-      return;
+  async function handleMapPoiClick(event: any) {
+    const poi = event.nativeEvent;
+    if (poi.coordinate) {
+      const { latitude, longitude } = poi.coordinate;
+      const destinationName = poi.name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      
+      // Store temporarily and show mode selection buttons
+      setTempDestination({ lat: latitude, lng: longitude, name: destinationName });
+      setSearchQuery(destinationName);
+      
+      // Close Places search and blur input
+      setShowPlacesSearch(false);
+      searchInputRef.current?.blur();
+      Keyboard.dismiss();
     }
-
-    proceedWithRideRequest(marker);
   }
 
-  async function proceedWithRideRequest(marker: MarkerData) {
+  async function handleRequestRide(marker: MarkerData) {
     if (!userLocation || !destination) return;
 
     const minBalance = 10 / 100; // $10 worth
@@ -327,52 +385,14 @@ export default function HomeScreen() {
         showsMyLocationButton={false}
         showsPointsOfInterest={true}
         showsBuildings={true}
-        onPoiClick={async (event) => {
-          const poi = event.nativeEvent;
-          if (poi.coordinate && poi.name) {
-            const { latitude, longitude } = poi.coordinate;
-            setDestination({ lat: latitude, lng: longitude });
-            setSearchQuery(poi.name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-            
-            // Fetch route from Google Directions API
-            if (userLocation) {
-              try {
-                const origin = `${userLocation.lat},${userLocation.lng}`;
-                const destination = `${latitude},${longitude}`;
-                const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_MAPS_API_KEY}`;
-                
-                const response = await fetch(url);
-                const result = await response.json();
-                
-                if (result.routes && result.routes.length > 0) {
-                  const points = result.routes[0].overview_polyline.points;
-                  const decodedPoints = decodePolyline(points);
-                  setRouteCoordinates(decodedPoints);
-                  
-                  // Fit map to show entire route
-                  if (mapRef.current) {
-                    mapRef.current.fitToCoordinates(decodedPoints, {
-                      edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
-                      animated: true,
-                    });
-                  }
-                }
-              } catch (error) {
-                console.error('Error fetching route:', error);
-              }
-            }
-            
-            // Automatically enter active mode
-            try {
-              const state = role === 'driver' ? 'driving' : 'riding';
-              await updateUserState(state, { lat: latitude, lng: longitude });
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            }
-          }
+        onPoiClick={handleMapPoiClick}
+        onPress={() => {
+          Keyboard.dismiss();
+          searchInputRef.current?.blur();
         }}
       >
-        {markers.map((marker) => (
+        {/* Show markers only in active mode and only for the opposite role */}
+        {isActive && markers.map((marker) => (
           <Marker
             key={marker.userId}
             coordinate={{ latitude: marker.lastLocation.lat, longitude: marker.lastLocation.lng }}
@@ -381,16 +401,19 @@ export default function HomeScreen() {
           />
         ))}
 
-        {/* Destination marker (red pin like Google Maps) */}
-        {destination && (
+        {/* Destination marker (red pin like Google Maps) - show when destination selected or in active mode */}
+        {(destination && isActive) || tempDestination ? (
           <Marker
-            coordinate={{ latitude: destination.lat, longitude: destination.lng }}
+            coordinate={{ 
+              latitude: tempDestination ? tempDestination.lat : destination!.lat, 
+              longitude: tempDestination ? tempDestination.lng : destination!.lng 
+            }}
             title="Destination"
             pinColor="red"
           />
-        )}
+        ) : null}
 
-        {/* Route polyline - only show when route is fetched */}
+        {/* Route display - only show in active mode when route exists */}
         {routeCoordinates.length > 0 && isActive && (
           <Polyline
             coordinates={routeCoordinates}
@@ -400,68 +423,103 @@ export default function HomeScreen() {
         )}
       </MapView>
 
-      {/* Search bar */}
+      {/* Search bar / Destination display */}
       <View style={styles.searchContainer}>
-        {!showPlacesSearch ? (
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search destination..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={handleSearchDestination}
-          />
+        {!isActive ? (
+          // Idle mode: Show search input
+          !showPlacesSearch ? (
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                ref={searchInputRef}
+                style={styles.searchInput}
+                placeholder="Search destination..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={handleSearchDestination}
+                onBlur={handleSearchBlur}
+                editable={!tempDestination}
+              />
+              {tempDestination && (
+                <View style={styles.clearButtonWrapper} pointerEvents="box-none">
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setTempDestination(null);
+                      setSearchQuery('');
+                      setShowPlacesSearch(false);
+                    }}
+                  >
+                    <MaterialIcons name="close" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.placesSearchContainer}>
+              <GooglePlacesAutocomplete
+                placeholder="Search destination..."
+                onPress={handlePlaceSelected}
+                query={{
+                  key: GOOGLE_MAPS_API_KEY,
+                  language: 'en',
+                }}
+                fetchDetails={true}
+                enablePoweredByContainer={false}
+                onFail={() => {
+                  Alert.alert(
+                    'Search Unavailable',
+                    'Location search requires Google Places API with billing enabled. You can tap anywhere on the map to set your destination instead.',
+                    [{ text: 'OK', onPress: handleCancelPlacesSearch }]
+                  );
+                }}
+                textInputProps={{
+                  autoFocus: true,
+                  onBlur: handleCancelPlacesSearch,
+                }}
+                styles={{
+                  container: {
+                    flex: 0,
+                    height: 50,
+                  },
+                  textInputContainer: {
+                    backgroundColor: '#fff',
+                    borderTopWidth: 0,
+                    borderBottomWidth: 0,
+                    paddingVertical: 0,
+                    paddingHorizontal: 0,
+                    margin: 0,
+                    height: 50,
+                  },
+                  textInput: {
+                    height: 50,
+                    color: '#000',
+                    fontSize: 16,
+                    backgroundColor: '#fff',
+                    borderRadius: 8,
+                    paddingHorizontal: 15,
+                    paddingVertical: 0,
+                    margin: 0,
+                  },
+                  listView: {
+                    backgroundColor: '#fff',
+                    borderRadius: 8,
+                    marginTop: 4,
+                  },
+                }}
+              />
+            </View>
+          )
         ) : (
-          <View style={styles.placesSearchContainer}>
-            <GooglePlacesAutocomplete
-              placeholder="Search destination..."
-              onPress={handlePlaceSelected}
-              query={{
-                key: GOOGLE_MAPS_API_KEY,
-                language: 'en',
-              }}
-              fetchDetails={true}
-              enablePoweredByContainer={false}
-              onFail={() => {
-                Alert.alert(
-                  'Search Unavailable', 
-                  'Location search requires Google Places API with billing enabled. You can tap anywhere on the map to set your destination instead.',
-                  [{ text: 'OK', onPress: handleCancelPlacesSearch }]
-                );
-              }}
-              textInputProps={{
-                autoFocus: true,
-                onBlur: handleCancelPlacesSearch,
-              }}
-              styles={{
-                container: {
-                  flex: 0,
-                },
-                textInputContainer: {
-                  backgroundColor: '#fff',
-                  borderTopWidth: 0,
-                  borderBottomWidth: 0,
-                },
-                textInput: {
-                  height: 44,
-                  color: '#000',
-                  fontSize: 16,
-                  backgroundColor: '#fff',
-                  borderRadius: 8,
-                  paddingHorizontal: 15,
-                },
-                listView: {
-                  backgroundColor: '#fff',
-                  borderRadius: 8,
-                  marginTop: 4,
-                },
-              }}
-            />
+          // Active mode: Show destination name with exit button
+          <View style={styles.destinationDisplay}>
+            <Text style={styles.destinationText} numberOfLines={1}>
+              {searchQuery || 'Destination'}
+            </Text>
+            <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
+              <MaterialIcons name="close" size={24} color="#e86713" />
+            </TouchableOpacity>
           </View>
-        )}
-        {isActive && (
-          <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
-            <Text style={styles.exitButtonText}>✕</Text>
-          </TouchableOpacity>
         )}
       </View>
 
@@ -470,43 +528,33 @@ export default function HomeScreen() {
         <MaterialIcons name="my-location" size={24} color="#e86713" />
       </TouchableOpacity>
 
-      {/* Role toggle */}
-      <View style={styles.roleToggle}>
-        <TouchableOpacity
-          style={[styles.roleButton, role === 'passenger' && styles.roleButtonActive]}
-          onPress={() => {
-            setRole('passenger');
-          }}
-        >
-          <Text style={[styles.roleButtonText, role === 'passenger' && styles.roleButtonTextActive]}>
-            Passenger
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.roleButton, role === 'driver' && styles.roleButtonActive]}
-          onPress={() => {
-            if (!user?.IsKycVerified) {
-              Alert.alert(
-                'KYC Verification Required',
-                'You must complete KYC verification before becoming a driver. This ensures the safety and security of all users.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Verify Now', onPress: () => router.push('/kyc-verification' as any) }
-                ]
-              );
-              return;
-            }
-            setRole('driver');
-          }}
-        >
-          <Text style={[styles.roleButtonText, role === 'driver' && styles.roleButtonTextActive]}>
-            Driver
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Mode Selection Buttons - show when destination is selected but not active */}
+      {tempDestination && !isActive && (
+        <View style={styles.modeSelectionButtons}>
+          <TouchableOpacity
+            style={[styles.modeButtonBottom, styles.modeButtonLeft]}
+            onPress={() => handleModeSelection('passenger')}
+            disabled={isSelectingMode}
+          >
+            <MaterialIcons name="person" size={24} color="#fff" />
+            <Text style={styles.modeButtonBottomText}>Find a Ride</Text>
+          </TouchableOpacity>
 
-      {/* Selected marker detail */}
-      {selectedMarker && role === 'passenger' && (
+          <View style={styles.buttonDivider} />
+
+          <TouchableOpacity
+            style={[styles.modeButtonBottom, styles.modeButtonRight]}
+            onPress={() => handleModeSelection('driver')}
+            disabled={isSelectingMode}
+          >
+            <MaterialIcons name="drive-eta" size={24} color="#fff" />
+            <Text style={styles.modeButtonBottomText}>Start Driving</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Selected marker detail (passenger view in active mode) */}
+      {selectedMarker && role === 'passenger' && isActive && (
         <View style={styles.bottomSheet}>
           <View style={styles.bottomSheetHeader}>
             <Text style={styles.bottomSheetTitle}>{selectedMarker.name}</Text>
@@ -586,7 +634,7 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Connection Manager for drivers */}
-      {role === 'driver' && activeConnections.length > 0 && (
+      {role === 'driver' && activeConnections.length > 0 && isActive && (
         <View style={styles.connectionManager}>
           <Text style={styles.connectionTitle}>Active Connections</Text>
           <ScrollView style={styles.connectionList}>
@@ -637,57 +685,83 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     left: 10,
     right: 10,
+    zIndex: 1,
+  },
+  searchInputContainer: {
+    position: 'relative',
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    zIndex: 1000,
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  placesSearchContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  exitButton: {
-    marginLeft: 10,
-    backgroundColor: '#fff',
-    width: 50,
     height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingRight: 45,
+    borderRadius: 8,
+    fontSize: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
-  exitButtonText: {
-    fontSize: 24,
+  clearButtonWrapper: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearButton: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+  },
+  placesSearchContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    height: 50,
+  },
+  destinationDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  destinationText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
     color: '#333',
+  },
+  exitButton: {
+    marginLeft: 10,
+    padding: 5,
   },
   centerButton: {
     position: 'absolute',
-    top: 120,
+    top: 130,
     right: 10,
     backgroundColor: '#fff',
     width: 50,
@@ -701,44 +775,54 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  centerButtonText: {
-    fontSize: 24,
-  },
-  roleToggle: {
+  modeSelectionButtons: {
     position: 'absolute',
     bottom: 20,
     left: 10,
     right: 10,
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 4,
+    borderRadius: 8,
+    height: 60,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    overflow: 'hidden',
   },
-  roleButton: {
+  modeButtonBottom: {
     flex: 1,
-    padding: 12,
+    backgroundColor: '#e86713',
     alignItems: 'center',
-    borderRadius: 20,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    opacity: 1,
   },
-  roleButtonActive: {
+  modeButtonLeft: {
     backgroundColor: '#e86713',
   },
-  roleButtonText: {
-    fontSize: 16,
-    color: '#333',
+  modeButtonRight: {
+    backgroundColor: '#e86713',
   },
-  roleButtonTextActive: {
+  buttonDivider: {
+    width: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  modeButtonBottomText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#fff',
-    fontWeight: '600',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   bottomSheet: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
@@ -768,13 +852,13 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 16,
     marginBottom: 8,
+    color: '#333',
   },
   otpText: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 15,
     color: '#e86713',
+    marginBottom: 10,
   },
   requestButton: {
     backgroundColor: '#e86713',
@@ -786,10 +870,10 @@ const styles = StyleSheet.create({
   requestButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#f44336',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -798,11 +882,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   minimizedBar: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 80,
     left: 10,
     right: 10,
     backgroundColor: '#e86713',
@@ -812,23 +896,17 @@ const styles = StyleSheet.create({
   },
   minimizedText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
-    width: '80%',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
@@ -836,6 +914,7 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 16,
     marginBottom: 10,
+    color: '#333',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -849,28 +928,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 5,
   },
-  acceptButton: {
-    backgroundColor: '#34C759',
-  },
   rejectButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#f44336',
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   connectionManager: {
     position: 'absolute',
-    bottom: 150,
-    left: 10,
-    right: 10,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    maxHeight: 200,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: 250,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -884,9 +964,10 @@ const styles = StyleSheet.create({
     maxHeight: 150,
   },
   connectionItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 10,
+    padding: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 10,
   },
   connectionText: {
     fontSize: 14,
@@ -896,14 +977,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   otpInput: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: '#fff',
     padding: 10,
-    fontSize: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   completeButton: {
-    backgroundColor: '#34C759',
-    padding: 10,
+    backgroundColor: '#4CAF50',
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
@@ -911,6 +993,6 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
 });
