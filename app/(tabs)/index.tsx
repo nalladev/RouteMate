@@ -632,7 +632,15 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   placesSearchContainer: {
-    // Styling handled by PlaceSearchInput component
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    height: 50,
   },
   destinationDisplay: {
     flexDirection: 'row',

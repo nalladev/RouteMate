@@ -67,27 +67,44 @@ export default function PlaceSearchInput({
   const searchPlaces = async (searchQuery: string) => {
     setLoading(true);
     try {
-      // Using Nominatim API (OpenStreetMap)
-      // Note: Please respect the usage policy - max 1 request per second
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      // Using Photon API (OpenStreetMap geocoder, more mobile-friendly)
+      // No User-Agent required, free to use
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(
         searchQuery
-      )}&format=json&limit=5&addressdetails=1`;
+      )}&limit=5`;
 
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'RouteMate-RideSharing-App', // Required by Nominatim
-        },
-      });
+      console.log('Searching places:', url);
+
+      const response = await fetch(url);
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errorText = await response.text();
+        console.error('Search failed with status:', response.status, 'Error:', errorText);
+        throw new Error(`Search failed with status ${response.status}`);
       }
 
-      const data: PlaceResult[] = await response.json();
+      const photonData = await response.json();
+      console.log('Search results:', photonData.features?.length || 0, 'places found');
+      
+      // Convert Photon format to our format
+      const data: PlaceResult[] = photonData.features?.map((feature: any) => ({
+        place_id: feature.properties.osm_id?.toString() || Math.random().toString(),
+        display_name: feature.properties.name 
+          ? `${feature.properties.name}${feature.properties.city ? ', ' + feature.properties.city : ''}${feature.properties.country ? ', ' + feature.properties.country : ''}`
+          : feature.properties.street || 'Unknown location',
+        lat: feature.geometry.coordinates[1].toString(),
+        lon: feature.geometry.coordinates[0].toString(),
+        type: feature.properties.type || feature.properties.osm_value || 'place',
+        importance: 1,
+      })) || [];
+      
       setResults(data);
       setShowResults(data.length > 0);
     } catch (error) {
       console.error('Place search error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       setResults([]);
     } finally {
       setLoading(false);
@@ -171,21 +188,14 @@ export default function PlaceSearchInput({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    zIndex: 1000,
+    height: 50,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: 'transparent',
+    height: 50,
+    paddingHorizontal: 15,
   },
   searchIcon: {
     marginRight: 8,
@@ -193,28 +203,29 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: '#000',
+    height: 50,
   },
   loader: {
     marginLeft: 8,
   },
   clearButton: {
     padding: 4,
-    marginLeft: 8,
   },
   resultsContainer: {
     position: 'absolute',
-    top: 60,
+    top: 54,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     maxHeight: 300,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
     elevation: 5,
+    zIndex: 1000,
   },
   resultItem: {
     flexDirection: 'row',
