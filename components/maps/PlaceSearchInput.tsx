@@ -73,11 +73,7 @@ export default function PlaceSearchInput({
         searchQuery
       )}&limit=5`;
 
-      console.log('Searching places:', url);
-
       const response = await fetch(url);
-
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -86,7 +82,6 @@ export default function PlaceSearchInput({
       }
 
       const photonData = await response.json();
-      console.log('Search results:', photonData.features?.length || 0, 'places found');
       
       // Convert Photon format to our format
       const data: PlaceResult[] = photonData.features?.map((feature: any) => ({
@@ -104,7 +99,6 @@ export default function PlaceSearchInput({
       setShowResults(data.length > 0);
     } catch (error) {
       console.error('Place search error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       setResults([]);
     } finally {
       setLoading(false);
@@ -135,27 +129,29 @@ export default function PlaceSearchInput({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
-      <View style={styles.inputContainer}>
-        <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={[styles.input, inputStyle]}
-          placeholder={placeholder}
-          placeholderTextColor="#999"
-          value={query}
-          onChangeText={setQuery}
-          onFocus={() => {
-            if (results.length > 0) {
-              setShowResults(true);
-            }
-          }}
-        />
-        {loading && <ActivityIndicator size="small" color="#e86713" style={styles.loader} />}
-        {query.length > 0 && !loading && (
-          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <MaterialIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        )}
+    <>
+      <View style={[styles.container, containerStyle]}>
+        <View style={styles.inputContainer}>
+          <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={[styles.input, inputStyle]}
+            placeholder={placeholder}
+            placeholderTextColor="#999"
+            value={query}
+            onChangeText={setQuery}
+            onFocus={() => {
+              if (results.length > 0) {
+                setShowResults(true);
+              }
+            }}
+          />
+          {loading && <ActivityIndicator size="small" color="#e86713" style={styles.loader} />}
+          {query.length > 0 && !loading && (
+            <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {showResults && results.length > 0 && (
@@ -182,7 +178,7 @@ export default function PlaceSearchInput({
           />
         </View>
       )}
-    </View>
+    </>
   );
 }
 

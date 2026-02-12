@@ -120,6 +120,19 @@ export default function HomeScreen() {
     setSearchQuery(place.name);
     setShowPlacesSearch(false);
     Keyboard.dismiss();
+
+    // Focus map on selected destination
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: place.lat,
+          longitude: place.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        1000
+      );
+    }
   }
 
   async function handleModeSelection(selectedMode: 'driver' | 'passenger') {
@@ -236,6 +249,19 @@ export default function HomeScreen() {
       setShowPlacesSearch(false);
       searchInputRef.current?.blur();
       Keyboard.dismiss();
+
+      // Focus map on selected destination
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(
+          {
+            latitude: latitude,
+            longitude: longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          1000
+        );
+      }
     }
   }
 
@@ -408,12 +434,14 @@ export default function HomeScreen() {
               )}
             </View>
           ) : (
-            <PlaceSearchInput
-              placeholder="Search destination..."
-              onPlaceSelected={handlePlaceSelected}
-              onClear={handleCancelPlacesSearch}
-              containerStyle={styles.placesSearchContainer}
-            />
+            <View style={styles.searchWrapper}>
+              <PlaceSearchInput
+                placeholder="Search destination..."
+                onPlaceSelected={handlePlaceSelected}
+                onClear={handleCancelPlacesSearch}
+                containerStyle={styles.placesSearchContainer}
+              />
+            </View>
           )
         ) : (
           // Active mode: Show destination name with exit button
@@ -630,6 +658,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 15,
+  },
+  searchWrapper: {
+    position: 'relative',
+    zIndex: 1000,
   },
   placesSearchContainer: {
     backgroundColor: '#fff',
