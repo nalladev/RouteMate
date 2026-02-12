@@ -64,8 +64,6 @@ jobs:
 
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
-        env:
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
 
       - name: Decode Keystore
         run: |
@@ -126,8 +124,6 @@ jobs:
 
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
-        env:
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
 
       - name: Decode Keystore
         run: |
@@ -227,8 +223,6 @@ jobs:
 
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
-        env:
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
 
       - name: Decode Keystore
         run: |

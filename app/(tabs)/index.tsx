@@ -12,14 +12,13 @@ import {
   Keyboard,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { MaterialIcons } from '@expo/vector-icons';
+import PlacesAutocomplete from '@/components/PlacesAutocomplete';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
 import { MarkerData, RideConnection } from '@/types';
 import { api } from '@/utils/api';
-import { GOOGLE_MAPS_API_KEY } from '@/config/env';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -114,13 +113,15 @@ export default function HomeScreen() {
     }
   }
 
-  async function handlePlaceSelected(data: any, details: any) {
-    if (details?.geometry?.location) {
-      const { lat, lng } = details.geometry.location;
-      const destinationName = data.description || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  async function handlePlaceSelected(place: any) {
+    // Nominatim format: place contains lat, lon, and display_name
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+    const destinationName = place.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
+    if (!isNaN(lat) && !isNaN(lon)) {
       // Store temporarily and show mode selection buttons
-      setTempDestination({ lat, lng, name: destinationName });
+      setTempDestination({ lat, lng: lon, name: destinationName });
       setSearchQuery(destinationName);
       setShowPlacesSearch(false);
       Keyboard.dismiss();
@@ -169,16 +170,14 @@ export default function HomeScreen() {
       // Set destination
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
 
-      // Fetch and draw route using Google Directions API
-      const origin = `${userLocation.lat},${userLocation.lng}`;
-      const dest = `${tempDestination.lat},${tempDestination.lng}`;
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&key=${GOOGLE_MAPS_API_KEY}`;
+      // Fetch and draw route using OSRM (Open Source Routing Machine)
+      const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${tempDestination.lng},${tempDestination.lat}?overview=full&geometries=polyline`;
 
       const response = await fetch(url);
       const result = await response.json();
 
       if (result.routes && result.routes.length > 0) {
-        const points = result.routes[0].overview_polyline.points;
+        const points = result.routes[0].geometry;
         const decodedPoints = decodePolyline(points);
         setRouteCoordinates(decodedPoints);
 
@@ -457,56 +456,11 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.placesSearchContainer}>
-              <GooglePlacesAutocomplete
+              <PlacesAutocomplete
                 placeholder="Search destination..."
-                onPress={handlePlaceSelected}
-                query={{
-                  key: GOOGLE_MAPS_API_KEY,
-                  language: 'en',
-                }}
-                fetchDetails={true}
-                enablePoweredByContainer={false}
-                onFail={() => {
-                  Alert.alert(
-                    'Search Unavailable',
-                    'Location search requires Google Places API with billing enabled. You can tap anywhere on the map to set your destination instead.',
-                    [{ text: 'OK', onPress: handleCancelPlacesSearch }]
-                  );
-                }}
-                textInputProps={{
-                  autoFocus: true,
-                  onBlur: handleCancelPlacesSearch,
-                }}
-                styles={{
-                  container: {
-                    flex: 0,
-                    height: 50,
-                  },
-                  textInputContainer: {
-                    backgroundColor: '#fff',
-                    borderTopWidth: 0,
-                    borderBottomWidth: 0,
-                    paddingVertical: 0,
-                    paddingHorizontal: 0,
-                    margin: 0,
-                    height: 50,
-                  },
-                  textInput: {
-                    height: 50,
-                    color: '#000',
-                    fontSize: 16,
-                    backgroundColor: '#fff',
-                    borderRadius: 8,
-                    paddingHorizontal: 15,
-                    paddingVertical: 0,
-                    margin: 0,
-                  },
-                  listView: {
-                    backgroundColor: '#fff',
-                    borderRadius: 8,
-                    marginTop: 4,
-                  },
-                }}
+                onPlaceSelected={handlePlaceSelected}
+                onCancel={handleCancelPlacesSearch}
+                autoFocus={true}
               />
             </View>
           )

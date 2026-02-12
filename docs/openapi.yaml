@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: RouteMate API
-  description: API for RouteMate ride-sharing application
+  description: API for RouteMate ride-sharing application. Uses OpenStreetMap for mapping, Nominatim for geocoding, and OSRM for routing - all free and open-source services.
   version: 1.0.0
 servers:
   - url: http://localhost:8081

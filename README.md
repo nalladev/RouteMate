@@ -2,6 +2,24 @@
 
 A ride-sharing application built with Expo and React Native, featuring real-time location tracking, route matching, and internal wallet-based payments.
 
+## 🗺️ Mapping & Routing Services
+
+RouteMate uses **free services** without requiring API keys or billing:
+
+- **Map Display**: 
+  - iOS: Apple Maps (native, no API key required)
+  - Android: Google Maps via Google Play Services (no API key required for basic map display)
+- **Geocoding & Place Search**: Nominatim API (OpenStreetMap) - replaces Google Places API
+- **Routing & Directions**: OSRM (Open Source Routing Machine) - replaces Google Directions API
+
+**Benefits:**
+- ✅ Zero cost - no API keys or billing required
+- ✅ No vendor lock-in for routing and geocoding
+- ✅ Open-source alternatives for all paid services
+- ✅ Privacy-respecting geocoding and routing
+
+**Note:** While Android uses Google Maps tiles for display (via Play Services), all APIs that require Google billing (Places, Directions, Geocoding) have been replaced with free alternatives. Public OSRM/Nominatim instances have rate limits - consider self-hosting for production scale.
+
 ## 🎨 UI Design
 
 RouteMate features a modern, clean design with a consistent color scheme:
@@ -95,7 +113,6 @@ PHONE_EMAIL_API_KEY=<your-phone-email-api-key>
 EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID=<your-phone-email-client-id>
 DIDIT_API_KEY=<your-didit-api-key>
 DIDIT_WORKFLOW_ID=<your-didit-workflow-id>
-GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
 WALLET_ENCRYPTION_KEY=<random-32-character-string>
 PASSWORD_HASHING_SEED=<random-string>
 ```
@@ -324,8 +341,8 @@ npx expo run:android --variant release
 ### Map not showing
 - **Most Common Issue:** Using Expo Go instead of development build
   - Solution: Run `npx expo run:ios` or `npx expo run:android`
-- Verify `GOOGLE_MAPS_API_KEY` is set in `.env.local`
-- Check if Maps SDK is enabled in Google Cloud Console
+- Ensure you have a stable internet connection to load OpenStreetMap tiles
+- Check if the map is loading properly from react-native-maps
 - Ensure both `react-native-maps` and `expo-maps` packages are installed
 - Run `npx expo-doctor` to check for package version mismatches
 

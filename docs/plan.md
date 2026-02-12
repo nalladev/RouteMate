@@ -103,7 +103,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 10. After mode selection, app enters "Active" mode:
     - `user.state` updated to 'driving' or 'riding' in Firestore
     - `user.Destination` updated in Firestore
-    - **Route is displayed** from current location to destination (using Google Maps Directions API)
+    - **Route is displayed** from current location to destination (using OSRM - Open Source Routing Machine)
     - Top input transforms into a **destination name display area**
     - A **Cross (X) button** appears on the right side of the destination area to exit to idle mode
     - In **driving mode**: user becomes discoverable to passengers looking for rides
@@ -297,7 +297,42 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 10. Technical Architecture
+## 10. Map and Routing Services
+
+**Map Display:** Using react-native-maps
+* iOS: Apple Maps (native, no API key required)
+* Android: Google Maps (via Google Play Services, no API key required for map display)
+* Note: While Android uses Google Maps tiles, no Google Maps API key is needed for basic map display
+* All Google Maps APIs that require billing (Places, Directions, etc.) have been replaced
+
+**Place Search & Geocoding:** Using Nominatim API (OpenStreetMap's geocoding service)
+* Endpoint: `https://nominatim.openstreetmap.org/search`
+* Returns place suggestions with coordinates
+* Free tier with rate limiting (1 request/second)
+* No API key required
+* Replaces: Google Places API
+
+**Routing & Directions:** Using OSRM (Open Source Routing Machine)
+* Endpoint: `https://router.project-osrm.org/route/v1/driving/{coordinates}`
+* Returns optimized route with polyline geometry
+* Free and open-source routing engine
+* No API key required
+* Replaces: Google Directions API
+
+**Benefits:**
+* Zero cost - no API keys or billing required
+* No vendor lock-in for routing and geocoding services
+* Open-source and community-maintained
+* Respects user privacy
+
+**Rate Limiting:**
+* Nominatim: Max 1 request/second (implemented via debounce)
+* OSRM: No hard limits on public instance
+* Consider self-hosting for production scale
+
+---
+
+## 11. Technical Architecture
 * **Backend:** Vercel API routing.
 * **Matching Engine:** API endpoint to filter markers based on route similarity and direction.
 * **Database:** Firestore (All operations via backend).
@@ -308,7 +343,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 11. Data Models
+## 12. Data Models
 
 ### User Collection
 * `Id`: string
@@ -357,14 +392,14 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 12. Environment Variables (Backend Only)
+## 13. Environment Variables (Backend Only)
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
 * `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
 * `PHONE_EMAIL_API_KEY`
 * `DIDIT_API_KEY` (Backend - for API verification and session creation)
 * `DIDIT_WORKFLOW_ID` (Backend - workflow ID for verification)
 * `PASSWORD_HASHING_SEED`
-* `GOOGLE_MAPS_API_KEY`
+
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)
 * `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
 * `RAZORPAY_WEBHOOK_SECRET` (optional - disabled until Play Store publication)
