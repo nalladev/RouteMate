@@ -9,6 +9,16 @@ export interface Session {
 
 export type UserState = 'driving' | 'riding' | 'idle';
 
+export interface KycData {
+  sessionId: string;
+  status: string;
+  verifiedAt: string;
+  age?: number;
+  gender?: string;
+  portraitImage?: string;
+  address?: string;
+}
+
 export interface User {
   Id: string;
   Name: string;
@@ -20,7 +30,7 @@ export interface User {
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
-  KycData?: any;
+  KycData?: KycData;
   IsKycVerified: boolean;
 }
 

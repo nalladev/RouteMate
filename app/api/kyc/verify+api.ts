@@ -80,18 +80,83 @@ export async function POST(request: Request) {
 
     // Extract user data from verification result
     const kycData = verificationResult.data;
-    const name = kycData?.user_data?.name || kycData?.full_name || '';
+    
+    // Log the KYC data structure to understand what Didit returns
+    console.log('Didit KYC data structure:', JSON.stringify(kycData, null, 2));
+    
+    // Extract important data from Didit response - based on actual API structure
+    // Only storing: name, age, gender, address, portrait image, session ID
+    let name = '';
+    let age: number | null = null;
+    let gender = '';
+    let portraitImage = '';
+    let address = '';
+    
+    // Extract from ID verification (most reliable source)
+    if (kycData?.id_verifications && kycData.id_verifications.length > 0) {
+      const idVerification = kycData.id_verifications[0];
+      
+      // Name
+      if (idVerification.full_name) {
+        name = idVerification.full_name;
+      } else if (idVerification.first_name && idVerification.last_name) {
+        name = `${idVerification.first_name} ${idVerification.last_name}`;
+      } else if (idVerification.first_name) {
+        name = idVerification.first_name;
+      }
+      
+      // Age (important for driver eligibility - must be 18+)
+      if (idVerification.age) {
+        age = idVerification.age;
+      }
+      
+      // Gender
+      if (idVerification.gender) {
+        gender = idVerification.gender;
+      }
+      
+      // Portrait image (can be used as profile photo)
+      if (idVerification.portrait_image) {
+        portraitImage = idVerification.portrait_image;
+      }
+      
+      // Address
+      if (idVerification.formatted_address) {
+        address = idVerification.formatted_address;
+      } else if (idVerification.address) {
+        address = idVerification.address;
+      }
+    }
+    
+    // Fallback to expected details if ID verification is not present
+    if (!name && kycData?.expected_details) {
+      if (kycData.expected_details.first_name && kycData.expected_details.last_name) {
+        name = `${kycData.expected_details.first_name} ${kycData.expected_details.last_name}`;
+      }
+    }
 
-    await updateDocument('users', user.Id, {
-      Name: name,
+    console.log('Extracted KYC data:', { name, age, gender, address, portraitImage: !!portraitImage });
+
+    // Update user document with KYC data and extracted information
+    const updateData: any = {
       KycData: {
         sessionId,
         status,
         verifiedAt: new Date().toISOString(),
-        diditData: kycData,
+        age,
+        gender,
+        portraitImage,
+        address,
       },
       IsKycVerified: true,
-    });
+    };
+
+    // Update name if we extracted one
+    if (name) {
+      updateData.Name = name;
+    }
+
+    await updateDocument('users', user.Id, updateData);
 
     return Response.json({
       success: true,
