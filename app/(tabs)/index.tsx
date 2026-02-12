@@ -54,11 +54,7 @@ export default function HomeScreen() {
   const [isSelectingMode, setIsSelectingMode] = useState(false);
 
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace('/login');
-    }
-  }, [isAuthenticated, router]);
+  // Authentication is now handled in root layout with Redirect component
 
   useEffect(() => {
     if (isAuthenticated) {

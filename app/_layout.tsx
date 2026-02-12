@@ -1,12 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React from 'react';
 import { View, Text, Button } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
 
 export const unstable_settings = {
@@ -59,6 +59,29 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+function RootLayoutNav() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show nothing while checking authentication
+  if (isLoading) {
+    return null;
+  }
+
+  // Redirect to login if not authenticated and trying to access protected routes
+  if (!isAuthenticated) {
+    return <Redirect href="/login" />;
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="kyc-verification" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -69,12 +92,7 @@ export default function RootLayout() {
       <AuthProvider>
         <AppStateProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="kyc-verification" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
+            <RootLayoutNav />
             <StatusBar style="auto" />
           </ThemeProvider>
         </AppStateProvider>
