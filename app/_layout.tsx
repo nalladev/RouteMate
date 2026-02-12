@@ -1,8 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, Redirect } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Button } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -61,16 +61,22 @@ class ErrorBoundary extends React.Component<
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
-  // Show nothing while checking authentication
-  if (isLoading) {
-    return null;
-  }
+  useEffect(() => {
+    if (isLoading) return;
 
-  // Redirect to login if not authenticated and trying to access protected routes
-  if (!isAuthenticated) {
-    return <Redirect href="/login" />;
-  }
+    const inAuthGroup = segments[0] === '(tabs)';
+
+    if (!isAuthenticated && inAuthGroup) {
+      // Redirect to login if not authenticated and in protected route
+      router.replace('/login');
+    } else if (isAuthenticated && !inAuthGroup && segments[0] !== 'kyc-verification') {
+      // Redirect to tabs if authenticated and not in protected route
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isLoading, segments]);
 
   return (
     <Stack>

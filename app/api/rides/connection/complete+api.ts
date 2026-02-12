@@ -1,6 +1,6 @@
 import { getAuthToken, validateSession } from '../../../../lib/middleware';
-import { getDocumentById, updateDocument, addDocument } from '../../../../lib/firestore';
-import { User, RideConnection, Transaction } from '../../../../types';
+import { getDocumentById, runTransaction, initializeFirestore } from '../../../../lib/firestore';
+import { User, RideConnection } from '../../../../types';
 
 export async function POST(request: Request) {
   try {
@@ -67,101 +67,110 @@ export async function POST(request: Request) {
     }
 
     const fare = connection.Fare;
-    const passengerBalance = passenger.WalletBalance || 0;
-    const driverBalance = driver.WalletBalance || 0;
 
-    // Validate passenger has sufficient balance
-    if (passengerBalance < fare) {
-      // Mark payment as failed
-      await updateDocument('rideconnections', connectionId, {
-        PaymentStatus: 'failed',
+    // Process payment atomically using Firestore transaction
+    const db = initializeFirestore();
+    const result = await runTransaction(async (transaction) => {
+      // Re-fetch documents within transaction for consistency
+      const passengerRef = db.collection('users').doc(connection.PassengerId);
+      const driverRef = db.collection('users').doc(connection.DriverId);
+      const connectionRef = db.collection('rideconnections').doc(connectionId);
+
+      const passengerDoc = await transaction.get(passengerRef);
+      const driverDoc = await transaction.get(driverRef);
+
+      if (!passengerDoc.exists || !driverDoc.exists) {
+        throw new Error('User not found in transaction');
+      }
+
+      const passengerData = { Id: passengerDoc.id, ...passengerDoc.data() } as User;
+      const driverData = { Id: driverDoc.id, ...driverDoc.data() } as User;
+
+      const passengerBalance = passengerData.WalletBalance || 0;
+      const driverBalance = driverData.WalletBalance || 0;
+
+      // Validate passenger has sufficient balance
+      if (passengerBalance < fare) {
+        // Mark payment as failed
+        transaction.update(connectionRef, {
+          PaymentStatus: 'failed',
+        });
+        throw new Error('Insufficient balance for payment');
+      }
+
+      // Critical validation: Prevent negative balance
+      if (passengerBalance - fare < 0) {
+        transaction.update(connectionRef, {
+          PaymentStatus: 'failed',
+        });
+        throw new Error('Payment validation failed. Balance cannot go negative.');
+      }
+
+      // Calculate new balances
+      const newPassengerBalance = passengerBalance - fare;
+      const newDriverBalance = driverBalance + fare;
+
+      // Update passenger balance
+      transaction.update(passengerRef, {
+        WalletBalance: newPassengerBalance,
+        state: 'idle',
+        Destination: null,
       });
 
-      return Response.json(
-        { error: 'Insufficient balance for payment' },
-        { status: 400 }
-      );
-    }
-
-    // Critical validation: Prevent negative balance
-    if (passengerBalance - fare < 0) {
-      await updateDocument('rideconnections', connectionId, {
-        PaymentStatus: 'failed',
+      // Update driver balance
+      transaction.update(driverRef, {
+        WalletBalance: newDriverBalance,
+        state: 'idle',
+        Destination: null,
       });
 
-      return Response.json(
-        { error: 'Payment validation failed. Balance cannot go negative.' },
-        { status: 400 }
-      );
-    }
+      // Create transaction record for passenger (debit)
+      const passengerTransactionRef = db.collection('transactions').doc();
+      transaction.set(passengerTransactionRef, {
+        UserId: connection.PassengerId,
+        Type: 'ride_payment',
+        Amount: fare,
+        BalanceBefore: passengerBalance,
+        BalanceAfter: newPassengerBalance,
+        Status: 'success',
+        RideConnectionId: connectionId,
+        Description: `Ride payment of ₹${fare.toFixed(2)} to ${driverData.Name || 'driver'}`,
+        CreatedAt: new Date(),
+        UpdatedAt: new Date(),
+      });
 
-    // Process payment atomically
-    const newPassengerBalance = passengerBalance - fare;
-    const newDriverBalance = driverBalance + fare;
+      // Create transaction record for driver (credit)
+      const driverTransactionRef = db.collection('transactions').doc();
+      transaction.set(driverTransactionRef, {
+        UserId: connection.DriverId,
+        Type: 'ride_earning',
+        Amount: fare,
+        BalanceBefore: driverBalance,
+        BalanceAfter: newDriverBalance,
+        Status: 'success',
+        RideConnectionId: connectionId,
+        Description: `Ride earning of ₹${fare.toFixed(2)} from ${passengerData.Name || 'passenger'}`,
+        CreatedAt: new Date(),
+        UpdatedAt: new Date(),
+      });
 
-    // Deduct from passenger
-    await updateDocument('users', connection.PassengerId, {
-      WalletBalance: newPassengerBalance,
+      // Mark connection as completed with successful payment
+      transaction.update(connectionRef, {
+        State: 'completed',
+        PaymentStatus: 'success',
+        CompletedAt: new Date(),
+      });
+
+      return {
+        success: true,
+        paymentStatus: 'success',
+        fare,
+        passengerBalance: newPassengerBalance,
+        driverBalance: newDriverBalance,
+      };
     });
 
-    // Add to driver
-    await updateDocument('users', connection.DriverId, {
-      WalletBalance: newDriverBalance,
-    });
-
-    // Create transaction record for passenger (debit)
-    await addDocument('transactions', {
-      UserId: connection.PassengerId,
-      Type: 'ride_payment',
-      Amount: fare,
-      BalanceBefore: passengerBalance,
-      BalanceAfter: newPassengerBalance,
-      Status: 'success',
-      RideConnectionId: connectionId,
-      Description: `Ride payment of ₹${fare.toFixed(2)} to ${driver.Name || 'driver'}`,
-      CreatedAt: new Date(),
-      UpdatedAt: new Date(),
-    } as Omit<Transaction, 'Id'>);
-
-    // Create transaction record for driver (credit)
-    await addDocument('transactions', {
-      UserId: connection.DriverId,
-      Type: 'ride_earning',
-      Amount: fare,
-      BalanceBefore: driverBalance,
-      BalanceAfter: newDriverBalance,
-      Status: 'success',
-      RideConnectionId: connectionId,
-      Description: `Ride earning of ₹${fare.toFixed(2)} from ${passenger.Name || 'passenger'}`,
-      CreatedAt: new Date(),
-      UpdatedAt: new Date(),
-    } as Omit<Transaction, 'Id'>);
-
-    // Mark connection as completed with successful payment
-    await updateDocument('rideconnections', connectionId, {
-      State: 'completed',
-      PaymentStatus: 'success',
-      CompletedAt: new Date(),
-    });
-
-    // Update user states back to idle
-    await updateDocument('users', connection.PassengerId, {
-      state: 'idle',
-      Destination: null,
-    });
-
-    await updateDocument('users', connection.DriverId, {
-      state: 'idle',
-      Destination: null,
-    });
-
-    return Response.json({
-      success: true,
-      paymentStatus: 'success',
-      fare,
-      passengerBalance: newPassengerBalance,
-      driverBalance: newDriverBalance,
-    });
+    return Response.json(result);
   } catch (error) {
     console.error('Complete ride error:', error);
     return Response.json(

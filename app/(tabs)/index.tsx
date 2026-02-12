@@ -38,7 +38,6 @@ export default function HomeScreen() {
   } = useAppState();
 
   const mapRef = useRef<MapView>(null);
-  const searchInputRef = useRef<TextInput>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [activeRequest, setActiveRequest] = useState<RideConnection | null>(null);
@@ -46,7 +45,6 @@ export default function HomeScreen() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
-  const [showPlacesSearch, setShowPlacesSearch] = useState(false);
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
 
   // New state for mode selection flow
@@ -100,22 +98,10 @@ export default function HomeScreen() {
     }
   }
 
-  function handleSearchDestination() {
-    setShowPlacesSearch(true);
-  }
-
-  function handleSearchBlur() {
-    if (!tempDestination && !showPlacesSearch) {
-      searchInputRef.current?.blur();
-    }
-  }
-
   async function handlePlaceSelected(place: { lat: number; lng: number; name: string }) {
     // Store temporarily and show mode selection buttons
     setTempDestination(place);
     setSearchQuery(place.name);
-    setShowPlacesSearch(false);
-    Keyboard.dismiss();
 
     // Focus map on selected destination
     if (mapRef.current) {
@@ -206,10 +192,10 @@ export default function HomeScreen() {
     }
   }
 
-  function handleCancelPlacesSearch() {
-    setShowPlacesSearch(false);
+  function handleClearSearch() {
+    setTempDestination(null);
+    setSearchQuery('');
     Keyboard.dismiss();
-    searchInputRef.current?.blur();
   }
 
   function handleExitActive() {
@@ -240,10 +226,6 @@ export default function HomeScreen() {
       // Store temporarily and show mode selection buttons
       setTempDestination({ lat: latitude, lng: longitude, name: destinationName });
       setSearchQuery(destinationName);
-      
-      // Close Places search and blur input
-      setShowPlacesSearch(false);
-      searchInputRef.current?.blur();
       Keyboard.dismiss();
 
       // Focus map on selected destination
@@ -362,7 +344,6 @@ export default function HomeScreen() {
         onPoiClick={handleMapPoiClick}
         onPress={() => {
           Keyboard.dismiss();
-          searchInputRef.current?.blur();
         }}
       >
         {/* Show markers only in active mode and only for the opposite role */}
@@ -401,44 +382,15 @@ export default function HomeScreen() {
       <View style={styles.searchContainer}>
         {!isActive ? (
           // Idle mode: Show search input
-          !showPlacesSearch ? (
-            <View style={styles.searchInputContainer}>
-              <TextInput
-                ref={searchInputRef}
-                style={styles.searchInput}
-                placeholder="Search destination..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFocus={handleSearchDestination}
-                onBlur={handleSearchBlur}
-                editable={!tempDestination}
-              />
-              {tempDestination && (
-                <View style={styles.clearButtonWrapper} pointerEvents="box-none">
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setTempDestination(null);
-                      setSearchQuery('');
-                      setShowPlacesSearch(false);
-                    }}
-                  >
-                    <MaterialIcons name="close" size={20} color="#666" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.searchWrapper}>
-              <PlaceSearchInput
-                placeholder="Search destination..."
-                onPlaceSelected={handlePlaceSelected}
-                onClear={handleCancelPlacesSearch}
-                containerStyle={styles.placesSearchContainer}
-              />
-            </View>
-          )
+          <View style={styles.searchWrapper}>
+            <PlaceSearchInput
+              placeholder="Search destination..."
+              onPlaceSelected={handlePlaceSelected}
+              onClear={handleClearSearch}
+              containerStyle={styles.placesSearchContainer}
+              initialValue={searchQuery}
+            />
+          </View>
         ) : (
           // Active mode: Show destination name with exit button
           <View style={styles.destinationDisplay}>
@@ -618,42 +570,6 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     zIndex: 1,
-  },
-  searchInputContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#fff',
-    height: 50,
-    paddingHorizontal: 15,
-    paddingRight: 45,
-    borderRadius: 8,
-    fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  clearButtonWrapper: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearButton: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 15,
   },
   searchWrapper: {
     position: 'relative',

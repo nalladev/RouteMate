@@ -35,12 +35,13 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(password);
     const token = generateSessionToken();
 
+    // TEMPORARY: Give new users 2000 rupees starting balance until payment gateway is implemented
     const userId = await addDocument('users', {
       Name: '',
       Mobile: verificationResult.mobile,
       PasswordHash: passwordHash,
       Session: { token },
-      WalletBalance: 0,
+      WalletBalance: 2000,
       UpiId: '',
       state: 'idle',
       IsKycVerified: false,
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       Mobile: verificationResult.mobile,
       state: 'idle' as const,
       Session: { token },
-      WalletBalance: 0,
+      WalletBalance: 2000,
       UpiId: '',
       IsKycVerified: false,
     };

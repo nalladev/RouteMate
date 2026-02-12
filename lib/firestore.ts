@@ -142,3 +142,10 @@ export async function deleteDocument(
   const firestore = initializeFirestore();
   await firestore.collection(collection).doc(docId).delete();
 }
+
+export async function runTransaction<T>(
+  updateFunction: (transaction: admin.firestore.Transaction) => Promise<T>
+): Promise<T> {
+  const firestore = initializeFirestore();
+  return firestore.runTransaction(updateFunction);
+}
