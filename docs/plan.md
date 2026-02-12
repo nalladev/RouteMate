@@ -42,11 +42,6 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Extract `name` to common field and store full payload in `KycData`
    - Mark user as `IsKycVerified: true`
 
-**Benefits of Unified Flow:**
-- Saves OTP credits (user only verifies phone once)
-- Better UX (seamless transition from login attempt to signup)
-- No need for user to manually switch between login/signup modes
-
 ---
 
 ## 3. KYC Requirements & Enforcement
@@ -70,11 +65,6 @@ Both buttons open the same phone.email verification flow. The system automatical
 6. Backend verifies with Didit API
 7. Backend extracts `name` and stores full payload in `KycData`
 8. User marked as `IsKycVerified: true`
-
-**Why KYC?**
-* **Drivers:** Transport passengers → identity verification required for safety.
-* **Payouts:** Financial transactions → regulatory compliance requirement.
-* **Passengers:** Enhanced trust → recommended but optional to reduce friction.
 
 ---
 
