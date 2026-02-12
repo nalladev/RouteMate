@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, ReactNode } from 'react';
 import * as Location from 'expo-location';
 import { Location as LocationType, RideConnection, MarkerData, UserState } from '../types';
 import { api } from '../utils/api';
@@ -138,25 +138,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }
 
 
+  const contextValue = useMemo(
+    () => ({
+      role,
+      setRole,
+      userLocation,
+      destination,
+      setDestination,
+      markers,
+      activeConnections,
+      pendingRequests,
+      isActive,
+      refreshMarkers,
+      refreshConnections,
+      refreshRequests,
+      updateUserState,
+    }),
+    [role, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests, updateUserState]
+  );
 
   return (
-    <AppStateContext.Provider
-      value={{
-        role,
-        setRole,
-        userLocation,
-        destination,
-        setDestination,
-        markers,
-        activeConnections,
-        pendingRequests,
-        isActive,
-        refreshMarkers,
-        refreshConnections,
-        refreshRequests,
-        updateUserState,
-      }}
-    >
+    <AppStateContext.Provider value={contextValue}>
       {children}
     </AppStateContext.Provider>
   );
