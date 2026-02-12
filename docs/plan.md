@@ -87,8 +87,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 4. Log live location to Firestore via backend at set intervals
 5. A navigation menu at the bottom with 3 icons (home, history/previous/rides, user/profile/account)
 6. **Destination search input** at the top of the page with:
-   - Built-in autocomplete for destination suggestions
-   - Ability to select a place from the map (using Places API or similar)
+   - Built-in autocomplete for destination suggestions (using Nominatim/OpenStreetMap API)
+   - Ability to select a place from the map by tapping
 7. Focus/zoom/scroll back to my location marker on map button just below the input at the right side of the screen
 8. **No route is shown in idle mode** - only live location tracking
 
@@ -103,7 +103,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 10. After mode selection, app enters "Active" mode:
     - `user.state` updated to 'driving' or 'riding' in Firestore
     - `user.Destination` updated in Firestore
-    - **Route is displayed** from current location to destination (using Google Maps Directions API)
+    - **Route is displayed** from current location to destination (using OSRM - Open Source Routing Machine API)
     - Top input transforms into a **destination name display area**
     - A **Cross (X) button** appears on the right side of the destination area to exit to idle mode
     - In **driving mode**: user becomes discoverable to passengers looking for rides
@@ -364,7 +364,12 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `DIDIT_API_KEY` (Backend - for API verification and session creation)
 * `DIDIT_WORKFLOW_ID` (Backend - workflow ID for verification)
 * `PASSWORD_HASHING_SEED`
-* `GOOGLE_MAPS_API_KEY`
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)
 * `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
 * `RAZORPAY_WEBHOOK_SECRET` (optional - disabled until Play Store publication)
+
+**Note on Maps & Location Services:**
+- **Map Display:** Uses Google Maps (Android) and Apple Maps (iOS) via React Native Maps - no API key required
+- **Place Search/Geocoding:** Uses Nominatim (OpenStreetMap) API - free, no API key required
+- **Routing/Directions:** Uses OSRM (Open Source Routing Machine) API - free, no API key required
+- **No Google API billing required** - all location services use free alternatives

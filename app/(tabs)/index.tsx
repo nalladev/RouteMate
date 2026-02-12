@@ -12,14 +12,14 @@ import {
   Keyboard,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
 import { MarkerData, RideConnection } from '@/types';
 import { api } from '@/utils/api';
-import { GOOGLE_MAPS_API_KEY } from '@/config/env';
+import PlaceSearchInput from '@/components/maps/PlaceSearchInput';
+import { getRoute } from '@/utils/routing';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -114,17 +114,12 @@ export default function HomeScreen() {
     }
   }
 
-  async function handlePlaceSelected(data: any, details: any) {
-    if (details?.geometry?.location) {
-      const { lat, lng } = details.geometry.location;
-      const destinationName = data.description || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-
-      // Store temporarily and show mode selection buttons
-      setTempDestination({ lat, lng, name: destinationName });
-      setSearchQuery(destinationName);
-      setShowPlacesSearch(false);
-      Keyboard.dismiss();
-    }
+  async function handlePlaceSelected(place: { lat: number; lng: number; name: string }) {
+    // Store temporarily and show mode selection buttons
+    setTempDestination(place);
+    setSearchQuery(place.name);
+    setShowPlacesSearch(false);
+    Keyboard.dismiss();
   }
 
   async function handleModeSelection(selectedMode: 'driver' | 'passenger') {
@@ -169,22 +164,18 @@ export default function HomeScreen() {
       // Set destination
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
 
-      // Fetch and draw route using Google Directions API
-      const origin = `${userLocation.lat},${userLocation.lng}`;
-      const dest = `${tempDestination.lat},${tempDestination.lng}`;
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&key=${GOOGLE_MAPS_API_KEY}`;
+      // Fetch and draw route using OSRM API (free alternative to Google Directions)
+      const routeResult = await getRoute(
+        { lat: userLocation.lat, lng: userLocation.lng },
+        { lat: tempDestination.lat, lng: tempDestination.lng }
+      );
 
-      const response = await fetch(url);
-      const result = await response.json();
-
-      if (result.routes && result.routes.length > 0) {
-        const points = result.routes[0].overview_polyline.points;
-        const decodedPoints = decodePolyline(points);
-        setRouteCoordinates(decodedPoints);
+      if (routeResult && routeResult.coordinates.length > 0) {
+        setRouteCoordinates(routeResult.coordinates);
 
         // Fit map to show entire route
         if (mapRef.current) {
-          mapRef.current.fitToCoordinates(decodedPoints, {
+          mapRef.current.fitToCoordinates(routeResult.coordinates, {
             edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
             animated: true,
           });
@@ -204,45 +195,6 @@ export default function HomeScreen() {
       setSearchQuery('');
       setIsSelectingMode(false);
     }
-  }
-
-  // Decode Google's encoded polyline format
-  function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
-    const points: { latitude: number; longitude: number }[] = [];
-    let index = 0;
-    const len = encoded.length;
-    let lat = 0;
-    let lng = 0;
-
-    while (index < len) {
-      let b;
-      let shift = 0;
-      let result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      const dlat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      const dlng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      points.push({
-        latitude: lat / 1e5,
-        longitude: lng / 1e5,
-      });
-    }
-
-    return points;
   }
 
   function handleCancelPlacesSearch() {
@@ -456,59 +408,12 @@ export default function HomeScreen() {
               )}
             </View>
           ) : (
-            <View style={styles.placesSearchContainer}>
-              <GooglePlacesAutocomplete
-                placeholder="Search destination..."
-                onPress={handlePlaceSelected}
-                query={{
-                  key: GOOGLE_MAPS_API_KEY,
-                  language: 'en',
-                }}
-                fetchDetails={true}
-                enablePoweredByContainer={false}
-                onFail={() => {
-                  Alert.alert(
-                    'Search Unavailable',
-                    'Location search requires Google Places API with billing enabled. You can tap anywhere on the map to set your destination instead.',
-                    [{ text: 'OK', onPress: handleCancelPlacesSearch }]
-                  );
-                }}
-                textInputProps={{
-                  autoFocus: true,
-                  onBlur: handleCancelPlacesSearch,
-                }}
-                styles={{
-                  container: {
-                    flex: 0,
-                    height: 50,
-                  },
-                  textInputContainer: {
-                    backgroundColor: '#fff',
-                    borderTopWidth: 0,
-                    borderBottomWidth: 0,
-                    paddingVertical: 0,
-                    paddingHorizontal: 0,
-                    margin: 0,
-                    height: 50,
-                  },
-                  textInput: {
-                    height: 50,
-                    color: '#000',
-                    fontSize: 16,
-                    backgroundColor: '#fff',
-                    borderRadius: 8,
-                    paddingHorizontal: 15,
-                    paddingVertical: 0,
-                    margin: 0,
-                  },
-                  listView: {
-                    backgroundColor: '#fff',
-                    borderRadius: 8,
-                    marginTop: 4,
-                  },
-                }}
-              />
-            </View>
+            <PlaceSearchInput
+              placeholder="Search destination..."
+              onPlaceSelected={handlePlaceSelected}
+              onClear={handleCancelPlacesSearch}
+              containerStyle={styles.placesSearchContainer}
+            />
           )
         ) : (
           // Active mode: Show destination name with exit button
@@ -727,15 +632,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   placesSearchContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    height: 50,
+    // Styling handled by PlaceSearchInput component
   },
   destinationDisplay: {
     flexDirection: 'row',

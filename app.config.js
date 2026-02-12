@@ -18,9 +18,7 @@ module.exports = {
           NSAllowsArbitraryLoads: true
         }
       },
-      config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
-      }
+      // No Google Maps API key needed - using native maps
     },
     android: {
       package: "tech.routemate.app",
@@ -38,11 +36,7 @@ module.exports = {
         "ACCESS_BACKGROUND_LOCATION",
         "INTERNET"
       ],
-      config: {
-        googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY
-        }
-      },
+      // No Google Maps API key needed - using native maps
       usesCleartextTraffic: true
     },
     web: {

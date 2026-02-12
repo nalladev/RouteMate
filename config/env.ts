@@ -1,25 +1,9 @@
-import Constants from 'expo-constants';
-
-// Get the Google Maps API Key from expo config
-const getGoogleMapsApiKey = (): string => {
-  // Try to get from Android config
-  const androidKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
-  if (androidKey && typeof androidKey === 'string') {
-    return androidKey;
-  }
-
-  // Try to get from iOS config
-  const iosKey = Constants.expoConfig?.ios?.config?.googleMapsApiKey;
-  if (iosKey && typeof iosKey === 'string') {
-    return iosKey;
-  }
-
-  // Fallback to empty string
-  return '';
-};
-
-export const GOOGLE_MAPS_API_KEY = getGoogleMapsApiKey();
+// No Google Maps API key needed
+// We use free alternatives:
+// - Nominatim (OpenStreetMap) for geocoding/place search
+// - OSRM for routing/directions
+// - React Native Maps uses native maps (no API key required for display)
 
 export const config = {
-  GOOGLE_MAPS_API_KEY,
+  // Add other config values here as needed
 };

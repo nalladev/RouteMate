@@ -79,6 +79,7 @@ See [Installation](#installation) section for complete setup instructions.
 - Razorpay account (for payment processing - optional, disabled until Play Store publication)
 - Phone.email API key (for OTP authentication)
 - Didit API credentials (for KYC verification)
+- **No Google Maps API key required** - uses free alternatives
 
 ## Installation
 
@@ -95,10 +96,14 @@ PHONE_EMAIL_API_KEY=<your-phone-email-api-key>
 EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID=<your-phone-email-client-id>
 DIDIT_API_KEY=<your-didit-api-key>
 DIDIT_WORKFLOW_ID=<your-didit-workflow-id>
-GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
 WALLET_ENCRYPTION_KEY=<random-32-character-string>
 PASSWORD_HASHING_SEED=<random-string>
 ```
+
+**Note:** No Google Maps API key is required. The app uses free alternatives:
+- **Nominatim (OpenStreetMap)** for place search and geocoding
+- **OSRM (Open Source Routing Machine)** for routing and directions
+- **React Native Maps** for map display (uses native maps on iOS/Android)
 
 3. Build and run the development client (required for react-native-maps):
 
@@ -324,10 +329,9 @@ npx expo run:android --variant release
 ### Map not showing
 - **Most Common Issue:** Using Expo Go instead of development build
   - Solution: Run `npx expo run:ios` or `npx expo run:android`
-- Verify `GOOGLE_MAPS_API_KEY` is set in `.env.local`
-- Check if Maps SDK is enabled in Google Cloud Console
 - Ensure both `react-native-maps` and `expo-maps` packages are installed
 - Run `npx expo-doctor` to check for package version mismatches
+- No API key required - React Native Maps uses native maps
 
 ### Location permission not granted
 - iOS: Settings > RouteMate > Location > Always
@@ -337,6 +341,16 @@ npx expo run:android --variant release
 - Ensure backend is running
 - Check `API_URL` in `utils/api.ts`
 - Verify network connectivity
+
+### Place search not working
+- Nominatim API has usage limits (max 1 request/second)
+- Check network connectivity
+- Try using map tap to select destination as alternative
+
+### Route not displaying
+- OSRM public server may have rate limits
+- Check network connectivity
+- Ensure valid coordinates are provided
 
 ### Wallet balance not updating
 - Confirm Razorpay credentials are correct

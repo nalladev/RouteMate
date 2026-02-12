@@ -1,7 +1,27 @@
 openapi: 3.0.0
 info:
   title: RouteMate API
-  description: API for RouteMate ride-sharing application
+  description: |
+    API for RouteMate ride-sharing application
+    
+    ## Map & Location Services
+    
+    RouteMate uses **free and open-source alternatives** instead of Google APIs:
+    
+    - **Map Display**: React Native Maps (uses native maps - Google Maps on Android, Apple Maps on iOS)
+      - No API key required for basic map display
+      
+    - **Place Search/Geocoding**: Nominatim (OpenStreetMap)
+      - Endpoint: https://nominatim.openstreetmap.org/search
+      - Free to use with proper attribution
+      - Usage limit: Max 1 request per second
+      
+    - **Routing/Directions**: OSRM (Open Source Routing Machine)
+      - Endpoint: https://router.project-osrm.org/route/v1/driving
+      - Completely free and open-source
+      - No API key required
+      
+    This approach eliminates the need for Google Maps API billing while providing full functionality.
   version: 1.0.0
 servers:
   - url: http://localhost:8081
