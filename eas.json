@@ -13,6 +13,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://routemate-backend.vercel.app"
+      },
       "android": {
         "buildType": "apk"
       }

@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npx expo export --platform web",
+  "outputDirectory": "dist/client",
+  "installCommand": "npm install",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@3.2.21",
+      "includeFiles": "dist/server/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
+}
