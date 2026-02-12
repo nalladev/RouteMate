@@ -76,7 +76,10 @@ function RootLayoutNav() {
       // Redirect to tabs if authenticated and not in protected route
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Note: segments is intentionally excluded from dependencies to prevent infinite loop
+    // We only want to redirect when auth state changes, not on every navigation
+  }, [isAuthenticated, isLoading, router]);
 
   return (
     <Stack>
