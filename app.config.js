@@ -9,6 +9,7 @@ module.exports = {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
+      bundleIdentifier: "tech.routemate.app",
       supportsTablet: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "RouteMate needs your location to show nearby drivers and track rides.",
