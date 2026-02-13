@@ -35,6 +35,8 @@ module.exports = {
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
         "INTERNET"
       ],
       config: {
@@ -57,6 +59,14 @@ module.exports = {
           locationAlwaysAndWhenInUsePermission: "Allow RouteMate to use your location to track rides and match with drivers.",
           locationAlwaysPermission: "Allow RouteMate to track your location in the background during active rides.",
           locationWhenInUsePermission: "Allow RouteMate to access your location while using the app."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Allow RouteMate to access your camera for identity verification (KYC).",
+          microphonePermission: "Allow RouteMate to access your microphone for the verification process.",
+          recordAudioAndroid: true
         }
       ],
       [

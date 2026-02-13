@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
@@ -24,17 +25,17 @@ export default function AccountScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const colors = Colors['light'];
-  
+
   // Top-up state
   const [showTopupModal, setShowTopupModal] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
-  
+
   // Payout state
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
   const [upiId, setUpiId] = useState('');
   const [showUpiInput, setShowUpiInput] = useState(false);
-  
+
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showTransactions, setShowTransactions] = useState(false);
@@ -48,7 +49,7 @@ export default function AccountScreen() {
       ]);
       setBalance(balanceData.balance);
       setTransactions(transactionsData.transactions);
-      
+
       // Set UPI ID if user has one
       if (user?.UpiId) {
         setUpiId(user.UpiId);
@@ -71,7 +72,7 @@ export default function AccountScreen() {
 
   async function handleTopup() {
     const amount = parseFloat(topupAmount);
-    
+
     if (isNaN(amount) || amount < 100 || amount > 10000) {
       Alert.alert('Invalid Amount', 'Amount must be between ₹100 and ₹10,000');
       return;
@@ -80,7 +81,7 @@ export default function AccountScreen() {
     try {
       setIsProcessing(true);
       const orderData = await api.createTopupOrder(amount);
-      
+
       // In production, you would integrate Razorpay Checkout here
       // For now, we'll simulate a successful payment
       Alert.alert(
@@ -131,7 +132,7 @@ export default function AccountScreen() {
     }
 
     const amount = parseFloat(payoutAmount);
-    
+
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
@@ -254,20 +255,20 @@ export default function AccountScreen() {
           {/* Profile Section */}
           <View style={[styles.section, { backgroundColor: colors.card }]}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionIcon}>👤</Text>
+              <MaterialIcons name="person" size={24} color={colors.text} style={{ marginRight: 8 }} />
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile</Text>
             </View>
-            
+
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Name</Text>
               <Text style={[styles.value, { color: colors.text }]}>{user.Name || 'Not set'}</Text>
             </View>
-            
+
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Mobile</Text>
               <Text style={[styles.value, { color: colors.text }]}>{user.Mobile}</Text>
             </View>
-            
+
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>KYC Status</Text>
               <View style={styles.badgeContainer}>
@@ -303,18 +304,18 @@ export default function AccountScreen() {
           {/* Wallet Section */}
           <View style={[styles.section, { backgroundColor: colors.card }]}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionIcon}>💳</Text>
+              <MaterialIcons name="account-balance-wallet" size={24} color={colors.text} style={{ marginRight: 8 }} />
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Wallet</Text>
             </View>
-            
+
             <View style={[styles.balanceContainer, { borderBottomColor: colors.border }]}>
               <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Available Balance</Text>
               <Text style={[styles.balanceValue, { color: colors.tint }]}>₹{balance.toFixed(2)}</Text>
             </View>
-            
+
             <View style={styles.walletActions}>
-              <TouchableOpacity 
-                style={[styles.walletButton, { backgroundColor: colors.success }, styles.disabledButton]} 
+              <TouchableOpacity
+                style={[styles.walletButton, { backgroundColor: colors.success }, styles.disabledButton]}
                 onPress={() => Alert.alert(
                   'Feature Temporarily Disabled',
                   'Deposit feature is temporarily disabled.\n\nRazorpay regulations require a valid Play Store link for payment gateway integration. This feature will be enabled once the app is published on Play Store.'
@@ -323,8 +324,8 @@ export default function AccountScreen() {
                 <Text style={styles.walletButtonText}>💰 Top Up (Disabled)</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.walletButton, { backgroundColor: colors.error }, styles.disabledButton]} 
+              <TouchableOpacity
+                style={[styles.walletButton, { backgroundColor: colors.error }, styles.disabledButton]}
                 onPress={() => {
                   if (!user.IsKycVerified) {
                     Alert.alert(
@@ -346,7 +347,7 @@ export default function AccountScreen() {
                 <Text style={styles.walletButtonText}>💸 Withdraw (Disabled)</Text>
               </TouchableOpacity>
             </View>
-            
+
             <Text style={[styles.disabledNotice, { color: colors.textSecondary, backgroundColor: colors.backgroundSecondary }]}>
               💡 Deposit and withdrawal features are temporarily disabled until Play Store publication. You can still use existing balance for rides.
             </Text>
@@ -356,7 +357,7 @@ export default function AccountScreen() {
           <View style={[styles.section, { backgroundColor: colors.card }]}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionIcon}>📊</Text>
+                <MaterialIcons name="assessment" size={24} color={colors.text} style={{ marginRight: 8 }} />
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
               </View>
               {transactions.length > 0 && (
@@ -408,7 +409,7 @@ export default function AccountScreen() {
         <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <Text style={[styles.modalTitle, { color: colors.text }]}>Top Up Balance</Text>
-            
+
             <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Amount (₹)</Text>
             <TextInput
               style={[styles.modalInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
@@ -419,7 +420,7 @@ export default function AccountScreen() {
               onChangeText={setTopupAmount}
               editable={!isProcessing}
             />
-            
+
             <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
               Minimum: ₹100 • Maximum: ₹10,000
             </Text>
@@ -456,7 +457,7 @@ export default function AccountScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Withdraw Balance</Text>
-            
+
             {!showUpiInput ? (
               <>
                 <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Amount (₹)</Text>
@@ -469,7 +470,7 @@ export default function AccountScreen() {
                   onChangeText={setPayoutAmount}
                   editable={!isProcessing}
                 />
-                
+
                 <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
                   Available balance: ₹{balance.toFixed(2)}
                 </Text>
@@ -520,7 +521,7 @@ export default function AccountScreen() {
                   onChangeText={setUpiId}
                   editable={!isProcessing}
                 />
-                
+
                 <Text style={[styles.modalHint, { color: colors.textSecondary }]}>
                   Enter your UPI ID (e.g., username@paytm, phone@ybl)
                 </Text>
@@ -562,7 +563,7 @@ export default function AccountScreen() {
             <Text style={[styles.closeButton, { color: colors.text }]}>✕</Text>
           </TouchableOpacity>
         </View>
-          
+
           <ScrollView style={styles.fullScreenContent}>
             {transactions.map((tx) => (
               <View key={tx.Id} style={[styles.transactionItem, { borderBottomColor: colors.border }]}>
@@ -713,7 +714,7 @@ const styles = StyleSheet.create({
   balanceValue: {
     fontSize: 42,
     fontWeight: 'bold',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: "inter",
   },
   walletActions: {
     flexDirection: 'row',

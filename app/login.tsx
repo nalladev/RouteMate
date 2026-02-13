@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 type AuthMode = 'login' | 'phone-email-login' | 'phone-email-signup' | 'signup-password';
 
@@ -23,7 +24,7 @@ function getApiBaseUrl(): string {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  
+
   // For development with tunnel or local network
   // Expo Router API routes are served from the same origin
   // Use relative URLs (empty string) to hit the same server
@@ -33,7 +34,7 @@ function getApiBaseUrl(): string {
 export default function LoginScreen() {
   const router = useRouter();
   const { login, otpLogin, signup, isAuthenticated, user, isLoading: authLoading } = useAuth();
-  
+
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [countryCode, setCountryCode] = useState('+91');
   const [mobile, setMobile] = useState('');
@@ -41,7 +42,6 @@ export default function LoginScreen() {
   const [phoneEmailToken, setPhoneEmailToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   // Get CLIENT_ID from environment variable
@@ -82,7 +82,7 @@ export default function LoginScreen() {
       // Combine country code with mobile number
       const fullMobile = countryCode + mobile;
       await login(fullMobile, password);
-      
+
       // Check KYC status after login
       const { user: loggedInUser } = await fetch(`${API_BASE_URL}/api/user/me`, {
         method: 'GET',
@@ -91,7 +91,7 @@ export default function LoginScreen() {
           'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
         },
       }).then(res => res.json());
-      
+
       if (!loggedInUser.IsKycVerified) {
         router.replace('/kyc-verification' as any);
       } else {
@@ -134,7 +134,7 @@ export default function LoginScreen() {
 
       // User exists - complete login using otpLogin from AuthContext
       await otpLogin(jwt);
-      
+
       // Check KYC status after login
       if (!data.user.IsKycVerified) {
         router.replace('/kyc-verification' as any);
@@ -164,7 +164,7 @@ export default function LoginScreen() {
     try {
       // Use signup method from AuthContext which handles the API call and state
       await signup(phoneEmailToken, password);
-      
+
       // New users always need to complete KYC (IsKycVerified is false on signup)
       router.replace('/kyc-verification' as any);
     } catch (error: any) {
@@ -178,7 +178,7 @@ export default function LoginScreen() {
 
   function handleWebViewMessage(event: any) {
     const jwt = event.nativeEvent.data;
-    
+
     if (jwt && jwt.length > 0) {
       // Both login and signup use the same unified flow
       // Backend will determine if user exists and frontend will handle accordingly
@@ -249,24 +249,13 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Create a password to complete your account setup</Text>
 
           <View style={styles.form}>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Create Password (min 6 characters)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                editable={!isLoading}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
-              </TouchableOpacity>
-            </View>
+            <PasswordInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Create Password (min 6 characters)"
+              editable={!isLoading}
+              autoFocus
+            />
 
             <TouchableOpacity
               style={[styles.button, styles.primaryButton]}
@@ -312,7 +301,7 @@ export default function LoginScreen() {
                 <Text style={styles.countryCodeText}>{countryCode}</Text>
                 <Text style={styles.dropdownArrow}>▼</Text>
               </TouchableOpacity>
-              
+
               <TextInput
                 style={styles.phoneInput}
                 placeholder="Mobile Number"
@@ -346,23 +335,12 @@ export default function LoginScreen() {
               </View>
             )}
 
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
-              </TouchableOpacity>
-            </View>
+            <PasswordInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              editable={!isLoading}
+            />
 
             <TouchableOpacity
               style={[styles.button, styles.primaryButton]}
@@ -505,19 +483,20 @@ const styles = StyleSheet.create({
   phoneInputContainer: {
     flexDirection: 'row',
     marginBottom: 15,
-    gap: 10,
+    gap: 0,
   },
   countryCodeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    minWidth: 70,
+    minWidth: 60,
   },
   countryCodeText: {
     fontSize: 16,
@@ -532,7 +511,8 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
     padding: 15,
     fontSize: 16,
     borderWidth: 1,
@@ -568,30 +548,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   authLoadingText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
     color: '#666',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    marginBottom: 15,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 15,
-    fontSize: 16,
-  },
-  eyeButton: {
-    padding: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eyeIcon: {
-    fontSize: 20,
   },
 });
