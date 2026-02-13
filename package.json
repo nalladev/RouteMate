@@ -28,7 +28,7 @@
     "expo-location": "^19.0.8",
     "expo-maps": "~0.12.10",
     "expo-router": "~6.0.23",
-    "expo-server": "55.0.3",
+    "expo-server": "~1.0.5",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",

@@ -3,7 +3,7 @@
   "outputDirectory": "dist/client",
   "installCommand": "pnpm install",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "runtime": "@vercel/node@3.2.21",
       "includeFiles": "dist/server/**"
     }
