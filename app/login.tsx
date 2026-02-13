@@ -32,7 +32,7 @@ function getApiBaseUrl(): string {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, otpLogin, isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { login, otpLogin, signup, isAuthenticated, user, isLoading: authLoading } = useAuth();
   
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [countryCode, setCountryCode] = useState('+91');
@@ -162,32 +162,11 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          otpToken: phoneEmailToken,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Signup failed');
-      }
-
-      // Store token and navigate
-      await login(data.user.Mobile, data.token);
+      // Use signup method from AuthContext which handles the API call and state
+      await signup(phoneEmailToken, password);
       
-      // New users need to complete KYC
-      if (!data.user.IsKycVerified) {
-        router.replace('/kyc-verification' as any);
-      } else {
-        router.replace('/(tabs)');
-      }
+      // New users always need to complete KYC (IsKycVerified is false on signup)
+      router.replace('/kyc-verification' as any);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Signup failed');
       setAuthMode('login');
