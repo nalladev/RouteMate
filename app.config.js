@@ -4,7 +4,7 @@ module.exports = {
     slug: "routemate",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/icon.png",
     scheme: "routemate",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -20,15 +20,14 @@ module.exports = {
       },
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
-      }
+      },
+      bundleIdentifier: "tech.routemate.app"
     },
     android: {
       package: "tech.routemate.app",
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png"
+        foregroundImage: "./assets/icon.png",
+        backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -47,7 +46,7 @@ module.exports = {
     },
     web: {
       output: "server",
-      favicon: "./assets/images/favicon.png",
+      favicon: "./assets/icon.png",
       bundler: "metro"
     },
     plugins: [
@@ -63,13 +62,10 @@ module.exports = {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
-          dark: {
-            backgroundColor: "#000000"
-          }
+          backgroundColor: "#ffffff"
         }
       ]
     ],
