@@ -15,7 +15,7 @@ import { api } from '@/utils/api';
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, markKycPromptShown } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
@@ -58,7 +58,10 @@ export default function KYCVerificationScreen() {
         [
           {
             text: 'Continue',
-            onPress: () => router.replace('/(tabs)'),
+            onPress: () => {
+              markKycPromptShown();
+              router.replace('/(tabs)');
+            },
           },
         ]
       );
@@ -100,7 +103,10 @@ export default function KYCVerificationScreen() {
         },
         {
           text: 'Skip for Now',
-          onPress: () => router.replace('/(tabs)'),
+          onPress: () => {
+            markKycPromptShown();
+            router.replace('/(tabs)');
+          },
         },
       ]
     );

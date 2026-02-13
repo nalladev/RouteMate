@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component<
 }
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, shouldShowKycPrompt } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -68,18 +68,24 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const inKycPage = segments[0] === 'kyc-verification';
 
     if (!isAuthenticated && inAuthGroup) {
       // Redirect to login if not authenticated and in protected route
       router.replace('/login');
-    } else if (isAuthenticated && !inAuthGroup && segments[0] !== 'kyc-verification') {
-      // Redirect to tabs if authenticated and not in protected route
-      router.replace('/(tabs)');
+    } else if (isAuthenticated && !inAuthGroup && !inKycPage) {
+      // Check if we should show KYC prompt after login/signup
+      if (shouldShowKycPrompt) {
+        router.replace('/kyc-verification');
+      } else {
+        // Redirect to tabs if authenticated and not in protected route
+        router.replace('/(tabs)');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // Note: segments is intentionally excluded from dependencies to prevent infinite loop
     // We only want to redirect when auth state changes, not on every navigation
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, shouldShowKycPrompt, router]);
 
   return (
     <Stack>

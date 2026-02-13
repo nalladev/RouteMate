@@ -7,6 +7,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  shouldShowKycPrompt: boolean;
+  markKycPromptShown: () => void;
   login: (mobile: string, password: string) => Promise<void>;
   otpLogin: (otpToken: string) => Promise<void>;
   signup: (otpToken: string, password: string) => Promise<void>;
@@ -19,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldShowKycPrompt, setShouldShowKycPrompt] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setAuthToken(token);
     console.log('[AuthContext] Auth token saved, setting user state');
     setUser(user);
+    setShouldShowKycPrompt(!user.IsKycVerified);
     console.log('[AuthContext] User state updated, IsKycVerified:', user.IsKycVerified);
   }
 
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AuthContext] OTP Login API response received, user:', user);
     await setAuthToken(token);
     setUser(user);
+    setShouldShowKycPrompt(!user.IsKycVerified);
     console.log('[AuthContext] User state updated after OTP login, IsKycVerified:', user.IsKycVerified);
   }
 
@@ -64,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AuthContext] Signup API response received, user:', user);
     await setAuthToken(token);
     setUser(user);
+    setShouldShowKycPrompt(!user.IsKycVerified);
     console.log('[AuthContext] User state updated after signup, IsKycVerified:', user.IsKycVerified);
   }
 
@@ -75,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       await clearAuthToken();
       setUser(null);
+      setShouldShowKycPrompt(false);
     }
   }
 
@@ -87,18 +94,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function markKycPromptShown() {
+    setShouldShowKycPrompt(false);
+  }
+
   const contextValue = useMemo(
     () => ({
       user,
       isLoading,
       isAuthenticated: !!user,
+      shouldShowKycPrompt,
+      markKycPromptShown,
       login,
       otpLogin,
       signup,
       logout,
       refreshUser,
     }),
-    [user, isLoading]
+    [user, isLoading, shouldShowKycPrompt]
   );
 
   return (
