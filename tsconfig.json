@@ -7,7 +7,9 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "paths": {
@@ -23,6 +25,7 @@
     "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/*.cjs"
   ]
 }
