@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       WalletBalance: 2000,
       UpiId: '',
       state: 'idle',
+      KycStatus: 'not_started',
       IsKycVerified: false,
     });
 
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       Session: { token },
       WalletBalance: 2000,
       UpiId: '',
+      KycStatus: 'not_started' as const,
       IsKycVerified: false,
     };
 

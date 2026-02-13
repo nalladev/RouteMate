@@ -1,41 +1,28 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { updateDocument } from '../../../lib/firestore';
+import { extractKycProfile, isApprovedKycStatus, normalizeDiditStatus } from '../../../lib/kyc';
 
-async function verifySessionWithDidit(sessionId: string): Promise<{ verified: boolean; data?: any }> {
+async function fetchDiditSession(sessionId: string): Promise<any> {
   const diditApiKey = process.env.DIDIT_API_KEY;
   if (!diditApiKey) {
     throw new Error('DIDIT_API_KEY is not set');
   }
 
-  try {
-    // Get session details from Didit API
-    const response = await fetch(`https://verification.didit.me/v3/session/${sessionId}`, {
-      method: 'GET',
-      headers: {
-        'x-api-key': diditApiKey,
-        'Content-Type': 'application/json',
-      },
-    });
+  const response = await fetch(`https://verification.didit.me/v3/session/${sessionId}`, {
+    method: 'GET',
+    headers: {
+      'x-api-key': diditApiKey,
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Didit API error:', response.status, errorData);
-      return { verified: false };
-    }
-
-    const result = await response.json();
-    
-    // Check if session is approved
-    const isApproved = result.status === 'Approved' || result.status === 'approved';
-    
-    return {
-      verified: isApproved,
-      data: result,
-    };
-  } catch (error) {
-    console.error('Didit verification error:', error);
-    return { verified: false };
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Didit API error:', response.status, errorData);
+    throw new Error('Failed to fetch verification status');
   }
+
+  return response.json();
 }
 
 export async function POST(request: Request) {
@@ -58,114 +45,63 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { sessionId, status } = body;
+    const body = await request.json().catch(() => ({}));
+    const sessionId = body?.sessionId || user.KycData?.sessionId;
 
     if (!sessionId) {
       return Response.json(
-        { error: 'Session ID is required' },
+        { error: 'No KYC session found for user' },
         { status: 400 }
       );
     }
 
-    // Verify the session with Didit
-    const verificationResult = await verifySessionWithDidit(sessionId);
+    const diditSession = await fetchDiditSession(sessionId);
+    const normalizedStatus = normalizeDiditStatus(diditSession?.status);
+    const now = new Date().toISOString();
+    const verified = isApprovedKycStatus(normalizedStatus);
+    const extractedProfile = extractKycProfile(diditSession);
 
-    if (!verificationResult.verified) {
-      return Response.json(
-        { error: 'KYC verification failed or session not approved' },
-        { status: 400 }
-      );
-    }
-
-    // Extract user data from verification result
-    const kycData = verificationResult.data;
-    
-    // Log the KYC data structure to understand what Didit returns
-    console.log('Didit KYC data structure:', JSON.stringify(kycData, null, 2));
-    
-    // Extract important data from Didit response - based on actual API structure
-    // Only storing: name, age, gender, address, portrait image, session ID
-    let name = '';
-    let age: number | null = null;
-    let gender = '';
-    let portraitImage = '';
-    let address = '';
-    
-    // Extract from ID verification (most reliable source)
-    if (kycData?.id_verifications && kycData.id_verifications.length > 0) {
-      const idVerification = kycData.id_verifications[0];
-      
-      // Name
-      if (idVerification.full_name) {
-        name = idVerification.full_name;
-      } else if (idVerification.first_name && idVerification.last_name) {
-        name = `${idVerification.first_name} ${idVerification.last_name}`;
-      } else if (idVerification.first_name) {
-        name = idVerification.first_name;
-      }
-      
-      // Age (important for driver eligibility - must be 18+)
-      if (idVerification.age) {
-        age = idVerification.age;
-      }
-      
-      // Gender
-      if (idVerification.gender) {
-        gender = idVerification.gender;
-      }
-      
-      // Portrait image (can be used as profile photo)
-      if (idVerification.portrait_image) {
-        portraitImage = idVerification.portrait_image;
-      }
-      
-      // Address
-      if (idVerification.formatted_address) {
-        address = idVerification.formatted_address;
-      } else if (idVerification.address) {
-        address = idVerification.address;
-      }
-    }
-    
-    // Fallback to expected details if ID verification is not present
-    if (!name && kycData?.expected_details) {
-      if (kycData.expected_details.first_name && kycData.expected_details.last_name) {
-        name = `${kycData.expected_details.first_name} ${kycData.expected_details.last_name}`;
-      }
-    }
-
-    console.log('Extracted KYC data:', { name, age, gender, address, portraitImage: !!portraitImage });
-
-    // Update user document with KYC data and extracted information
     const updateData: any = {
+      IsKycVerified: verified,
+      KycStatus: normalizedStatus,
       KycData: {
+        ...(user.KycData || {}),
         sessionId,
-        status,
-        verifiedAt: new Date().toISOString(),
-        age,
-        gender,
-        portraitImage,
-        address,
+        status: normalizedStatus,
+        updatedAt: now,
       },
-      IsKycVerified: true,
     };
 
-    // Update name if we extracted one
-    if (name) {
-      updateData.Name = name;
+    if (normalizedStatus === 'submitted' || normalizedStatus === 'under_review') {
+      updateData.KycData.submittedAt = user.KycData?.submittedAt || now;
+    }
+
+    if (normalizedStatus === 'approved' || normalizedStatus === 'rejected') {
+      updateData.KycData.reviewedAt = now;
+    }
+
+    if (verified) {
+      updateData.KycData.verifiedAt = now;
+      updateData.KycData.age = extractedProfile.age;
+      updateData.KycData.gender = extractedProfile.gender;
+      updateData.KycData.portraitImage = extractedProfile.portraitImage;
+      updateData.KycData.address = extractedProfile.address;
+      if (extractedProfile.name) {
+        updateData.Name = extractedProfile.name;
+      }
     }
 
     await updateDocument('users', user.Id, updateData);
 
     return Response.json({
       success: true,
-      verified: true,
+      verified,
+      status: normalizedStatus,
     });
   } catch (error) {
     console.error('KYC verification error:', error);
     return Response.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

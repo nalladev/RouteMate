@@ -187,10 +187,10 @@ export const api = {
     });
   },
 
-  verifyKyc: async (kycData: any): Promise<{ success: boolean; verified: boolean }> => {
+  refreshKycStatus: async (sessionId?: string): Promise<{ success: boolean; verified: boolean; status: string }> => {
     return request('/api/kyc/verify', {
       method: 'POST',
-      body: JSON.stringify({ kycData }),
+      body: JSON.stringify(sessionId ? { sessionId } : {}),
     });
   },
 };

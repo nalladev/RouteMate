@@ -12,7 +12,11 @@ export type UserState = 'driving' | 'riding' | 'idle';
 export interface KycData {
   sessionId: string;
   status: string;
-  verifiedAt: string;
+  createdAt?: string;
+  submittedAt?: string;
+  updatedAt?: string;
+  reviewedAt?: string;
+  verifiedAt?: string;
   age?: number;
   gender?: string;
   portraitImage?: string;
@@ -31,6 +35,14 @@ export interface User {
   LastLocation?: Location;
   Destination?: Location;
   KycData?: KycData;
+  KycStatus?:
+    | 'not_started'
+    | 'session_created'
+    | 'submitted'
+    | 'under_review'
+    | 'approved'
+    | 'rejected'
+    | 'failed';
   IsKycVerified: boolean;
 }
 
@@ -70,6 +82,14 @@ export interface UserPublic {
   Destination?: Location;
   WalletBalance: number;
   UpiId?: string;
+  KycStatus?:
+    | 'not_started'
+    | 'session_created'
+    | 'submitted'
+    | 'under_review'
+    | 'approved'
+    | 'rejected'
+    | 'failed';
   IsKycVerified: boolean;
 }
 

@@ -1,4 +1,5 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
+import { updateDocument } from '../../../lib/firestore';
 
 export async function POST(request: Request) {
   try {
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
 
     const diditApiKey = process.env.DIDIT_API_KEY;
     const workflowId = process.env.DIDIT_WORKFLOW_ID;
+    const callbackUrl = process.env.DIDIT_CALLBACK_URL || 'https://routemate.app/kyc-callback';
 
     if (!diditApiKey || !workflowId) {
       console.error('Didit configuration missing');
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         workflow_id: workflowId,
         vendor_data: user.Id,
-        callback: 'https://routemate.app/kyc-callback',
+        callback: callbackUrl,
       }),
     });
 
@@ -55,6 +57,19 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+    const now = new Date().toISOString();
+
+    await updateDocument('users', user.Id, {
+      IsKycVerified: false,
+      KycStatus: 'session_created',
+      KycData: {
+        ...(user.KycData || {}),
+        sessionId: data.session_id,
+        status: 'session_created',
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
 
     return Response.json({
       sessionId: data.session_id,

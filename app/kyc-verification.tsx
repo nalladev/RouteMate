@@ -19,9 +19,29 @@ export default function KYCVerificationScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
+  const currentKycStatus = user?.KycStatus || user?.KycData?.status || 'not_started';
+  const hasPendingReview =
+    !user?.IsKycVerified &&
+    ['session_created', 'submitted', 'under_review'].includes(currentKycStatus);
+
+  function getCallbackStatus(status: string | null): string {
+    const value = (status || '').toLowerCase().replace(/\s+/g, '_');
+    if (['approved', 'verified', 'completed'].includes(value)) return 'approved';
+    if (['rejected', 'declined', 'failed', 'denied'].includes(value)) return 'rejected';
+    if (['under_review', 'review', 'manual_review'].includes(value)) return 'under_review';
+    return 'submitted';
+  }
 
   // Create Didit verification session via backend
   async function createVerificationSession() {
+    if (hasPendingReview) {
+      Alert.alert(
+        'Verification Already Submitted',
+        'Your verification is already in review. We will update your status automatically once the result is available.'
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await api.createKycSession();
@@ -39,22 +59,26 @@ export default function KYCVerificationScreen() {
     }
   }
 
-  async function handleVerificationComplete(verificationSessionId: string, status: string) {
+  async function handleVerificationComplete(status: string) {
     setIsLoading(true);
     try {
-      // Send session ID and status to backend for verification
-      await api.verifyKyc({
-        sessionId: verificationSessionId,
-        status,
-        userId: user?.Id,
-      });
+      try {
+        await api.refreshKycStatus();
+      } catch (error) {
+        console.warn('Could not refresh KYC status immediately:', error);
+      }
 
-      // Refresh user data to get updated KYC status
       await refreshUser();
+      const normalizedStatus = getCallbackStatus(status);
+      const isApproved = normalizedStatus === 'approved';
+      const alertTitle = isApproved ? 'Verification Approved' : 'Verification Submitted';
+      const alertMessage = isApproved
+        ? 'Your KYC verification has been approved.'
+        : 'Your verification was submitted and is under review. We will update your status automatically when the result is available.';
 
       Alert.alert(
-        'Success',
-        'Your KYC verification is complete!',
+        alertTitle,
+        alertMessage,
         [
           {
             text: 'Continue',
@@ -66,7 +90,7 @@ export default function KYCVerificationScreen() {
         ]
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to verify KYC');
+      Alert.alert('Error', error.message || 'Failed to process verification status');
       setShowDiditWebView(false);
     } finally {
       setIsLoading(false);
@@ -80,11 +104,16 @@ export default function KYCVerificationScreen() {
     if (url && url.includes('kyc-callback')) {
       try {
         const urlObj = new URL(url);
-        const verificationSessionId = urlObj.searchParams.get('verificationSessionId');
         const status = urlObj.searchParams.get('status');
         
-        if (verificationSessionId && status) {
-          handleVerificationComplete(verificationSessionId, status);
+        if (status) {
+          handleVerificationComplete(status);
+        } else {
+          setShowDiditWebView(false);
+          Alert.alert(
+            'Verification Submitted',
+            'Your verification has been submitted. We will update your status once the review is completed.'
+          );
         }
       } catch (error) {
         console.error('Failed to parse callback URL:', error);
@@ -182,6 +211,15 @@ export default function KYCVerificationScreen() {
             Your data is encrypted and securely processed by Didit, our trusted verification partner.
           </Text>
         </View>
+
+        {hasPendingReview && (
+          <View style={styles.pendingNote}>
+            <Text style={styles.pendingTitle}>Verification in progress</Text>
+            <Text style={styles.pendingText}>
+              Your KYC is currently under review. You do not need to submit again.
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.button, styles.primaryButton]}
@@ -295,6 +333,25 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#1976D2',
+    lineHeight: 20,
+  },
+  pendingNote: {
+    backgroundColor: '#fff7e6',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ffd591',
+  },
+  pendingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ad6800',
+    marginBottom: 6,
+  },
+  pendingText: {
+    fontSize: 14,
+    color: '#8c6d1f',
     lineHeight: 20,
   },
   button: {

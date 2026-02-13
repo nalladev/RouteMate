@@ -231,6 +231,24 @@ export default function AccountScreen() {
     }
   }
 
+  function getKycDisplayStatus(): { label: string; color: string; bgColor: string } {
+    const status = user?.KycStatus || user?.KycData?.status;
+
+    if (user?.IsKycVerified || status === 'approved') {
+      return { label: '✓ Verified', color: colors.success, bgColor: colors.success + '20' };
+    }
+
+    if (status === 'under_review' || status === 'submitted' || status === 'session_created') {
+      return { label: 'Under Review', color: colors.warning, bgColor: colors.warning + '20' };
+    }
+
+    if (status === 'rejected' || status === 'failed') {
+      return { label: 'Rejected', color: colors.error, bgColor: colors.error + '20' };
+    }
+
+    return { label: 'Not Verified', color: colors.warning, bgColor: colors.warning + '20' };
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
@@ -243,6 +261,9 @@ export default function AccountScreen() {
   if (!user) {
     return null;
   }
+
+  const kycDisplay = getKycDisplayStatus();
+  const canShowVerifyButton = !user.IsKycVerified && kycDisplay.label !== 'Under Review';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
@@ -277,14 +298,14 @@ export default function AccountScreen() {
                     <Text style={[styles.verifiedText, { color: colors.success }]}>✓ Verified</Text>
                   </View>
                 ) : (
-                  <View style={[styles.unverifiedBadge, { backgroundColor: colors.warning + '20' }]}>
-                    <Text style={[styles.unverifiedText, { color: colors.warning }]}>Not Verified</Text>
+                  <View style={[styles.unverifiedBadge, { backgroundColor: kycDisplay.bgColor }]}>
+                    <Text style={[styles.unverifiedText, { color: kycDisplay.color }]}>{kycDisplay.label}</Text>
                   </View>
                 )}
               </View>
             </View>
 
-            {!user.IsKycVerified && (
+            {canShowVerifyButton && (
               <TouchableOpacity
                 style={[styles.verifyKycButton, { backgroundColor: colors.tint }]}
                 onPress={() => router.push('/kyc-verification' as any)}

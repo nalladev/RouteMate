@@ -42,9 +42,10 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Frontend fetches current user data (`/api/user/me`) to check KYC status
    - If not KYC verified, show Didit KYC verification page
    - User can skip KYC and complete later (see KYC Requirements section below)
-   - On KYC completion, send data to server (`/api/kyc/verify`)
-   - Extract `name` to common field and store full payload in `KycData`
-   - Mark user as `IsKycVerified: true`
+   - When user starts verification, backend creates Didit session (`/api/kyc/create-session`) and stores `sessionId` against user immediately
+   - Frontend redirects user to Didit WebView and then exits after submission
+   - Backend waits for asynchronous Didit webhook (`/api/kyc/webhook`) to mark final result
+   - On approval, backend extracts profile fields and marks user as `IsKycVerified: true`
 
 ---
 
@@ -62,13 +63,13 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ### KYC Flow (Didit Integration)
 1. User clicks "Start Verification" or "Verify Now"
-2. Didit WebView opens with KYC form
-3. User submits: Government ID (Aadhaar/Passport/Driver's License) + Selfie + Personal info
-4. Didit processes verification (5-10 minutes)
-5. Frontend sends KYC data to `/api/kyc/verify`
-6. Backend verifies with Didit API
-7. Backend extracts `name` and stores full payload in `KycData`
-8. User marked as `IsKycVerified: true`
+2. Backend creates Didit session and stores `KycData.sessionId` + `KycStatus: session_created`
+3. Didit WebView opens with KYC form
+4. User submits: Government ID (Aadhaar/Passport/Driver's License) + Selfie + Personal info
+5. Didit processes verification asynchronously (can be under review for minutes/hours)
+6. Didit webhook calls backend endpoint `/api/kyc/webhook` with final status
+7. Backend updates `KycStatus`, `KycData.status`, and `IsKycVerified`
+8. User sees "Under Review" until webhook updates to approved/rejected
 
 ---
 
@@ -315,7 +316,20 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `state`: 'driving' | 'riding' | 'idle'
 * `LastLocation`: { `lat`: number, `lng`: number }
 * `Destination`: { `lat`: number, `lng`: number }
-* `KycData`: any
+* `KycStatus`: 'not_started' | 'session_created' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'failed'
+* `KycData`: {
+  `sessionId`: string,
+  `status`: KycStatus,
+  `createdAt?`: ISO datetime,
+  `submittedAt?`: ISO datetime,
+  `updatedAt?`: ISO datetime,
+  `reviewedAt?`: ISO datetime,
+  `verifiedAt?`: ISO datetime,
+  `age?`: number,
+  `gender?`: string,
+  `portraitImage?`: string,
+  `address?`: string
+}
 * `IsKycVerified`: boolean
 
 ### RideConnections Collection
@@ -357,6 +371,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `PHONE_EMAIL_API_KEY`
 * `DIDIT_API_KEY` (Backend - for API verification and session creation)
 * `DIDIT_WORKFLOW_ID` (Backend - workflow ID for verification)
+* `DIDIT_CALLBACK_URL` (optional - redirect URL after Didit flow; defaults to production callback)
+* `DIDIT_WEBHOOK_SECRET` (optional but recommended - verify Didit webhook signature)
 * `PASSWORD_HASHING_SEED`
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)
 * `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
