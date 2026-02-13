@@ -84,7 +84,7 @@ export default function LoginScreen() {
       await login(fullMobile, password);
       
       // Check KYC status after login
-      const { user: loggedInUser } = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const { user: loggedInUser } = await fetch(`${API_BASE_URL}/api/user/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

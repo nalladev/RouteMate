@@ -12,10 +12,13 @@
 ## 2. Authentication Flows
 
 ### Password Login (Pressing Login Button)
-1. Submit credentials to Backend
+1. Submit credentials to Backend (`/api/auth/login`)
 2. Backend compares password with `PasswordHash`
 3. If user doesn't exist, return "Invalid Credentials" error
 4. Create and return session token
+5. Frontend fetches current user data (`/api/user/me`) to check KYC status
+6. If not KYC verified, redirect to KYC verification page
+7. If KYC verified, redirect to main app
 
 ### OTP Login / Signup (Unified Flow - When pressing "Login with OTP" or "Sign Up")
 Both buttons open the same phone.email verification flow. The system automatically handles whether it's a login or signup based on whether the user exists.
@@ -36,9 +39,10 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Backend initializes user wallet with 0 balance
    - Create session and return success → User logged in
 8. **After successful login (existing or new user):**
+   - Frontend fetches current user data (`/api/user/me`) to check KYC status
    - If not KYC verified, show Didit KYC verification page
    - User can skip KYC and complete later (see KYC Requirements section below)
-   - On KYC completion, send data to server
+   - On KYC completion, send data to server (`/api/kyc/verify`)
    - Extract `name` to common field and store full payload in `KycData`
    - Mark user as `IsKycVerified: true`
 
