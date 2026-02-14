@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Button, Alert } from 'react-native';
+import { View, Text, Button, Alert, Platform, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -62,11 +62,31 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+function isAllowedWebRoute(segments: string[]) {
+  if (segments[0] === 'ride-share') return true;
+  return segments[0] === 'community' && segments[1] === 'join';
+}
+
+function WebAppOnlyScreen() {
+  return (
+    <View style={styles.webOnlyContainer}>
+      <Text style={styles.webOnlyTitle}>RouteMate App Required</Text>
+      <Text style={styles.webOnlyText}>
+        This page is only available in the RouteMate mobile app.
+      </Text>
+      <Text style={styles.webOnlyText}>
+        Web access is supported only for live ride sharing and community invite links.
+      </Text>
+    </View>
+  );
+}
+
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, shouldShowKycPrompt, refreshUser } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const hasProcessedPendingInviteRef = useRef(false);
+  const allowedWebRoute = isAllowedWebRoute(segments);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -76,6 +96,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (isLoading) return;
+    if (Platform.OS === 'web' && !allowedWebRoute) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
     const inKycPage = segments[0] === 'kyc-verification';
@@ -94,12 +115,12 @@ function RootLayoutNav() {
         router.replace('/(tabs)');
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // Note: segments is intentionally excluded from dependencies to prevent infinite loop
-    // We only want to redirect when auth state changes, not on every navigation
-  }, [isAuthenticated, isLoading, shouldShowKycPrompt, router]);
+  }, [segments, isAuthenticated, isLoading, shouldShowKycPrompt, router, allowedWebRoute]);
 
   useEffect(() => {
+    if (Platform.OS === 'web' && !allowedWebRoute) {
+      return;
+    }
     if (!isAuthenticated || isLoading || hasProcessedPendingInviteRef.current) {
       return;
     }
@@ -125,7 +146,11 @@ function RootLayoutNav() {
     }
 
     processPendingCommunityInvite();
-  }, [isAuthenticated, isLoading, refreshUser, router]);
+  }, [isAuthenticated, isLoading, refreshUser, router, allowedWebRoute]);
+
+  if (Platform.OS === 'web' && !allowedWebRoute) {
+    return <WebAppOnlyScreen />;
+  }
 
   return (
     <Stack>
@@ -157,3 +182,26 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  webOnlyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#f8fafc',
+  },
+  webOnlyTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  webOnlyText: {
+    fontSize: 15,
+    color: '#4b5563',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+});

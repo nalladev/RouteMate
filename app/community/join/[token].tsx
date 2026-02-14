@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PENDING_COMMUNITY_INVITE_TOKEN_KEY } from '@/constants/community';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,11 +11,15 @@ export default function CommunityInviteJoinScreen() {
   const colors = Colors.light;
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string }>();
+  const token = typeof params.token === 'string' ? params.token : '';
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
   const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
-    const token = typeof params.token === 'string' ? params.token : '';
+    if (Platform.OS === 'web') {
+      return;
+    }
+
     if (!token) {
       return;
     }
@@ -47,10 +51,37 @@ export default function CommunityInviteJoinScreen() {
     }
 
     handleJoin();
-  }, [isAuthenticated, isLoading, params.token, refreshUser, router]);
+  }, [isAuthenticated, isLoading, token, refreshUser, router]);
+
+  async function handleOpenInApp() {
+    if (!token) return;
+    const deepLink = `routemate://community/join/${encodeURIComponent(token)}`;
+    try {
+      await Linking.openURL(deepLink);
+    } catch {
+      Alert.alert('Open App', 'Please install RouteMate app to accept this invite.');
+    }
+  }
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+        <Text style={[styles.webTitle, { color: colors.text }]}>Community Invite</Text>
+        <Text style={[styles.text, { color: colors.textSecondary }]}>
+          To join this community, open this link in the RouteMate mobile app.
+        </Text>
+        <TouchableOpacity style={[styles.openAppButton, { backgroundColor: colors.tint }]} onPress={handleOpenInApp}>
+          <Text style={styles.openAppButtonText}>Open in RouteMate App</Text>
+        </TouchableOpacity>
+        <Text style={[styles.text, { color: colors.textSecondary }]}>
+          If RouteMate is not installed, install it first and reopen this invite link.
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}> 
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <ActivityIndicator size="large" color={colors.tint} />
       <Text style={[styles.text, { color: colors.text }]}>
         {isJoining ? 'Joining community...' : 'Processing invite link...'}
@@ -73,5 +104,21 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  webTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  openAppButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+  },
+  openAppButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
