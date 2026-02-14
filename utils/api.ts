@@ -179,6 +179,13 @@ export const api = {
     return request('/api/rides/history');
   },
 
+  createRideShareLink: async (connectionId: string): Promise<{ success: boolean; shareToken: string; shareUrl: string }> => {
+    return request('/api/rides/share/create', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId }),
+    });
+  },
+
   // Wallet
   getWalletBalance: async (): Promise<{ balance: number }> => {
     return request('/api/wallet/balance');

@@ -219,10 +219,79 @@ components:
         DriverRatedAt:
           type: string
           format: date-time
+        ShareToken:
+          type: string
+          description: Token used to build public live ride sharing link
+        ShareCreatedAt:
+          type: string
+          format: date-time
         CreatedAt:
           type: string
           format: date-time
         ExpiresAt:
+          type: string
+          format: date-time
+
+    RideShareDetails:
+      type: object
+      properties:
+        connection:
+          type: object
+          properties:
+            Id:
+              type: string
+            State:
+              $ref: '#/components/schemas/RideConnectionState'
+            PickupLocation:
+              $ref: '#/components/schemas/Location'
+            Destination:
+              $ref: '#/components/schemas/Location'
+            Distance:
+              type: number
+              format: double
+            Fare:
+              type: number
+              format: double
+            CreatedAt:
+              type: string
+              format: date-time
+              nullable: true
+            RideTotalTime:
+              type: number
+              format: double
+              nullable: true
+        driver:
+          type: object
+          properties:
+            name:
+              type: string
+            vehicleType:
+              type: string
+              nullable: true
+            ratingAverage:
+              type: number
+              format: double
+              nullable: true
+            ratingCount:
+              type: integer
+            lastLocation:
+              allOf:
+                - $ref: '#/components/schemas/Location'
+              nullable: true
+        passenger:
+          type: object
+          properties:
+            name:
+              type: string
+            lastLocation:
+              allOf:
+                - $ref: '#/components/schemas/Location'
+              nullable: true
+        sharedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
           type: string
           format: date-time
     
@@ -1120,6 +1189,102 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/share/create:
+    post:
+      summary: Create or fetch public ride share link
+      description: Creates (or returns existing) live ride tracking link for a ride participant.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Share link generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  shareToken:
+                    type: string
+                  shareUrl:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/share/details:
+    get:
+      summary: Get public live ride details by token
+      description: Public endpoint used by browser share page to display live ride status, route points, and participant details.
+      tags:
+        - Rides
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shared ride details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideShareDetails'
+        '400':
+          description: Token is missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Shared ride not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Shared ride no longer available
           content:
             application/json:
               schema:

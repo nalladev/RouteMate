@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Keyboard,
   Linking,
+  Share as NativeShare,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -449,6 +450,20 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleShareRide(connectionId: string) {
+    try {
+      const { shareUrl } = await api.createRideShareLink(connectionId);
+      const message = `Track my ride live on RouteMate: ${shareUrl}`;
+      await NativeShare.share({
+        message,
+        url: shareUrl,
+        title: 'RouteMate Live Ride Tracking',
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to create share link');
+    }
+  }
+
   function formatMarkerRating(rating?: number): string {
     if (!rating || rating <= 0) return 'No ratings yet';
     return `${rating.toFixed(1)} / 5`;
@@ -681,6 +696,12 @@ export default function HomeScreen() {
           {activeRequest.State === 'accepted' && activeRequest.OtpCode && (
             <Text style={styles.otpText}>OTP: {activeRequest.OtpCode}</Text>
           )}
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={() => handleShareRide(activeRequest.Id)}
+          >
+            <Text style={styles.shareButtonText}>Share Live Ride</Text>
+          </TouchableOpacity>
           {activeRequest.State === 'requested' && (
             <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRequest}>
               <Text style={styles.cancelButtonText}>Cancel Request</Text>
@@ -843,6 +864,12 @@ export default function HomeScreen() {
             {activeConnections.map((conn) => (
               <View key={conn.Id} style={styles.connectionItem}>
                 <Text style={styles.connectionText}>Status: {conn.State}</Text>
+                <TouchableOpacity
+                  style={styles.driverShareButton}
+                  onPress={() => handleShareRide(conn.Id)}
+                >
+                  <Text style={styles.driverShareButtonText}>Share Ride Link</Text>
+                </TouchableOpacity>
                 {conn.State === 'accepted' && (
                   <View style={styles.otpEntry}>
                     <TextInput
@@ -1115,6 +1142,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  shareButton: {
+    backgroundColor: '#2563eb',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   minimizedBar: {
     position: 'absolute',
     bottom: 80,
@@ -1246,6 +1285,18 @@ const styles = StyleSheet.create({
   connectionText: {
     fontSize: 14,
     marginBottom: 5,
+  },
+  driverShareButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  driverShareButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
   otpEntry: {
     marginTop: 10,

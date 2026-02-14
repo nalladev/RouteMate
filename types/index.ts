@@ -72,7 +72,35 @@ export interface RideConnection {
   PaymentStatus: PaymentStatus;
   DriverRating?: number;
   DriverRatedAt?: any;
+  ShareToken?: string;
+  ShareCreatedAt?: any;
   CreatedAt: any;
+}
+
+export interface RideShareDetails {
+  connection: {
+    Id: string;
+    State: RideConnectionState;
+    PickupLocation: Location;
+    Destination: Location;
+    Distance: number;
+    Fare: number;
+    CreatedAt: string | null;
+    RideTotalTime: number | null;
+  };
+  driver: {
+    name: string;
+    vehicleType: string | null;
+    ratingAverage: number | null;
+    ratingCount: number;
+    lastLocation: Location | null;
+  };
+  passenger: {
+    name: string;
+    lastLocation: Location | null;
+  };
+  sharedAt: string | null;
+  updatedAt: string;
 }
 
 export interface MarkerData {

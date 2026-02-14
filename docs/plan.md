@@ -177,6 +177,7 @@ Both buttons open the same phone.email verification flow. The system automatical
   - Passenger sees expected vehicle type captured at request time.
   - Passenger must confirm whether arriving vehicle matches expected vehicle (match/mismatch) before OTP handoff.
   - Passenger is shown the **OTP code** required for ride connection.
+  - Passenger can tap **Share Live Ride** to generate a public tracking link for family/friends.
   - Cancel option remains available until pickup confirmation.
 
 ### Driver View
@@ -213,13 +214,17 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Passenger shown OTP on screen after request acceptance.
    - Driver cannot verify OTP until passenger confirms vehicle matches expected type.
    - Driver enters OTP in Connection Manager to confirm pickup.
-7. **Completion:** Connection cleared when destination reached and both apps receive ride completion confirmation.
-8. **Payment:** 
+7. **Location Sharing Link:**
+   - Both passenger and driver can generate/share a live ride link while participating in the ride.
+   - Link opens browser page (`/ride-share/[token]`) with live ride status, pickup/destination, driver details, and latest driver/passenger coordinates.
+   - Public link access is token-based and intended to be shared only with trusted family/friends.
+8. **Completion:** Connection cleared when destination reached and both apps receive ride completion confirmation.
+9. **Payment:** 
    - Fare amount is deducted from passenger's internal wallet balance and added to driver's balance.
    - All payment processing happens on backend with balance validation.
    - Balance cannot go negative - request is blocked if insufficient funds.
    - Backend records transaction in payment history.
-9. **Driver Rating (Post-Ride):**
+10. **Driver Rating (Post-Ride):**
    - After completion, passenger is prompted to rate the driver from 1 to 5 stars.
    - Each ride can be rated only once by the passenger who took the ride.
    - Backend stores per-ride rating and updates driver's aggregate rating/count.
@@ -377,6 +382,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `PaymentStatus`: 'pending' | 'success' | 'failed'
 * `DriverRating`: number (1-5, optional, set by passenger after completion)
 * `DriverRatedAt`: Timestamp (optional)
+* `ShareToken`: string (optional, public live-tracking token for browser sharing)
+* `ShareCreatedAt`: Timestamp (optional)
 * `CreatedAt`: Timestamp
 
 ### Transactions Collection
@@ -410,6 +417,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `RAZORPAY_KEY_ID` (optional - disabled until Play Store publication)
 * `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
 * `RAZORPAY_WEBHOOK_SECRET` (optional - disabled until Play Store publication)
+* `EXPO_PUBLIC_APP_URL` (recommended - canonical base URL used to build public live ride share links)
 
 **Note on Maps & Location Services:**
 - **Map Display:** Uses Google Maps (Android) and Apple Maps (iOS) via React Native Maps - no API key required

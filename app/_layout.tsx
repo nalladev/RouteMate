@@ -69,11 +69,12 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(tabs)';
     const inKycPage = segments[0] === 'kyc-verification';
+    const inRideSharePage = segments[0] === 'ride-share';
 
     if (!isAuthenticated && inAuthGroup) {
       // Redirect to login if not authenticated and in protected route
       router.replace('/login');
-    } else if (isAuthenticated && !inAuthGroup && !inKycPage) {
+    } else if (isAuthenticated && !inAuthGroup && !inKycPage && !inRideSharePage) {
       // Check if we should show KYC prompt after login/signup
       if (shouldShowKycPrompt) {
         router.replace('/kyc-verification');
@@ -91,6 +92,7 @@ function RootLayoutNav() {
     <Stack>
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="kyc-verification" options={{ headerShown: false }} />
+      <Stack.Screen name="ride-share/[token]" options={{ title: 'Live Ride Tracking' }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
