@@ -40,7 +40,12 @@ jobs:
       - name: Parse version from tag
         id: version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG=$(git describe --tags --abbrev=0)
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${TAG#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
 
