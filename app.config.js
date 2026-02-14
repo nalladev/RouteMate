@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: "routemate",
+    name: "RouteMate",
     slug: "routemate",
     version: "1.0.0",
     orientation: "portrait",
