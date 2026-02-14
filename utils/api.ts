@@ -131,6 +131,13 @@ export const api = {
     });
   },
 
+  rateDriver: async (connectionId: string, rating: number): Promise<{ success: boolean; rating: number; driverRatingAverage: number; driverRatingCount: number }> => {
+    return request('/api/rides/connection/rate', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId, rating }),
+    });
+  },
+
   getConnections: async (): Promise<{ connections: RideConnection[] }> => {
     return request('/api/rides/connections');
   },

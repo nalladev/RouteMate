@@ -44,6 +44,8 @@ export interface User {
     | 'rejected'
     | 'failed';
   IsKycVerified: boolean;
+  DriverRatingAverage?: number;
+  DriverRatingCount?: number;
 }
 
 export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed';
@@ -61,6 +63,8 @@ export interface RideConnection {
   OtpCode?: string;
   State: RideConnectionState;
   PaymentStatus: PaymentStatus;
+  DriverRating?: number;
+  DriverRatedAt?: any;
   CreatedAt: any;
 }
 

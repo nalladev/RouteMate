@@ -89,7 +89,7 @@ async function getFilteredDrivers(
       filteredDrivers.push({
         userId: driver.Id,
         name: driver.Name || 'Driver',
-        rating: 4.5,
+        rating: driver.DriverRatingAverage || 0,
         vehicle: 'Sedan',
         lastLocation: driver.LastLocation,
         destination: driver.Destination,

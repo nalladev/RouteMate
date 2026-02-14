@@ -46,6 +46,8 @@ export async function POST(request: Request) {
       state: 'idle',
       KycStatus: 'not_started',
       IsKycVerified: false,
+      DriverRatingAverage: 0,
+      DriverRatingCount: 0,
     });
 
     const user = {
@@ -58,6 +60,8 @@ export async function POST(request: Request) {
       UpiId: '',
       KycStatus: 'not_started' as const,
       IsKycVerified: false,
+      DriverRatingAverage: 0,
+      DriverRatingCount: 0,
     };
 
     return Response.json({

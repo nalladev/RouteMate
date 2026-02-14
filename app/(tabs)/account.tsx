@@ -15,12 +15,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
-import { Transaction } from '@/types';
+import { Transaction, User } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
 
 export default function AccountScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
+  const [profileUser, setProfileUser] = useState<User | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,16 +44,18 @@ export default function AccountScreen() {
   const loadAccountInfo = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [balanceData, transactionsData] = await Promise.all([
+      const [balanceData, transactionsData, meData] = await Promise.all([
         api.getWalletBalance(),
-        api.getTransactions(10, 0)
+        api.getTransactions(10, 0),
+        api.getMe(),
       ]);
       setBalance(balanceData.balance);
       setTransactions(transactionsData.transactions);
+      setProfileUser(meData.user);
 
       // Set UPI ID if user has one
-      if (user?.UpiId) {
-        setUpiId(user.UpiId);
+      if (meData.user?.UpiId) {
+        setUpiId(meData.user.UpiId);
       }
     } catch (error) {
       console.error('Failed to load account info:', error);
@@ -60,7 +63,7 @@ export default function AccountScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -119,7 +122,7 @@ export default function AccountScreen() {
 
   async function handlePayout() {
     // Check KYC verification first
-    if (!user?.IsKycVerified) {
+    if (!currentUser?.IsKycVerified) {
       Alert.alert(
         'KYC Verification Required',
         'You must complete KYC verification before withdrawing funds. This is required for financial transactions.',
@@ -231,10 +234,10 @@ export default function AccountScreen() {
     }
   }
 
-  function getKycDisplayStatus(): { label: string; color: string; bgColor: string } {
-    const status = user?.KycStatus || user?.KycData?.status;
+  function getKycDisplayStatus(targetUser: User): { label: string; color: string; bgColor: string } {
+    const status = targetUser.KycStatus || targetUser.KycData?.status;
 
-    if (user?.IsKycVerified || status === 'approved') {
+    if (targetUser.IsKycVerified || status === 'approved') {
       return { label: '✓ Verified', color: colors.success, bgColor: colors.success + '20' };
     }
 
@@ -258,12 +261,14 @@ export default function AccountScreen() {
     );
   }
 
-  if (!user) {
+  const currentUser = profileUser || user;
+
+  if (!currentUser) {
     return null;
   }
 
-  const kycDisplay = getKycDisplayStatus();
-  const canShowVerifyButton = !user.IsKycVerified && kycDisplay.label !== 'Under Review';
+  const kycDisplay = getKycDisplayStatus(currentUser);
+  const canShowVerifyButton = !currentUser.IsKycVerified && kycDisplay.label !== 'Under Review';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
@@ -282,18 +287,18 @@ export default function AccountScreen() {
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Name</Text>
-              <Text style={[styles.value, { color: colors.text }]}>{user.Name || 'Not set'}</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{currentUser.Name || 'Not set'}</Text>
             </View>
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Mobile</Text>
-              <Text style={[styles.value, { color: colors.text }]}>{user.Mobile}</Text>
+              <Text style={[styles.value, { color: colors.text }]}>{currentUser.Mobile}</Text>
             </View>
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>KYC Status</Text>
               <View style={styles.badgeContainer}>
-                {user.IsKycVerified ? (
+                {currentUser.IsKycVerified ? (
                   <View style={[styles.verifiedBadge, { backgroundColor: colors.success + '20' }]}>
                     <Text style={[styles.verifiedText, { color: colors.success }]}>✓ Verified</Text>
                   </View>
@@ -314,10 +319,19 @@ export default function AccountScreen() {
               </TouchableOpacity>
             )}
 
-            {user.UpiId && (
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Driver Rating</Text>
+              <Text style={[styles.value, { color: colors.text }]}>
+                {(currentUser.DriverRatingCount || 0) > 0
+                  ? `${(currentUser.DriverRatingAverage || 0).toFixed(1)} / 5 (${currentUser.DriverRatingCount} ratings)`
+                  : 'No ratings yet'}
+              </Text>
+            </View>
+
+            {currentUser.UpiId && (
               <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>UPI ID</Text>
-                <Text style={[styles.value, { color: colors.text }]}>{user.UpiId}</Text>
+                <Text style={[styles.value, { color: colors.text }]}>{currentUser.UpiId}</Text>
               </View>
             )}
           </View>
@@ -348,7 +362,7 @@ export default function AccountScreen() {
               <TouchableOpacity
                 style={[styles.walletButton, { backgroundColor: colors.error }, styles.disabledButton]}
                 onPress={() => {
-                  if (!user.IsKycVerified) {
+                  if (!currentUser.IsKycVerified) {
                     Alert.alert(
                       'KYC Verification Required',
                       'You must complete KYC verification before withdrawing funds.',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -46,10 +46,35 @@ export default function HomeScreen() {
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [ratingConnection, setRatingConnection] = useState<RideConnection | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const previousActiveRequestIdRef = useRef<string | null>(null);
 
   // New state for mode selection flow
   const [tempDestination, setTempDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [isSelectingMode, setIsSelectingMode] = useState(false);
+
+  const checkForPendingRating = useCallback(async () => {
+    if (!user || ratingConnection) return;
+
+    try {
+      const { rides } = await api.getHistory();
+      const unratedRide = rides.find(
+        (ride) =>
+          ride.PassengerId === user.Id &&
+          ride.State === 'completed' &&
+          (ride.DriverRating === undefined || ride.DriverRating === null)
+      );
+
+      if (unratedRide) {
+        setRatingConnection(unratedRide);
+        setSelectedRating(0);
+      }
+    } catch (error) {
+      console.error('Failed to check pending rating:', error);
+    }
+  }, [user, ratingConnection]);
 
 
   // Authentication is now handled in root layout with Redirect component
@@ -72,11 +97,28 @@ export default function HomeScreen() {
       const myConnection = activeConnections.find(
         (c) => c.PassengerId === user?.Id || c.DriverId === user?.Id
       );
-      if (myConnection) {
-        setActiveRequest(myConnection);
-      }
+      setActiveRequest(myConnection || null);
+    } else {
+      setActiveRequest(null);
     }
   }, [activeConnections, user]);
+
+  useEffect(() => {
+    async function maybePromptRating() {
+      if (!user || role !== 'passenger') return;
+      if (previousActiveRequestIdRef.current && !activeRequest) {
+        await checkForPendingRating();
+      }
+      previousActiveRequestIdRef.current = activeRequest?.Id || null;
+    }
+
+    maybePromptRating();
+  }, [activeRequest, role, user, checkForPendingRating]);
+
+  useEffect(() => {
+    if (!user || role !== 'passenger') return;
+    checkForPendingRating();
+  }, [role, user, checkForPendingRating]);
 
   async function loadBalance() {
     try {
@@ -317,6 +359,27 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleSubmitRating() {
+    if (!ratingConnection || selectedRating < 1 || selectedRating > 5) return;
+
+    try {
+      setIsSubmittingRating(true);
+      await api.rateDriver(ratingConnection.Id, selectedRating);
+      Alert.alert('Thank you!', 'Your rating has been submitted.');
+      setRatingConnection(null);
+      setSelectedRating(0);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to submit rating');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  }
+
+  function formatMarkerRating(rating?: number): string {
+    if (!rating || rating <= 0) return 'No ratings yet';
+    return `${rating.toFixed(1)} / 5`;
+  }
+
   if (!user || !userLocation) {
     return (
       <View style={styles.loadingContainer}>
@@ -443,7 +506,7 @@ export default function HomeScreen() {
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.detailText}>Rating: {selectedMarker.rating || 'N/A'}</Text>
+          <Text style={styles.detailText}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
           <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
           <TouchableOpacity
             style={styles.requestButton}
@@ -510,6 +573,59 @@ export default function HomeScreen() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Post-ride rating popup (passenger) */}
+      <Modal visible={!!ratingConnection} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.ratingModalContent}>
+            <Text style={styles.modalTitle}>Rate Your Driver</Text>
+            <Text style={styles.modalText}>How was your ride experience?</Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setSelectedRating(star)}
+                  disabled={isSubmittingRating}
+                  style={styles.starButton}
+                >
+                  <MaterialIcons
+                    name={star <= selectedRating ? 'star' : 'star-border'}
+                    size={36}
+                    color={star <= selectedRating ? '#f59e0b' : '#9ca3af'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.rejectButton]}
+                onPress={() => {
+                  setRatingConnection(null);
+                  setSelectedRating(0);
+                }}
+                disabled={isSubmittingRating}
+              >
+                <Text style={styles.modalButtonText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.acceptButton,
+                  (selectedRating === 0 || isSubmittingRating) && styles.disabledActionButton,
+                ]}
+                onPress={handleSubmitRating}
+                disabled={selectedRating === 0 || isSubmittingRating}
+              >
+                {isSubmittingRating ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -754,6 +870,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
   },
+  ratingModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -783,10 +905,21 @@ const styles = StyleSheet.create({
   acceptButton: {
     backgroundColor: '#4CAF50',
   },
+  disabledActionButton: {
+    opacity: 0.6,
+  },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  starButton: {
+    paddingHorizontal: 2,
   },
   connectionManager: {
     position: 'absolute',

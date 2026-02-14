@@ -126,7 +126,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ### Driver Detail Exploration (Before Request)
 * When a driver marker is selected, passenger sees:
-  - Driver name and rating.
+  - Driver name and rating (calculated from completed ride reviews).
   - Vehicle details.
   - Estimated pickup ETA.
   - Estimated drop ETA.
@@ -200,6 +200,10 @@ Both buttons open the same phone.email verification flow. The system automatical
    - All payment processing happens on backend with balance validation.
    - Balance cannot go negative - request is blocked if insufficient funds.
    - Backend records transaction in payment history.
+9. **Driver Rating (Post-Ride):**
+   - After completion, passenger is prompted to rate the driver from 1 to 5 stars.
+   - Each ride can be rated only once by the passenger who took the ride.
+   - Backend stores per-ride rating and updates driver's aggregate rating/count.
 
 ---
 
@@ -212,6 +216,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ## 8. Account/User Section
 * Show user name, phone, KYC verified badge.
+* Show driver rating summary (`average / 5` and total ratings count) for self-view.
 * Show wallet balance prominently.
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * **Payout/Withdraw Button:** ~~Allows drivers to withdraw their earnings.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
@@ -331,6 +336,8 @@ Both buttons open the same phone.email verification flow. The system automatical
   `address?`: string
 }
 * `IsKycVerified`: boolean
+* `DriverRatingAverage`: number (default: 0)
+* `DriverRatingCount`: number (default: 0)
 
 ### RideConnections Collection
 * `Id`: string
@@ -344,6 +351,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `OtpCode`: string
 * `State`: 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed'
 * `PaymentStatus`: 'pending' | 'success' | 'failed'
+* `DriverRating`: number (1-5, optional, set by passenger after completion)
+* `DriverRatedAt`: Timestamp (optional)
 * `CreatedAt`: Timestamp
 
 ### Transactions Collection

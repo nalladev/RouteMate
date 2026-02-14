@@ -125,6 +125,13 @@ components:
           $ref: '#/components/schemas/KycData'
         IsKycVerified:
           type: boolean
+        DriverRatingAverage:
+          type: number
+          format: double
+          description: Driver's aggregate average rating (1.0 to 5.0)
+        DriverRatingCount:
+          type: integer
+          description: Total number of received driver ratings
     
     RideConnectionState:
       type: string
@@ -178,6 +185,14 @@ components:
           $ref: '#/components/schemas/RideConnectionState'
         PaymentStatus:
           $ref: '#/components/schemas/PaymentStatus'
+        DriverRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Passenger's rating for this ride's driver
+        DriverRatedAt:
+          type: string
+          format: date-time
         CreatedAt:
           type: string
           format: date-time
@@ -890,6 +905,78 @@ paths:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Payment processing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/rate:
+    post:
+      summary: Rate driver after ride
+      description: Passenger submits a 1-5 star rating for the driver on a completed ride. Updates ride and driver aggregate rating.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+              required:
+                - connectionId
+                - rating
+      responses:
+        '200':
+          description: Rating submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  rating:
+                    type: integer
+                  driverRatingAverage:
+                    type: number
+                    format: double
+                  driverRatingCount:
+                    type: integer
+        '400':
+          description: Invalid request, invalid rating, ride not completed, or already rated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
