@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, RideConnection, MarkerData, Location } from '../types';
+import type { User, RideConnection, MarkerData, Location, RewardVoucher, RewardRedemption, RewardRole } from '../types';
 import type { VehicleType } from '../constants/vehicles';
 
 // Use relative URLs for Expo Router API routes
@@ -157,14 +157,27 @@ export const api = {
     });
   },
 
-  completeRide: async (connectionId: string): Promise<{ success: boolean; paymentStatus: string; fare: number }> => {
+  completeRide: async (connectionId: string): Promise<{
+    success: boolean;
+    paymentStatus: string;
+    fare: number;
+    passengerPointsAwarded?: number;
+    passengerRewardPoints?: number;
+  }> => {
     return request('/api/rides/connection/complete', {
       method: 'POST',
       body: JSON.stringify({ connectionId }),
     });
   },
 
-  rateDriver: async (connectionId: string, rating: number): Promise<{ success: boolean; rating: number; driverRatingAverage: number; driverRatingCount: number }> => {
+  rateDriver: async (connectionId: string, rating: number): Promise<{
+    success: boolean;
+    rating: number;
+    driverRatingAverage: number;
+    driverRatingCount: number;
+    driverPointsAwarded?: number;
+    driverRewardPoints?: number;
+  }> => {
     return request('/api/rides/connection/rate', {
       method: 'POST',
       body: JSON.stringify({ connectionId, rating }),
@@ -183,6 +196,33 @@ export const api = {
     return request('/api/rides/share/create', {
       method: 'POST',
       body: JSON.stringify({ connectionId }),
+    });
+  },
+
+  // Rewards
+  getRewards: async (): Promise<{
+    points: {
+      passenger: number;
+      driver: number;
+    };
+    vouchers: {
+      passenger: RewardVoucher[];
+      driver: RewardVoucher[];
+    };
+    redemptions: RewardRedemption[];
+  }> => {
+    return request('/api/rewards');
+  },
+
+  redeemReward: async (role: RewardRole, voucherId: string): Promise<{
+    success: boolean;
+    role: RewardRole;
+    voucher: RewardVoucher;
+    remainingPoints: number;
+  }> => {
+    return request('/api/rewards/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ role, voucherId }),
     });
   },
 

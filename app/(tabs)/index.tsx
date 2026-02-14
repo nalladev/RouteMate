@@ -426,8 +426,9 @@ export default function HomeScreen() {
 
   async function handleCompleteRide(connectionId: string) {
     try {
-      const { fare, paymentStatus } = await api.completeRide(connectionId);
-      Alert.alert('Ride Completed', `Payment ${paymentStatus}! Fare: ₹${fare.toFixed(2)}`);
+      const { fare, paymentStatus, passengerPointsAwarded } = await api.completeRide(connectionId);
+      const pointsLine = passengerPointsAwarded ? `\nYou earned ${passengerPointsAwarded} passenger points.` : '';
+      Alert.alert('Ride Completed', `Payment ${paymentStatus}! Fare: ₹${fare.toFixed(2)}${pointsLine}`);
       setActiveRequest(null);
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -439,8 +440,11 @@ export default function HomeScreen() {
 
     try {
       setIsSubmittingRating(true);
-      await api.rateDriver(ratingConnection.Id, selectedRating);
-      Alert.alert('Thank you!', 'Your rating has been submitted.');
+      const result = await api.rateDriver(ratingConnection.Id, selectedRating);
+      const pointsLine = result.driverPointsAwarded
+        ? `\nDriver earned ${result.driverPointsAwarded} points for this 5-star ride.`
+        : '';
+      Alert.alert('Thank you!', `Your rating has been submitted.${pointsLine}`);
       setRatingConnection(null);
       setSelectedRating(0);
     } catch (error: any) {

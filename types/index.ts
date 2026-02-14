@@ -50,6 +50,8 @@ export interface User {
   IsKycVerified: boolean;
   DriverRatingAverage?: number;
   DriverRatingCount?: number;
+  PassengerRewardPoints?: number;
+  DriverRewardPoints?: number;
 }
 
 export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed';
@@ -131,6 +133,29 @@ export interface UserPublic {
     | 'rejected'
     | 'failed';
   IsKycVerified: boolean;
+  PassengerRewardPoints?: number;
+  DriverRewardPoints?: number;
+}
+
+export type RewardRole = 'passenger' | 'driver';
+
+export interface RewardVoucher {
+  id: string;
+  role: RewardRole;
+  title: string;
+  description: string;
+  pointsCost: number;
+}
+
+export interface RewardRedemption {
+  Id: string;
+  UserId: string;
+  VoucherId: string;
+  VoucherTitle: string;
+  Role: RewardRole;
+  PointsCost: number;
+  Status: 'redeemed';
+  CreatedAt: any;
 }
 
 export type TransactionType = 'topup' | 'payout' | 'ride_payment' | 'ride_earning';

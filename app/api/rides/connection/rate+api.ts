@@ -1,6 +1,7 @@
 import { getAuthToken, validateSession } from '../../../../lib/middleware';
 import { getDocumentById, runTransaction, initializeFirestore } from '../../../../lib/firestore';
 import { RideConnection, User } from '../../../../types';
+import { DRIVER_POINTS_PER_FIVE_STAR_RIDE } from '../../../../constants/rewards';
 
 export async function POST(request: Request) {
   try {
@@ -94,8 +95,11 @@ export async function POST(request: Request) {
 
       const currentCount = driverData.DriverRatingCount || 0;
       const currentAverage = driverData.DriverRatingAverage || 0;
+      const currentDriverRewardPoints = driverData.DriverRewardPoints || 0;
       const newCount = currentCount + 1;
       const newAverage = ((currentAverage * currentCount) + rating) / newCount;
+      const driverPointsAwarded = rating === 5 ? DRIVER_POINTS_PER_FIVE_STAR_RIDE : 0;
+      const newDriverRewardPoints = currentDriverRewardPoints + driverPointsAwarded;
 
       transaction.update(connectionRef, {
         DriverRating: rating,
@@ -105,6 +109,7 @@ export async function POST(request: Request) {
       transaction.update(driverRef, {
         DriverRatingCount: newCount,
         DriverRatingAverage: Number(newAverage.toFixed(2)),
+        DriverRewardPoints: newDriverRewardPoints,
       });
 
       return {
@@ -112,6 +117,8 @@ export async function POST(request: Request) {
         rating,
         driverRatingAverage: Number(newAverage.toFixed(2)),
         driverRatingCount: newCount,
+        driverPointsAwarded,
+        driverRewardPoints: newDriverRewardPoints,
       };
     });
 

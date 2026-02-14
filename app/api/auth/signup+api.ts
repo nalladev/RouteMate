@@ -49,6 +49,8 @@ export async function POST(request: Request) {
       IsKycVerified: false,
       DriverRatingAverage: 0,
       DriverRatingCount: 0,
+      PassengerRewardPoints: 0,
+      DriverRewardPoints: 0,
     });
 
     const user = {
@@ -64,6 +66,8 @@ export async function POST(request: Request) {
       IsKycVerified: false,
       DriverRatingAverage: 0,
       DriverRatingCount: 0,
+      PassengerRewardPoints: 0,
+      DriverRewardPoints: 0,
     };
 
     return Response.json({

@@ -1,6 +1,7 @@
 import { getAuthToken, validateSession } from '../../../../lib/middleware';
 import { getDocumentById, runTransaction, initializeFirestore } from '../../../../lib/firestore';
 import { User, RideConnection } from '../../../../types';
+import { PASSENGER_POINTS_PER_COMPLETED_RIDE } from '../../../../constants/rewards';
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
 
       const passengerBalance = passengerData.WalletBalance || 0;
       const driverBalance = driverData.WalletBalance || 0;
+      const passengerRewardPoints = passengerData.PassengerRewardPoints || 0;
 
       // Validate passenger has sufficient balance
       if (passengerBalance < fare) {
@@ -109,10 +111,12 @@ export async function POST(request: Request) {
       // Calculate new balances
       const newPassengerBalance = passengerBalance - fare;
       const newDriverBalance = driverBalance + fare;
+      const newPassengerRewardPoints = passengerRewardPoints + PASSENGER_POINTS_PER_COMPLETED_RIDE;
 
       // Update passenger balance
       transaction.update(passengerRef, {
         WalletBalance: newPassengerBalance,
+        PassengerRewardPoints: newPassengerRewardPoints,
         state: 'idle',
         Destination: null,
       });
@@ -167,6 +171,8 @@ export async function POST(request: Request) {
         fare,
         passengerBalance: newPassengerBalance,
         driverBalance: newDriverBalance,
+        passengerPointsAwarded: PASSENGER_POINTS_PER_COMPLETED_RIDE,
+        passengerRewardPoints: newPassengerRewardPoints,
       };
     });
 

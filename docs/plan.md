@@ -82,7 +82,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 2. Mandatory location access permission (blocks interaction until granted)
 3. Blue glowing dot for user's live location
 4. Log live location to Firestore via backend at set intervals
-5. A navigation menu at the bottom with 3 icons (home, history/previous/rides, user/profile/account)
+5. A navigation menu at the bottom with 4 icons (home, history/previous/rides, rewards, user/profile/account)
 6. **Destination search input** at the top of the page with:
    - Built-in autocomplete for destination suggestions (using Nominatim/OpenStreetMap API)
    - Ability to select a place from the map by tapping
@@ -229,6 +229,15 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Each ride can be rated only once by the passenger who took the ride.
    - Backend stores per-ride rating and updates driver's aggregate rating/count.
 
+11. **Rewards Points & Voucher Redemption:**
+   - Rewards points are separate from wallet balance in rupees.
+   - Passenger earns points on every completed ride.
+   - Driver earns points when a completed ride receives a 5-star rating.
+   - Rewards tab shows points, available vouchers, and recent redemptions.
+   - Dummy vouchers are visible even when points are insufficient.
+   - Redeem action is enabled only when user has enough points.
+   - Voucher catalog is role-specific (passenger examples: free ride/discount; driver examples: free fuel/service perks).
+
 ---
 
 ## 7. History Section
@@ -246,6 +255,13 @@ Both buttons open the same phone.email verification flow. The system automatical
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * **Payout/Withdraw Button:** ~~Allows drivers to withdraw their earnings.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * Display recent transaction history (top-ups and payouts).
+
+## 8.1 Rewards Section
+* Add a dedicated `Rewards` page/tab.
+* Show separate reward point balances for passenger and driver roles.
+* Show role-based dummy voucher catalog for now.
+* Support voucher redemption with points deduction and redemption history.
+* Keep wallet flows untouched (rewards points are non-monetary and independent from INR wallet balance).
 
 **Note:** Deposit and withdrawal features are disabled until app is published on Play Store. Razorpay regulations require a valid app store link for payment gateway integration. Users can still use existing wallet balance for rides, but cannot add funds or withdraw.
 

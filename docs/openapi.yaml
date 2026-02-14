@@ -143,6 +143,12 @@ components:
         DriverRatingCount:
           type: integer
           description: Total number of received driver ratings
+        PassengerRewardPoints:
+          type: integer
+          description: Reward points earned from completed rides as passenger
+        DriverRewardPoints:
+          type: integer
+          description: Reward points earned from 5-star ratings as driver
     
     RideConnectionState:
       type: string
@@ -174,6 +180,49 @@ components:
         - payout
         - ride_payment
         - ride_earning
+
+    RewardRole:
+      type: string
+      enum:
+        - passenger
+        - driver
+
+    RewardVoucher:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          $ref: '#/components/schemas/RewardRole'
+        title:
+          type: string
+        description:
+          type: string
+        pointsCost:
+          type: integer
+
+    RewardRedemption:
+      type: object
+      properties:
+        Id:
+          type: string
+        UserId:
+          type: string
+        VoucherId:
+          type: string
+        VoucherTitle:
+          type: string
+        Role:
+          $ref: '#/components/schemas/RewardRole'
+        PointsCost:
+          type: integer
+        Status:
+          type: string
+          enum:
+            - redeemed
+        CreatedAt:
+          type: string
+          format: date-time
     
     RideConnection:
       type: object
@@ -1059,7 +1108,7 @@ paths:
   /api/rides/connection/complete:
     post:
       summary: Complete ride
-      description: Marks ride as completed and processes payment atomically. Deducts fare from passenger balance and credits driver balance. Creates transaction records.
+      description: Marks ride as completed and processes payment atomically. Deducts fare from passenger balance and credits driver balance. Creates transaction records and awards passenger reward points.
       tags:
         - Rides
       security:
@@ -1087,10 +1136,19 @@ paths:
                     type: boolean
                   paymentStatus:
                     type: string
-                  passengerTxId:
-                    type: string
-                  driverTxId:
-                    type: string
+                  fare:
+                    type: number
+                    format: double
+                  passengerBalance:
+                    type: number
+                    format: double
+                  driverBalance:
+                    type: number
+                    format: double
+                  passengerPointsAwarded:
+                    type: integer
+                  passengerRewardPoints:
+                    type: integer
         '400':
           description: Bad request or insufficient balance
           content:
@@ -1125,7 +1183,7 @@ paths:
   /api/rides/connection/rate:
     post:
       summary: Rate driver after ride
-      description: Passenger submits a 1-5 star rating for the driver on a completed ride. Updates ride and driver aggregate rating.
+      description: Passenger submits a 1-5 star rating for the driver on a completed ride. Updates ride and driver aggregate rating, and awards driver reward points on 5-star ratings.
       tags:
         - Rides
       security:
@@ -1162,6 +1220,10 @@ paths:
                     type: number
                     format: double
                   driverRatingCount:
+                    type: integer
+                  driverPointsAwarded:
+                    type: integer
+                  driverRewardPoints:
                     type: integer
         '400':
           description: Invalid request, invalid rating, ride not completed, or already rated
@@ -1339,6 +1401,108 @@ paths:
                       $ref: '#/components/schemas/RideConnection'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rewards:
+    get:
+      summary: Get rewards points, vouchers, and redemptions
+      description: Returns passenger and driver reward points, dummy voucher catalog, and recent redemptions.
+      tags:
+        - Rewards
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Rewards payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  points:
+                    type: object
+                    properties:
+                      passenger:
+                        type: integer
+                      driver:
+                        type: integer
+                  vouchers:
+                    type: object
+                    properties:
+                      passenger:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RewardVoucher'
+                      driver:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RewardVoucher'
+                  redemptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RewardRedemption'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rewards/redeem:
+    post:
+      summary: Redeem reward voucher
+      description: Redeems a voucher by deducting points from the selected role wallet if enough points are available.
+      tags:
+        - Rewards
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  $ref: '#/components/schemas/RewardRole'
+                voucherId:
+                  type: string
+              required:
+                - role
+                - voucherId
+      responses:
+        '200':
+          description: Voucher redeemed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  role:
+                    $ref: '#/components/schemas/RewardRole'
+                  voucher:
+                    $ref: '#/components/schemas/RewardVoucher'
+                  remainingPoints:
+                    type: integer
+        '400':
+          description: Invalid request or insufficient points
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Voucher or user not found
           content:
             application/json:
               schema:
