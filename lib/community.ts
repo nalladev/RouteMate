@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import Constants from "expo-constants";
 import { initializeFirestore } from './firestore';
 import { COMMUNITY_INVITE_PRESET_HOURS, type CommunityInvitePresetHours } from '../constants/community';
 
@@ -25,7 +26,7 @@ function sanitizeBaseUrl(value: string): string {
 }
 
 export function resolvePublicAppUrl(request: Request): string {
-  const configured = process.env.EXPO_PUBLIC_APP_URL;
+  const configured = Constants.expoConfig?.extra?.appUrl;
   if (configured) {
     return sanitizeBaseUrl(configured);
   }
@@ -65,15 +66,15 @@ export async function getCommunityById(communityId: string): Promise<CommunityRe
 }
 
 export async function getCommunitiesForUser(userId: string): Promise<CommunityRecord[]> {
-  
+
   const db = initializeFirestore();
-  
+
   const snapshot = await db
     .collection('communities')
     .where('MemberIds', 'array-contains', userId)
     .get();
 
-  
+
   const results = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {

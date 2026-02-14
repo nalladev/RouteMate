@@ -92,7 +92,6 @@ npm install
 2. Set up environment variables in `.env.local`:
 ```
 FIREBASE_SERVICE_ACCOUNT_ENCODED=<base64-encoded-firebase-service-account-json>
-PHONE_EMAIL_API_KEY=<your-phone-email-api-key>
 EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID=<your-phone-email-client-id>
 DIDIT_API_KEY=<your-didit-api-key>
 DIDIT_WORKFLOW_ID=<your-didit-workflow-id>

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
-import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 
@@ -21,8 +21,8 @@ const COUNTRY_CODES = [
 // Helper to get the correct API base URL
 function getApiBaseUrl(): string {
   // If EXPO_PUBLIC_API_URL is set, use it
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  if (Constants.expoConfig?.extra?.appUrl) {
+    return Constants.expoConfig?.extra?.appUrl;
   }
 
   // For development with tunnel or local network
@@ -45,7 +45,7 @@ export default function LoginScreen() {
   const webViewRef = useRef<WebView>(null);
 
   // Get CLIENT_ID from environment variable
-  const CLIENT_ID = process.env.EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID || '';
+  const CLIENT_ID = Constants.expoConfig?.extra?.phoneEmailClientId || '';
   const API_BASE_URL = getApiBaseUrl();
 
   React.useEffect(() => {

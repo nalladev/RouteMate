@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { getAuthToken, validateSession } from '../../middleware';
 import { getDocumentById, updateDocument } from '../../firestore';
 import { RideConnection } from '../../../types';
@@ -11,7 +12,7 @@ async function generateRandomToken(): Promise<string> {
     return crypto.randomBytes(16).toString('hex');
   }
   // This should never be called on client, but provide fallback
-  return Array.from({ length: 32 }, () => 
+  return Array.from({ length: 32 }, () =>
     Math.floor(Math.random() * 16).toString(16)
   ).join('');
 }
@@ -21,7 +22,7 @@ function sanitizeBaseUrl(value: string): string {
 }
 
 function resolveBaseUrl(request: Request): string {
-  const configured = process.env.EXPO_PUBLIC_APP_URL;
+  const configured = Constants.expoConfig?.extra?.appUrl;
   if (configured) {
     return sanitizeBaseUrl(configured);
   }

@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   User,
@@ -14,7 +15,7 @@ import type { VehicleType } from '../constants/vehicles';
 
 // Use relative URLs for Expo Router API routes
 // This works with tunnel mode, local network, and production
-const API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const API_URL = Constants.expoConfig?.extra?.appUrl || '';
 
 async function getAuthToken(): Promise<string | null> {
   return await AsyncStorage.getItem('authToken');
@@ -22,7 +23,7 @@ async function getAuthToken(): Promise<string | null> {
 
 async function request(endpoint: string, options: RequestInit = {}): Promise<any> {
   const token = await getAuthToken();
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };

@@ -457,7 +457,6 @@ Both buttons open the same phone.email verification flow. The system automatical
 ## 12. Environment Variables (Backend Only)
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
 * `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
-* `PHONE_EMAIL_API_KEY`
 * `DIDIT_API_KEY` (Backend - for API verification and session creation)
 * `DIDIT_WORKFLOW_ID` (Backend - workflow ID for verification)
 * `DIDIT_CALLBACK_URL` (optional - redirect URL after Didit flow; defaults to production callback)

@@ -109,7 +109,9 @@ module.exports = {
       router: {},
       eas: {
         projectId: "0163e419-a387-43bb-b94f-eb338694141c"
-      }
+      },
+      appUrl: "https://www.routemate.tech",
+      phoneEmailClientId: "11787517661743701617"
     },
     owner: "octavian007"
   }
