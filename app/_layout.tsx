@@ -167,8 +167,6 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  console.log('=== RootLayout Rendering ===');
-
   return (
     <ErrorBoundary>
       <AuthProvider>
