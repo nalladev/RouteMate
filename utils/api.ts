@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, RideConnection, MarkerData, Location } from '../types';
+import type { VehicleType } from '../constants/vehicles';
 
 // Use relative URLs for Expo Router API routes
 // This works with tunnel mode, local network, and production
@@ -29,10 +30,28 @@ async function request(endpoint: string, options: RequestInit = {}): Promise<any
     headers,
   });
 
-  const data = await response.json();
+  const rawBody = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+  let data: any = {};
+
+  if (rawBody) {
+    if (contentType.includes('application/json')) {
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        data = { error: rawBody };
+      }
+    } else {
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        data = { error: rawBody };
+      }
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    throw new Error(data.error || `Request failed (${response.status})`);
   }
 
   return data;
@@ -86,6 +105,13 @@ export const api = {
     });
   },
 
+  updateVehicleType: async (vehicleType: VehicleType): Promise<{ success: boolean; vehicleType: VehicleType }> => {
+    return request('/api/user/vehicle', {
+      method: 'POST',
+      body: JSON.stringify({ vehicleType }),
+    });
+  },
+
   // Discovery
   getMarkers: async (role: 'driver' | 'passenger', lat: number, lng: number): Promise<{ markers: MarkerData[] }> => {
     return request(`/api/match/markers?role=${role}&lat=${lat}&lng=${lng}`);
@@ -121,6 +147,13 @@ export const api = {
     return request('/api/rides/connection/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ connectionId, otp }),
+    });
+  },
+
+  confirmVehicle: async (connectionId: string, isSameVehicle: boolean): Promise<{ success: boolean; confirmation: 'confirmed' | 'mismatch' }> => {
+    return request('/api/rides/connection/confirm-vehicle', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId, isSameVehicle }),
     });
   },
 

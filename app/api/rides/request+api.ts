@@ -95,6 +95,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!driver.VehicleType) {
+      return Response.json(
+        { error: 'Driver has not configured a vehicle type yet' },
+        { status: 400 }
+      );
+    }
+
 
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
@@ -107,6 +114,8 @@ export async function POST(request: Request) {
       Distance: distance,
       Fare: fare,
       OtpCode: otpCode,
+      RequestedVehicleType: driver.VehicleType,
+      PassengerVehicleConfirmation: 'pending',
       State: 'requested',
       PaymentStatus: 'pending',
       CreatedAt: new Date(),

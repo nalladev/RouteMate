@@ -94,6 +94,7 @@ Both buttons open the same phone.email verification flow. The system automatical
    - The destination is saved temporarily (not yet in Firestore)
    - Two buttons appear: **"Start Driving"** and **"Find a Ride"** (or similar)
    - User selects their mode choice (driver or passenger)
+   - If user selects **driver** and has no saved vehicle type, app prompts to select one (`Sedan`, `SUV`, `Hatchback`, `Bike`, `Auto`, `Van`, `Other`) before activating driving mode
    - This selection triggers transition to **Active State**
 
 ### Active State (Driving or Riding Mode)
@@ -125,6 +126,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 ### Passenger View
 * **Interaction:** Clicking a filtered driver marker opens a **slide-in bottom box** showing driver details along with a "Request Ride" button (the button only works if user has sufficient balance for the fare; otherwise show "Insufficient balance" and a button to account section where they can top up).
 * **Interaction:** Clicking outside the slide-in box/popup closes it.
+* Driver marker details must show the driver's configured `VehicleType` before passenger requests the ride.
 
 ### Driver Detail Exploration (Before Request)
 * When a driver marker is selected, passenger sees:
@@ -161,6 +163,8 @@ Both buttons open the same phone.email verification flow. The system automatical
 * If driver **accepts** request:
   - Pane automatically switches to **Connection Established view**.
   - Driver live location and ETA to pickup become visible.
+  - Passenger sees expected vehicle type captured at request time.
+  - Passenger must confirm whether arriving vehicle matches expected vehicle (match/mismatch) before OTP handoff.
   - Passenger is shown the **OTP code** required for ride connection.
   - Cancel option remains available until pickup confirmation.
 
@@ -195,6 +199,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 5. Connected passengers are hidden from other map users and unavailable for additional requests.
 6. **OTP Handshake:**
    - Passenger shown OTP on screen after request acceptance.
+   - Driver cannot verify OTP until passenger confirms vehicle matches expected type.
    - Driver enters OTP in Connection Manager to confirm pickup.
 7. **Completion:** Connection cleared when destination reached and both apps receive ride completion confirmation.
 8. **Payment:** 
@@ -218,6 +223,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ## 8. Account/User Section
 * Show user name, phone, KYC verified badge.
+* Allow driver to set/update vehicle type in profile (`Sedan`, `SUV`, `Hatchback`, `Bike`, `Auto`, `Van`, `Other`).
 * Show driver rating summary (`average / 5` and total ratings count) for self-view.
 * Show wallet balance prominently.
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
@@ -320,6 +326,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `Session`: { `token`: string }
 * `WalletBalance`: number (default: 0, cannot be negative)
 * `UpiId`: string (optional, stored when user requests first payout)
+* `VehicleType`: 'Sedan' | 'SUV' | 'Hatchback' | 'Bike' | 'Auto' | 'Van' | 'Other' (required to enter driving mode)
 * `state`: 'driving' | 'riding' | 'idle'
 * `LastLocation`: { `lat`: number, `lng`: number }
 * `Destination`: { `lat`: number, `lng`: number }
@@ -351,6 +358,9 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `Fare`: number
 * `RideTotalTime`: number
 * `OtpCode`: string
+* `RequestedVehicleType`: string (captured from driver profile at request time)
+* `PassengerVehicleConfirmation`: 'pending' | 'confirmed' | 'mismatch'
+* `PassengerVehicleConfirmedAt`: Timestamp (optional)
 * `State`: 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed'
 * `PaymentStatus`: 'pending' | 'success' | 'failed'
 * `DriverRating`: number (1-5, optional, set by passenger after completion)

@@ -17,10 +17,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/utils/api';
 import { Transaction, User } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
+import { VEHICLE_TYPES } from '@/constants/vehicles';
+import type { VehicleType } from '@/constants/vehicles';
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, refreshUser } = useAuth();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +38,7 @@ export default function AccountScreen() {
   const [payoutAmount, setPayoutAmount] = useState('');
   const [upiId, setUpiId] = useState('');
   const [showUpiInput, setShowUpiInput] = useState(false);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | ''>('');
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -57,6 +60,7 @@ export default function AccountScreen() {
       if (meData.user?.UpiId) {
         setUpiId(meData.user.UpiId);
       }
+      setSelectedVehicleType(meData.user?.VehicleType || '');
     } catch (error) {
       console.error('Failed to load account info:', error);
       Alert.alert('Error', 'Failed to load account information');
@@ -201,6 +205,24 @@ export default function AccountScreen() {
     }
   }
 
+  async function handleSaveVehicleType() {
+    if (!selectedVehicleType) {
+      Alert.alert('Vehicle Required', 'Please select a vehicle type');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await api.updateVehicleType(selectedVehicleType);
+      await Promise.all([loadAccountInfo(), refreshUser()]);
+      Alert.alert('Success', 'Vehicle type updated');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update vehicle type');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   async function handleLogout() {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -293,6 +315,44 @@ export default function AccountScreen() {
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Mobile</Text>
               <Text style={[styles.value, { color: colors.text }]}>{currentUser.Mobile}</Text>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomColor: colors.border, alignItems: 'flex-start' }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Vehicle Type</Text>
+              <View style={styles.vehicleTypeContainer}>
+                <View style={styles.vehicleTypeOptions}>
+                  {VEHICLE_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.vehicleTypeOption,
+                        {
+                          borderColor: selectedVehicleType === type ? colors.tint : colors.border,
+                          backgroundColor: selectedVehicleType === type ? colors.tint + '22' : 'transparent',
+                        },
+                      ]}
+                      onPress={() => setSelectedVehicleType(type)}
+                      disabled={isProcessing}
+                    >
+                      <Text
+                        style={[
+                          styles.vehicleTypeOptionText,
+                          { color: selectedVehicleType === type ? colors.tint : colors.textSecondary },
+                        ]}
+                      >
+                        {type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  style={[styles.saveVehicleButton, { backgroundColor: colors.tint }]}
+                  onPress={handleSaveVehicleType}
+                  disabled={isProcessing || !selectedVehicleType}
+                >
+                  <Text style={styles.saveVehicleButtonText}>Save Vehicle</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
@@ -698,6 +758,37 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  vehicleTypeContainer: {
+    alignItems: 'flex-end',
+    maxWidth: '70%',
+  },
+  vehicleTypeOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
+  },
+  vehicleTypeOption: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  vehicleTypeOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  saveVehicleButton: {
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  saveVehicleButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   badgeContainer: {
     flexDirection: 'row',

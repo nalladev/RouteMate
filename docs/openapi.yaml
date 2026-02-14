@@ -119,6 +119,17 @@ components:
         UpiId:
           type: string
           description: User's UPI ID for payouts
+        VehicleType:
+          type: string
+          enum:
+            - Sedan
+            - SUV
+            - Hatchback
+            - Bike
+            - Auto
+            - Van
+            - Other
+          description: Driver vehicle type shown to passengers
         KycStatus:
           $ref: '#/components/schemas/KycStatus'
         KycData:
@@ -141,6 +152,13 @@ components:
         - rejected
         - picked_up
         - completed
+
+    VehicleConfirmationState:
+      type: string
+      enum:
+        - pending
+        - confirmed
+        - mismatch
     
     PaymentStatus:
       type: string
@@ -181,6 +199,14 @@ components:
           format: double
         OtpCode:
           type: string
+        RequestedVehicleType:
+          type: string
+          description: Vehicle type selected by driver at request time
+        PassengerVehicleConfirmation:
+          $ref: '#/components/schemas/VehicleConfirmationState'
+        PassengerVehicleConfirmedAt:
+          type: string
+          format: date-time
         State:
           $ref: '#/components/schemas/RideConnectionState'
         PaymentStatus:
@@ -534,6 +560,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/user/vehicle:
+    post:
+      summary: Update user vehicle type
+      description: Set or update driver vehicle type used for rider discovery and ride confirmation
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleType:
+                  type: string
+                  enum:
+                    - Sedan
+                    - SUV
+                    - Hatchback
+                    - Bike
+                    - Auto
+                    - Van
+                    - Other
+              required:
+                - vehicleType
+      responses:
+        '200':
+          description: Vehicle type updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  vehicleType:
+                    type: string
+        '400':
+          description: Invalid vehicle type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   
   /api/match/markers:
     get:
@@ -592,7 +670,7 @@ paths:
   /api/rides/request:
     post:
       summary: Request a ride
-      description: Passenger requests ride from a driver. Validates passenger has sufficient balance before creating request.
+      description: Passenger requests ride from a driver. Validates passenger has sufficient balance and stores driver's current vehicle type for later confirmation.
       tags:
         - Rides
       security:
@@ -790,7 +868,7 @@ paths:
   /api/rides/connection/verify-otp:
     post:
       summary: Verify pickup OTP
-      description: Driver verifies passenger OTP at pickup
+      description: Driver verifies passenger OTP at pickup. Requires passenger to confirm expected vehicle first.
       tags:
         - Rides
       security:
@@ -821,6 +899,65 @@ paths:
                     type: boolean
         '400':
           description: Bad request or invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/confirm-vehicle:
+    post:
+      summary: Passenger confirms expected vehicle
+      description: Passenger confirms whether arriving vehicle matches the one shown at request time.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                isSameVehicle:
+                  type: boolean
+              required:
+                - connectionId
+                - isSameVehicle
+      responses:
+        '200':
+          description: Vehicle confirmation captured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  confirmation:
+                    $ref: '#/components/schemas/VehicleConfirmationState'
+        '400':
+          description: Invalid request or connection state
           content:
             application/json:
               schema:

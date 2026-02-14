@@ -1,3 +1,5 @@
+import type { VehicleType } from '../constants/vehicles';
+
 export interface Location {
   lat: number;
   lng: number;
@@ -32,6 +34,7 @@ export interface User {
   Session: Session;
   WalletBalance: number;
   UpiId?: string;
+  VehicleType?: VehicleType;
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
@@ -62,6 +65,9 @@ export interface RideConnection {
   Fare: number;
   RideTotalTime?: number;
   OtpCode?: string;
+  RequestedVehicleType?: VehicleType;
+  PassengerVehicleConfirmation?: 'pending' | 'confirmed' | 'mismatch';
+  PassengerVehicleConfirmedAt?: any;
   State: RideConnectionState;
   PaymentStatus: PaymentStatus;
   DriverRating?: number;
@@ -87,6 +93,7 @@ export interface UserPublic {
   Destination?: Location;
   WalletBalance: number;
   UpiId?: string;
+  VehicleType?: VehicleType;
   KycStatus?:
     | 'not_started'
     | 'session_created'

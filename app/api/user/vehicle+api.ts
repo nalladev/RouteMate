@@ -1,5 +1,6 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { updateDocument } from '../../../lib/firestore';
+import { isVehicleType } from '../../../constants/vehicles';
 
 export async function POST(request: Request) {
   try {
@@ -22,43 +23,32 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { state, destination } = body;
+    const { vehicleType } = body;
 
-    if (!state || !['driving', 'riding', 'idle'].includes(state)) {
+    if (!vehicleType || typeof vehicleType !== 'string') {
       return Response.json(
-        { error: 'Invalid state. Must be driving, riding, or idle' },
+        { error: 'vehicleType is required' },
         { status: 400 }
       );
     }
 
-    const updateData: any = { state };
-
-    if (state === 'driving' && !user.VehicleType) {
+    if (!isVehicleType(vehicleType)) {
       return Response.json(
-        { error: 'Driver vehicle type is required before starting driving mode' },
+        { error: 'Invalid vehicle type' },
         { status: 400 }
       );
     }
 
-    if (destination) {
-      if (typeof destination.lat !== 'number' || typeof destination.lng !== 'number') {
-        return Response.json(
-          { error: 'Invalid destination format' },
-          { status: 400 }
-        );
-      }
-      updateData.Destination = destination;
-    } else {
-      updateData.Destination = null;
-    }
-
-    await updateDocument('users', user.Id, updateData);
+    await updateDocument('users', user.Id, {
+      VehicleType: vehicleType,
+    });
 
     return Response.json({
       success: true,
+      vehicleType,
     });
   } catch (error) {
-    console.error('Update state error:', error);
+    console.error('Update vehicle type error:', error);
     return Response.json(
       { error: 'Internal server error' },
       { status: 500 }

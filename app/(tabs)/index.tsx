@@ -20,10 +20,12 @@ import { MarkerData, RideConnection } from '@/types';
 import { api } from '@/utils/api';
 import PlaceSearchInput from '@/components/maps/PlaceSearchInput';
 import { getRoute } from '@/utils/routing';
+import { VEHICLE_TYPES } from '@/constants/vehicles';
+import type { VehicleType } from '@/constants/vehicles';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const {
     role,
     setRole,
@@ -54,6 +56,9 @@ export default function HomeScreen() {
   // New state for mode selection flow
   const [tempDestination, setTempDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [isSelectingMode, setIsSelectingMode] = useState(false);
+  const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(false);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType>(VEHICLE_TYPES[0]);
+  const [isSavingVehicleType, setIsSavingVehicleType] = useState(false);
 
   const checkForPendingRating = useCallback(async () => {
     if (!user || ratingConnection) return;
@@ -120,6 +125,12 @@ export default function HomeScreen() {
     checkForPendingRating();
   }, [role, user, checkForPendingRating]);
 
+  useEffect(() => {
+    if (user?.VehicleType) {
+      setSelectedVehicleType(user.VehicleType);
+    }
+  }, [user?.VehicleType]);
+
   async function loadBalance() {
     try {
       const { balance: bal } = await api.getWalletBalance();
@@ -159,8 +170,13 @@ export default function HomeScreen() {
     }
   }
 
-  async function handleModeSelection(selectedMode: 'driver' | 'passenger') {
+  async function handleModeSelection(selectedMode: 'driver' | 'passenger', skipVehicleCheck = false) {
     if (!tempDestination || isSelectingMode) return;
+
+    if (selectedMode === 'driver' && !skipVehicleCheck && !user?.VehicleType) {
+      setShowVehicleTypeModal(true);
+      return;
+    }
 
     // Disable buttons during processing
     setIsSelectingMode(true);
@@ -192,6 +208,22 @@ export default function HomeScreen() {
     }
 
     proceedWithModeActivation(selectedMode);
+  }
+
+  async function handleSaveVehicleTypeAndContinue() {
+    if (!selectedVehicleType) return;
+
+    try {
+      setIsSavingVehicleType(true);
+      await api.updateVehicleType(selectedVehicleType);
+      await refreshUser();
+      setShowVehicleTypeModal(false);
+      await handleModeSelection('driver', true);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save vehicle type');
+    } finally {
+      setIsSavingVehicleType(false);
+    }
   }
 
   async function proceedWithModeActivation(selectedMode: 'driver' | 'passenger') {
@@ -346,6 +378,29 @@ export default function HomeScreen() {
       Alert.alert('Success', 'Passenger picked up!');
     } catch (error: any) {
       Alert.alert('Error', error.message);
+    }
+  }
+
+  async function handleConfirmVehicle(connectionId: string, isSameVehicle: boolean) {
+    try {
+      await api.confirmVehicle(connectionId, isSameVehicle);
+      setActiveRequest((prev) =>
+        prev && prev.Id === connectionId
+          ? {
+              ...prev,
+              PassengerVehicleConfirmation: isSameVehicle ? 'confirmed' : 'mismatch',
+            }
+          : prev
+      );
+
+      if (!isSameVehicle) {
+        Alert.alert(
+          'Vehicle Mismatch Reported',
+          'Mismatch has been recorded. Please do not share OTP until the correct vehicle arrives.'
+        );
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to confirm vehicle');
     }
   }
 
@@ -527,6 +582,36 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.detailText}>Status: {activeRequest.State}</Text>
+          {activeRequest.RequestedVehicleType && (
+            <Text style={styles.detailText}>Expected Vehicle: {activeRequest.RequestedVehicleType}</Text>
+          )}
+          {activeRequest.State === 'accepted' && activeRequest.RequestedVehicleType && (
+            <>
+              {(!activeRequest.PassengerVehicleConfirmation ||
+                activeRequest.PassengerVehicleConfirmation === 'pending') && (
+                <View style={styles.vehicleConfirmRow}>
+                  <TouchableOpacity
+                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmYes]}
+                    onPress={() => handleConfirmVehicle(activeRequest.Id, true)}
+                  >
+                    <Text style={styles.vehicleConfirmButtonText}>Vehicle Matches</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmNo]}
+                    onPress={() => handleConfirmVehicle(activeRequest.Id, false)}
+                  >
+                    <Text style={styles.vehicleConfirmButtonText}>Not This Vehicle</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {activeRequest.PassengerVehicleConfirmation === 'confirmed' && (
+                <Text style={styles.vehicleConfirmedText}>Vehicle confirmed. Share OTP only after boarding.</Text>
+              )}
+              {activeRequest.PassengerVehicleConfirmation === 'mismatch' && (
+                <Text style={styles.vehicleMismatchText}>Vehicle mismatch reported. Wait for correction before OTP.</Text>
+              )}
+            </>
+          )}
           {activeRequest.State === 'accepted' && activeRequest.OtpCode && (
             <Text style={styles.otpText}>OTP: {activeRequest.OtpCode}</Text>
           )}
@@ -573,6 +658,60 @@ export default function HomeScreen() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Vehicle type selection modal for drivers */}
+      <Modal visible={showVehicleTypeModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Set Your Vehicle Type</Text>
+            <Text style={styles.modalText}>Passengers will see this before requesting your ride.</Text>
+            <View style={styles.vehicleOptionList}>
+              {VEHICLE_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.vehicleOptionButton,
+                    selectedVehicleType === type && styles.vehicleOptionButtonSelected,
+                  ]}
+                  onPress={() => setSelectedVehicleType(type)}
+                  disabled={isSavingVehicleType}
+                >
+                  <Text
+                    style={[
+                      styles.vehicleOptionText,
+                      selectedVehicleType === type && styles.vehicleOptionTextSelected,
+                    ]}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.rejectButton]}
+                onPress={() => {
+                  setShowVehicleTypeModal(false);
+                }}
+                disabled={isSavingVehicleType}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.acceptButton]}
+                onPress={handleSaveVehicleTypeAndContinue}
+                disabled={isSavingVehicleType}
+              >
+                {isSavingVehicleType ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Save & Continue</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -825,6 +964,39 @@ const styles = StyleSheet.create({
     color: '#e86713',
     marginBottom: 10,
   },
+  vehicleConfirmRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 6,
+    gap: 8,
+  },
+  vehicleConfirmButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  vehicleConfirmYes: {
+    backgroundColor: '#4CAF50',
+  },
+  vehicleConfirmNo: {
+    backgroundColor: '#f44336',
+  },
+  vehicleConfirmButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  vehicleConfirmedText: {
+    color: '#2e7d32',
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  vehicleMismatchText: {
+    color: '#c62828',
+    fontSize: 14,
+    marginBottom: 6,
+  },
   requestButton: {
     backgroundColor: '#e86713',
     padding: 15,
@@ -912,6 +1084,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  vehicleOptionList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  vehicleOptionButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+  },
+  vehicleOptionButtonSelected: {
+    backgroundColor: '#e86713',
+    borderColor: '#e86713',
+  },
+  vehicleOptionText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  vehicleOptionTextSelected: {
+    color: '#fff',
   },
   starsRow: {
     flexDirection: 'row',

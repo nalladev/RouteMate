@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { connectionId, otp } = body;
+    const { connectionId, isSameVehicle } = body;
 
-    if (!connectionId || !otp) {
+    if (!connectionId || typeof isSameVehicle !== 'boolean') {
       return Response.json(
-        { error: 'connectionId and otp are required' },
+        { error: 'connectionId and isSameVehicle are required' },
         { status: 400 }
       );
     }
@@ -40,47 +40,40 @@ export async function POST(request: Request) {
       );
     }
 
-    if (connection.DriverId !== user.Id) {
+    if (connection.PassengerId !== user.Id) {
       return Response.json(
-        { error: 'Unauthorized to verify this connection' },
+        { error: 'Only passenger can confirm vehicle' },
         { status: 403 }
       );
     }
 
-    if (connection.State !== 'accepted') {
+    if (!['accepted', 'picked_up'].includes(connection.State)) {
       return Response.json(
-        { error: 'Connection must be in accepted state' },
+        { error: 'Vehicle can only be confirmed after request acceptance' },
         { status: 400 }
       );
     }
 
-    if (connection.RequestedVehicleType && connection.PassengerVehicleConfirmation !== 'confirmed') {
-      const message =
-        connection.PassengerVehicleConfirmation === 'mismatch'
-          ? 'Passenger reported a vehicle mismatch. Resolve before pickup.'
-          : 'Passenger must confirm the vehicle before pickup.';
+    if (!connection.RequestedVehicleType) {
       return Response.json(
-        { error: message },
+        { error: 'No requested vehicle type available for this ride' },
         { status: 400 }
       );
     }
 
-    if (connection.OtpCode !== otp) {
-      return Response.json(
-        { error: 'Invalid OTP code' },
-        { status: 400 }
-      );
-    }
+    const confirmationState = isSameVehicle ? 'confirmed' : 'mismatch';
 
     await updateDocument('rideconnections', connectionId, {
-      State: 'picked_up',
+      PassengerVehicleConfirmation: confirmationState,
+      PassengerVehicleConfirmedAt: new Date(),
     });
 
     return Response.json({
       success: true,
+      confirmation: confirmationState,
     });
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    console.error('Confirm vehicle error:', error);
     return Response.json(
       { error: 'Internal server error' },
       { status: 500 }
