@@ -473,7 +473,7 @@ paths:
   /api/user/state:
     post:
       summary: Update user state
-      description: Update user activity state and destination
+      description: Update user activity state and destination. Switching to `idle` is blocked while the user has any connected ride in `accepted` or `picked_up` state.
       tags:
         - User
       security:
@@ -503,6 +503,12 @@ paths:
                     type: boolean
         '400':
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - cannot switch to idle while a connected ride is in progress
           content:
             application/json:
               schema:

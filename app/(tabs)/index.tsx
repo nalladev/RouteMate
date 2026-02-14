@@ -277,6 +277,20 @@ export default function HomeScreen() {
   }
 
   function handleExitActive() {
+    const hasConnectedRide = activeConnections.some(
+      (connection) =>
+        (connection.DriverId === user?.Id || connection.PassengerId === user?.Id) &&
+        (connection.State === 'accepted' || connection.State === 'picked_up')
+    );
+
+    if (hasConnectedRide) {
+      Alert.alert(
+        'Cannot Exit Active Mode',
+        'You cannot exit while a connected ride is in progress. Complete the ride first.'
+      );
+      return;
+    }
+
     Alert.alert('Exit Active Mode', 'Are you sure you want to exit?', [
       { text: 'Cancel', style: 'cancel' },
       {

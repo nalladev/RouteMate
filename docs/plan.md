@@ -114,6 +114,9 @@ Both buttons open the same phone.email verification flow. The system automatical
     - Clears destination in Firestore
     - Removes route from map
     - Restores destination search input UI
+    - **Guardrail:** Exit to idle is blocked while any connected ride exists (`accepted` or `picked_up`)
+    - Passenger must complete the accepted ride before exiting active mode
+    - Driver can exit only when no passenger is connected to an accepted/picked-up ride
 
 ### Emergency / Panic Behavior
 12. Panic mode behavior (India-first rollout):
@@ -204,6 +207,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 2. **Auto-Cancel:** Requests not accepted within 10 minutes are automatically marked `rejected` or deleted by backend.
 3. Driver accepts; connection record created and passenger request pane switches to accepted state showing OTP and driver arrival tracking.
 4. **Constraints:** Driver can have multiple connections; Passenger limited to one active request or ride at a time.
+   - Neither driver nor passenger can switch to `idle` while a connection is in `accepted` or `picked_up`.
 5. Connected passengers are hidden from other map users and unavailable for additional requests.
 6. **OTP Handshake:**
    - Passenger shown OTP on screen after request acceptance.

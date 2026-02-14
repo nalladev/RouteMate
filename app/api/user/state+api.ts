@@ -1,5 +1,5 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
-import { updateDocument } from '../../../lib/firestore';
+import { getDocument, updateDocument } from '../../../lib/firestore';
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +38,27 @@ export async function POST(request: Request) {
         { error: 'Driver vehicle type is required before starting driving mode' },
         { status: 400 }
       );
+    }
+
+    if (state === 'idle') {
+      const [driverConnections, passengerConnections] = await Promise.all([
+        getDocument('rideconnections', { DriverId: user.Id }),
+        getDocument('rideconnections', { PassengerId: user.Id }),
+      ]);
+
+      const hasConnectedPassenger = driverConnections.some((connection: any) =>
+        connection.State === 'accepted' || connection.State === 'picked_up'
+      );
+      const hasAcceptedRideAsPassenger = passengerConnections.some((connection: any) =>
+        connection.State === 'accepted' || connection.State === 'picked_up'
+      );
+
+      if (hasConnectedPassenger || hasAcceptedRideAsPassenger) {
+        return Response.json(
+          { error: 'Cannot exit active mode while a connected ride is in progress. Complete the ride first.' },
+          { status: 409 }
+        );
+      }
     }
 
     if (destination) {
