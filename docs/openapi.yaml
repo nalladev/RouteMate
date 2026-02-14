@@ -149,6 +149,10 @@ components:
         DriverRewardPoints:
           type: integer
           description: Reward points earned from 5-star ratings as driver
+        ActiveCommunityId:
+          type: string
+          nullable: true
+          description: Active community mode selection. When set, discovery and requests are scoped to that community.
     
     RideConnectionState:
       type: string
@@ -223,6 +227,37 @@ components:
         CreatedAt:
           type: string
           format: date-time
+
+    Community:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        AdminId:
+          type: string
+        participantCount:
+          type: integer
+        isAdmin:
+          type: boolean
+        isActive:
+          type: boolean
+        CreatedAt:
+          type: string
+          format: date-time
+
+    CommunityMember:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        Mobile:
+          type: string
+        isAdmin:
+          type: boolean
     
     RideConnection:
       type: object
@@ -274,6 +309,10 @@ components:
         ShareCreatedAt:
           type: string
           format: date-time
+        CommunityId:
+          type: string
+          nullable: true
+          description: Community scoping for this request/ride when community mode is used
         CreatedAt:
           type: string
           format: date-time
@@ -740,7 +779,7 @@ paths:
   /api/match/markers:
     get:
       summary: Get filtered markers
-      description: Returns filtered nearby drivers or passengers based on role and flexible route compatibility (route corridor and endpoint proximity, not exact same path).
+      description: Returns filtered nearby drivers or passengers based on role and flexible route compatibility (route corridor and endpoint proximity, not exact same path). If user has `ActiveCommunityId`, results are additionally scoped to that community.
       tags:
         - Discovery
       security:
@@ -794,7 +833,7 @@ paths:
   /api/rides/request:
     post:
       summary: Request a ride
-      description: Passenger requests ride from a driver. Validates passenger has sufficient balance and stores driver's current vehicle type for later confirmation.
+      description: Passenger requests ride from a driver. Validates passenger has sufficient balance and stores driver's current vehicle type for later confirmation. If either side has community mode enabled, both users must belong to the same community.
       tags:
         - Rides
       security:
@@ -1406,6 +1445,377 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/communities:
+    get:
+      summary: List my communities
+      description: Returns all communities where the authenticated user is a participant and indicates active community mode.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Community list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  communities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Community'
+                  activeCommunityId:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/create:
+    post:
+      summary: Create community
+      description: Creates a new community with the authenticated user as admin and first participant.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 64
+              required:
+                - name
+      responses:
+        '201':
+          description: Community created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  community:
+                    $ref: '#/components/schemas/Community'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/select:
+    post:
+      summary: Enable or disable community mode
+      description: Sets active community mode for discovery/request filtering. Pass null to disable community mode.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                communityId:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Updated active community mode
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  activeCommunityId:
+                    type: string
+                    nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: User is not a community member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/{communityId}/members:
+    get:
+      summary: Get community members (admin only)
+      description: Returns member overview for a specific community. Only the community admin can access this endpoint.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  community:
+                    type: object
+                    properties:
+                      Id:
+                        type: string
+                      Name:
+                        type: string
+                      AdminId:
+                        type: string
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityMember'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Only community admin can view members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/{communityId}/members/remove:
+    post:
+      summary: Remove community member (admin only)
+      description: Removes a participant from a community. Admin cannot remove themselves.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                memberId:
+                  type: string
+              required:
+                - memberId
+      responses:
+        '200':
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid request (e.g., removing admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Only community admin can remove members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Community/member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/invite/create:
+    post:
+      summary: Create community invite link
+      description: Admin creates an expiring invite link for a community.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                communityId:
+                  type: string
+                expiresInHours:
+                  type: integer
+                  enum:
+                    - 1
+                    - 6
+                    - 24
+                    - 72
+                    - 168
+              required:
+                - communityId
+                - expiresInHours
+      responses:
+        '200':
+          description: Invite link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  communityId:
+                    type: string
+                  expiresInHours:
+                    type: integer
+                  expiresAt:
+                    type: string
+                    format: date-time
+                  inviteToken:
+                    type: string
+                  inviteUrl:
+                    type: string
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Only admin can create links
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/invite/accept:
+    post:
+      summary: Accept community invite
+      description: Join a community by invite token and activate community mode for that community.
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+              required:
+                - token
+      responses:
+        '200':
+          description: Invite accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  alreadyMember:
+                    type: boolean
+                  community:
+                    type: object
+                    properties:
+                      Id:
+                        type: string
+                      Name:
+                        type: string
+                      AdminId:
+                        type: string
+                  activeCommunityId:
+                    type: string
+        '400':
+          description: Invite expired/revoked/invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Invite/community not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/rewards:
     get:
       summary: Get rewards points, vouchers, and redemptions
@@ -1930,6 +2340,8 @@ tags:
     description: Driver/passenger discovery and matching
   - name: Rides
     description: Ride request and connection management
+  - name: Community
+    description: Community management, invite links, and scoped discovery mode
   - name: Wallet
     description: Wallet and payment operations
   - name: KYC

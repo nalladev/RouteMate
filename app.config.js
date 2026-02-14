@@ -10,6 +10,10 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
+      associatedDomains: [
+        "applinks:routemate.tech",
+        "applinks:www.routemate.tech"
+      ],
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "RouteMate needs your location to show nearby drivers and track rides.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "RouteMate needs your location to provide real-time ride tracking and match you with drivers.",
@@ -44,6 +48,19 @@ module.exports = {
           apiKey: process.env.GOOGLE_MAPS_API_KEY
         }
       },
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            { scheme: "https", host: "routemate.tech", pathPrefix: "/community/join" },
+            { scheme: "https", host: "www.routemate.tech", pathPrefix: "/community/join" },
+            { scheme: "https", host: "routemate.tech", pathPrefix: "/ride-share" },
+            { scheme: "https", host: "www.routemate.tech", pathPrefix: "/ride-share" }
+          ],
+          category: ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       usesCleartextTraffic: true
     },
     web: {

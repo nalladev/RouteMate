@@ -54,6 +54,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.ActiveCommunityId && connection.CommunityId !== user.ActiveCommunityId) {
+      return Response.json(
+        { error: 'Request is not in your active community' },
+        { status: 403 }
+      );
+    }
+
     if (connection.State !== 'requested') {
       return Response.json(
         { error: 'Request is no longer pending' },
@@ -62,7 +69,10 @@ export async function POST(request: Request) {
     }
 
     // Check if expired
-    if (connection.ExpiresAt && new Date(connection.ExpiresAt) < new Date()) {
+    const expiresAt = connection.ExpiresAt?.toDate
+      ? connection.ExpiresAt.toDate()
+      : (connection.ExpiresAt ? new Date(connection.ExpiresAt) : null);
+    if (expiresAt && expiresAt < new Date()) {
       await updateDocument('rideconnections', requestId, {
         State: 'rejected',
       });

@@ -2,6 +2,7 @@ import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { addDocument, getDocument, getDocumentById } from '../../../lib/firestore';
 import { generateOTP } from '../../../lib/auth';
 import { User } from '../../../types';
+import { areUsersInCommunity } from '../../../lib/community';
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
@@ -102,6 +103,28 @@ export async function POST(request: Request) {
       );
     }
 
+    let communityId: string | null = null;
+    const passengerCommunityId = currentUser.ActiveCommunityId || null;
+    const driverCommunityId = driver.ActiveCommunityId || null;
+
+    if (passengerCommunityId && driverCommunityId && passengerCommunityId !== driverCommunityId) {
+      return Response.json(
+        { error: 'Driver is not available in your active community mode' },
+        { status: 403 }
+      );
+    }
+
+    if (passengerCommunityId || driverCommunityId) {
+      communityId = passengerCommunityId || driverCommunityId;
+      const bothMembers = await areUsersInCommunity(communityId!, [currentUser.Id, driver.Id]);
+      if (!bothMembers) {
+        return Response.json(
+          { error: 'Both passenger and driver must be members of the selected community' },
+          { status: 403 }
+        );
+      }
+    }
+
 
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
@@ -116,6 +139,7 @@ export async function POST(request: Request) {
       OtpCode: otpCode,
       RequestedVehicleType: driver.VehicleType,
       PassengerVehicleConfirmation: 'pending',
+      CommunityId: communityId,
       State: 'requested',
       PaymentStatus: 'pending',
       CreatedAt: new Date(),

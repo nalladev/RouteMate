@@ -1,5 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User, RideConnection, MarkerData, Location, RewardVoucher, RewardRedemption, RewardRole } from '../types';
+import type {
+  User,
+  RideConnection,
+  MarkerData,
+  Location,
+  RewardVoucher,
+  RewardRedemption,
+  RewardRole,
+  Community,
+  CommunityMember,
+} from '../types';
 import type { VehicleType } from '../constants/vehicles';
 
 // Use relative URLs for Expo Router API routes
@@ -115,6 +125,60 @@ export const api = {
   // Discovery
   getMarkers: async (role: 'driver' | 'passenger', lat: number, lng: number): Promise<{ markers: MarkerData[] }> => {
     return request(`/api/match/markers?role=${role}&lat=${lat}&lng=${lng}`);
+  },
+
+  // Communities
+  getCommunities: async (): Promise<{ communities: Community[]; activeCommunityId: string | null }> => {
+    return request('/api/communities');
+  },
+
+  createCommunity: async (name: string): Promise<{ community: Community }> => {
+    return request('/api/communities/create', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  selectCommunityMode: async (communityId?: string | null): Promise<{ success: boolean; activeCommunityId: string | null }> => {
+    return request('/api/communities/select', {
+      method: 'POST',
+      body: JSON.stringify({ communityId: communityId || null }),
+    });
+  },
+
+  createCommunityInviteLink: async (
+    communityId: string,
+    expiresInHours: 1 | 6 | 24 | 72 | 168
+  ): Promise<{ communityId: string; expiresInHours: number; expiresAt: string; inviteToken: string; inviteUrl: string }> => {
+    return request('/api/communities/invite/create', {
+      method: 'POST',
+      body: JSON.stringify({ communityId, expiresInHours }),
+    });
+  },
+
+  acceptCommunityInvite: async (token: string): Promise<{
+    success: boolean;
+    alreadyMember: boolean;
+    community: { Id: string; Name: string; AdminId: string };
+    activeCommunityId: string;
+  }> => {
+    return request('/api/communities/invite/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  getCommunityMembers: async (
+    communityId: string
+  ): Promise<{ community: { Id: string; Name: string; AdminId: string }; members: CommunityMember[] }> => {
+    return request(`/api/communities/${communityId}/members`);
+  },
+
+  removeCommunityMember: async (communityId: string, memberId: string): Promise<{ success: boolean }> => {
+    return request(`/api/communities/${communityId}/members/remove`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId }),
+    });
   },
 
   // Rides

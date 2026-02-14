@@ -106,6 +106,7 @@ Both buttons open the same phone.email verification flow. The system automatical
     - A **Cross (X) button** appears on the right side of the destination area to exit to idle mode
     - In **driving mode**: user becomes discoverable to passengers looking for rides
     - In **riding mode**: user can discover drivers whose routes align with their destination
+    - If **community mode** is enabled, discovery and ride requests are restricted to members of the selected community only
     - A visible **Panic Button** is available to both driver and passenger in active mode for immediate emergency access
 
 ### Exit/Idle State
@@ -132,6 +133,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 ### Intelligent Discovery (Filtering)
 * **Passenger Discovery:** Shows drivers whose current route (from `LastLocation` to `Destination`) is compatible with the passenger trip. Matching is flexible: pickup/destination can be near the driver's route corridor or near the driver's route endpoints (current location/destination), to avoid missing close parallel trips.
 * **Driver Discovery:** Only shows passengers who have an active, non-completed connection.
+* **Community Scope (Optional):** When user enables community mode, only drivers/passengers from the selected community are discoverable.
 * **API Matching:** Marker data is fetched from a dedicated backend endpoint that calculates route compatibility (not exact same path) using route-corridor + endpoint proximity, and must be refreshed frequently to reflect movement.
 
 ### Passenger View
@@ -255,6 +257,19 @@ Both buttons open the same phone.email verification flow. The system automatical
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * **Payout/Withdraw Button:** ~~Allows drivers to withdraw their earnings.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * Display recent transaction history (top-ups and payouts).
+
+## 8.2 Community Section
+* Add a dedicated `Community` page/tab.
+* Any authenticated user can create a new community and becomes its admin.
+* Community has exactly one admin and multiple participants.
+* User can enable/disable **community mode** by selecting one of their communities.
+* Community admins can generate invite links with preset expiry options (`1h`, `6h`, `24h`, `72h`, `168h`).
+* Invite links can be shared externally and open app path `/community/join/[token]`.
+* Accepting an invite adds user to community participants and sets that community as active mode.
+* When community mode is active:
+  - Passenger sees only drivers in same community.
+  - Driver sees only passenger-side records in same community.
+  - Ride request creation enforces both users belong to same selected community.
 
 ## 8.1 Rewards Section
 * Add a dedicated `Rewards` page/tab.
@@ -380,6 +395,23 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `IsKycVerified`: boolean
 * `DriverRatingAverage`: number (default: 0)
 * `DriverRatingCount`: number (default: 0)
+* `ActiveCommunityId`: string | null (optional community mode selection)
+
+### Communities Collection
+* `Id`: string
+* `Name`: string
+* `AdminId`: string
+* `MemberIds`: string[]
+* `CreatedAt`: Timestamp
+
+### CommunityInvites Collection
+* `Id`: string
+* `CommunityId`: string
+* `CreatedBy`: string
+* `Token`: string (share token in invite URL)
+* `ExpiresAt`: Timestamp
+* `IsRevoked`: boolean
+* `CreatedAt`: Timestamp
 
 ### RideConnections Collection
 * `Id`: string
@@ -400,6 +432,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `DriverRatedAt`: Timestamp (optional)
 * `ShareToken`: string (optional, public live-tracking token for browser sharing)
 * `ShareCreatedAt`: Timestamp (optional)
+* `CommunityId`: string | null (set when community mode scoped request is created)
 * `CreatedAt`: Timestamp
 
 ### Transactions Collection

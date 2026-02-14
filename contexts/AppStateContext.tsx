@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 interface AppStateContextType {
   role: 'driver' | 'passenger';
   setRole: (role: 'driver' | 'passenger') => void;
+  activeCommunityId: string | null;
   userLocation: LocationType | null;
   destination: LocationType | null;
   setDestination: (dest: LocationType | null) => void;
@@ -31,6 +32,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeConnections, setActiveConnections] = useState<RideConnection[]>([]);
   const [pendingRequests, setPendingRequests] = useState<RideConnection[]>([]);
   const [isActive, setIsActive] = useState(false);
+  const activeCommunityId = user?.ActiveCommunityId || null;
 
   // Location tracking
   useEffect(() => {
@@ -89,7 +91,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, userLocation, role, destination]);
+  }, [isAuthenticated, userLocation, role, destination, activeCommunityId]);
 
   async function refreshMarkers() {
     if (!userLocation) return;
@@ -142,6 +144,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     () => ({
       role,
       setRole,
+      activeCommunityId,
       userLocation,
       destination,
       setDestination,
@@ -154,7 +157,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       refreshRequests,
       updateUserState,
     }),
-    [role, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests, updateUserState]
+    [role, activeCommunityId, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests, updateUserState]
   );
 
   return (

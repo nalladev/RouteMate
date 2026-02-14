@@ -1,6 +1,7 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
-import { getAllDocuments, getDocument } from '../../../lib/firestore';
+import { getAllDocuments, getDocument, getDocumentById } from '../../../lib/firestore';
 import { User, MarkerData } from '../../../types';
+import { getCommunityMemberSet } from '../../../lib/community';
 
 const ROUTE_CORRIDOR_KM = 3.5;
 const PICKUP_PROXIMITY_KM = 5;
@@ -60,10 +61,21 @@ function isPointNearRoute(
 
 async function getFilteredDrivers(
   passengerPickup: { lat: number; lng: number },
-  passengerDestination: { lat: number; lng: number }
+  passengerDestination: { lat: number; lng: number },
+  memberSet?: Set<string> | null
 ): Promise<MarkerData[]> {
   const allUsers = await getAllDocuments('users');
-  const drivers = allUsers.filter((u: User) => u.state === 'driving' && u.Destination);
+  const drivers = allUsers.filter((u: User) => {
+    if (u.state !== 'driving' || !u.Destination) {
+      return false;
+    }
+
+    if (memberSet && !memberSet.has(u.Id)) {
+      return false;
+    }
+
+    return true;
+  });
 
   const filteredDrivers: MarkerData[] = [];
 
@@ -125,19 +137,35 @@ async function getFilteredDrivers(
   return filteredDrivers;
 }
 
-async function getFilteredPassengers(driverId: string): Promise<MarkerData[]> {
+async function getFilteredPassengers(
+  driverId: string,
+  activeCommunityId: string | null,
+  memberSet?: Set<string> | null
+): Promise<MarkerData[]> {
   const connections = await getDocument('rideconnections', { DriverId: driverId });
   const activeConnections = connections.filter(
-    (c: any) => c.State !== 'completed' && c.State !== 'rejected'
+    (c: any) => {
+      if (c.State === 'completed' || c.State === 'rejected') {
+        return false;
+      }
+
+      if (activeCommunityId && c.CommunityId !== activeCommunityId) {
+        return false;
+      }
+
+      return true;
+    }
   );
 
   const passengers: MarkerData[] = [];
 
   for (const connection of activeConnections) {
-    const passengerDocs = await getDocument('users', { Id: connection.PassengerId });
-    if (passengerDocs.length === 0) continue;
+    if (memberSet && !memberSet.has(connection.PassengerId)) {
+      continue;
+    }
 
-    const passenger = passengerDocs[0];
+    const passenger = await getDocumentById('users', connection.PassengerId);
+    if (!passenger) continue;
     if (!passenger.LastLocation) continue;
 
     passengers.push({
@@ -191,14 +219,20 @@ export async function GET(request: Request) {
     }
 
     let markers: MarkerData[] = [];
+    const activeCommunityId = user.ActiveCommunityId || null;
+    const memberSet = activeCommunityId ? await getCommunityMemberSet(activeCommunityId) : null;
+
+    if (activeCommunityId && !memberSet) {
+      return Response.json({ markers: [] });
+    }
 
     if (role === 'passenger') {
       if (!user.Destination) {
         return Response.json({ markers: [] });
       }
-      markers = await getFilteredDrivers({ lat, lng }, user.Destination);
+      markers = await getFilteredDrivers({ lat, lng }, user.Destination, memberSet);
     } else if (role === 'driver') {
-      markers = await getFilteredPassengers(user.Id);
+      markers = await getFilteredPassengers(user.Id, activeCommunityId, memberSet);
     }
 
     return Response.json({ markers });

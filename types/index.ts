@@ -52,6 +52,7 @@ export interface User {
   DriverRatingCount?: number;
   PassengerRewardPoints?: number;
   DriverRewardPoints?: number;
+  ActiveCommunityId?: string | null;
 }
 
 export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed';
@@ -76,6 +77,7 @@ export interface RideConnection {
   DriverRatedAt?: any;
   ShareToken?: string;
   ShareCreatedAt?: any;
+  CommunityId?: string | null;
   CreatedAt: any;
 }
 
@@ -135,6 +137,24 @@ export interface UserPublic {
   IsKycVerified: boolean;
   PassengerRewardPoints?: number;
   DriverRewardPoints?: number;
+  ActiveCommunityId?: string | null;
+}
+
+export interface Community {
+  Id: string;
+  Name: string;
+  AdminId: string;
+  participantCount: number;
+  isAdmin: boolean;
+  isActive: boolean;
+  CreatedAt?: any;
+}
+
+export interface CommunityMember {
+  Id: string;
+  Name: string;
+  Mobile: string;
+  isAdmin: boolean;
 }
 
 export type RewardRole = 'passenger' | 'driver';

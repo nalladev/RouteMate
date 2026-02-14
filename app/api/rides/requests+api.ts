@@ -28,9 +28,14 @@ export async function GET(request: Request) {
     const now = new Date();
     const requests = allRequests.filter((r: any) => {
       if (r.State !== 'requested') return false;
+
+      if (user.ActiveCommunityId && r.CommunityId !== user.ActiveCommunityId) {
+        return false;
+      }
       
       // Check if expired
-      if (r.ExpiresAt && new Date(r.ExpiresAt) < now) {
+      const expiresAt = r.ExpiresAt?.toDate ? r.ExpiresAt.toDate() : (r.ExpiresAt ? new Date(r.ExpiresAt) : null);
+      if (expiresAt && expiresAt < now) {
         return false;
       }
       

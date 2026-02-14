@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       DriverRatingCount: 0,
       PassengerRewardPoints: 0,
       DriverRewardPoints: 0,
+      ActiveCommunityId: null,
     });
 
     const user = {
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
       DriverRatingCount: 0,
       PassengerRewardPoints: 0,
       DriverRewardPoints: 0,
+      ActiveCommunityId: null,
     };
 
     return Response.json({
