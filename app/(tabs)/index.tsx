@@ -296,7 +296,7 @@ export default function HomeScreen() {
     if (poi.coordinate) {
       const { latitude, longitude } = poi.coordinate;
       const destinationName = poi.name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-      
+
       // Store temporarily and show mode selection buttons
       setTempDestination({ lat: latitude, lng: longitude, name: destinationName });
       setSearchQuery(destinationName);
@@ -477,9 +477,9 @@ export default function HomeScreen() {
         {/* Destination marker (red pin like Google Maps) - show when destination selected or in active mode */}
         {(destination && isActive) || tempDestination ? (
           <Marker
-            coordinate={{ 
-              latitude: tempDestination ? tempDestination.lat : destination!.lat, 
-              longitude: tempDestination ? tempDestination.lng : destination!.lng 
+            coordinate={{
+              latitude: tempDestination ? tempDestination.lat : destination!.lat,
+              longitude: tempDestination ? tempDestination.lng : destination!.lng
             }}
             title="Destination"
             pinColor="red"
@@ -814,6 +814,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white'
   },
   loadingText: {
     marginTop: 10,
