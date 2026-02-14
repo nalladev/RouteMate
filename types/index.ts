@@ -5,6 +5,7 @@ export interface Location {
 
 export interface Session {
   token: string;
+  tokens?: string[];
 }
 
 export type UserState = 'driving' | 'riding' | 'idle';

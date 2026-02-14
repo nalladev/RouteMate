@@ -1,4 +1,4 @@
-import { getDocument } from './firestore';
+import { getDocument, initializeFirestore } from './firestore';
 import { User } from '../types';
 
 export async function validateSession(token: string): Promise<User | null> {
@@ -6,10 +6,18 @@ export async function validateSession(token: string): Promise<User | null> {
     return null;
   }
 
+  // Backward compatibility: support both legacy single-session field and new multi-session array.
   const users = await getDocument('users', { 'Session.token': token });
-  
   if (users.length === 0) {
-    return null;
+    const firestore = initializeFirestore();
+    const snapshot = await firestore.collection('users').where('Session.tokens', 'array-contains', token).limit(1).get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const userDoc = snapshot.docs[0];
+    return { Id: userDoc.id, ...userDoc.data() } as User;
   }
 
   return users[0] as User;

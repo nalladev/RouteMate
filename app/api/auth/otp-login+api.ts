@@ -1,6 +1,7 @@
 import { generateSessionToken } from '../../../lib/auth';
-import { getDocument, updateDocument } from '../../../lib/firestore';
+import { getDocument } from '../../../lib/firestore';
 import { decodePhoneEmailToken } from '../../../lib/jwt';
+import { addSessionToken } from '../../../lib/session';
 import { User } from '../../../types';
 
 export async function POST(request: Request) {
@@ -37,14 +38,12 @@ export async function POST(request: Request) {
     const user = users[0] as User;
 
     const token = generateSessionToken();
-    await updateDocument('users', user.Id, {
-      Session: { token },
-    });
+    const session = await addSessionToken(user.Id, token);
 
     const { PasswordHash, ...userWithoutPassword } = user;
     const updatedUser = {
       ...userWithoutPassword,
-      Session: { token },
+      Session: session,
     };
 
     return Response.json({

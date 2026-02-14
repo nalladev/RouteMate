@@ -1,5 +1,6 @@
 import { verifyPassword, generateSessionToken } from '../../../lib/auth';
-import { getDocument, updateDocument } from '../../../lib/firestore';
+import { getDocument } from '../../../lib/firestore';
+import { addSessionToken } from '../../../lib/session';
 import { User } from '../../../types';
 
 export async function POST(request: Request) {
@@ -35,14 +36,12 @@ export async function POST(request: Request) {
     }
 
     const token = generateSessionToken();
-    await updateDocument('users', user.Id, {
-      Session: { token },
-    });
+    const session = await addSessionToken(user.Id, token);
 
     const { PasswordHash, ...userWithoutPassword } = user;
     const updatedUser = {
       ...userWithoutPassword,
-      Session: { token },
+      Session: session,
     };
 
     return Response.json({

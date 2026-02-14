@@ -1,5 +1,5 @@
 import { getAuthToken, validateSession } from '../../../lib/middleware';
-import { updateDocument } from '../../../lib/firestore';
+import { removeSessionToken } from '../../../lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -21,9 +21,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await updateDocument('users', user.Id, {
-      Session: { token: '' },
-    });
+    await removeSessionToken(user.Id, token);
 
     return Response.json({
       success: true,

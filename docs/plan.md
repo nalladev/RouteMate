@@ -16,9 +16,10 @@
 2. Backend compares password with `PasswordHash`
 3. If user doesn't exist, return "Invalid Credentials" error
 4. Create and return session token
-5. Frontend fetches current user data (`/api/user/me`) to check KYC status
-6. If not KYC verified, redirect to KYC verification page
-7. If KYC verified, redirect to main app
+5. Allow multiple active sessions per account (e.g., Expo Go + production APK) by storing multiple session tokens per user
+6. Frontend fetches current user data (`/api/user/me`) to check KYC status
+7. If not KYC verified, redirect to KYC verification page
+8. If KYC verified, redirect to main app
 
 ### OTP Login / Signup (Unified Flow - When pressing "Login with OTP" or "Sign Up")
 Both buttons open the same phone.email verification flow. The system automatically handles whether it's a login or signup based on whether the user exists.
@@ -46,6 +47,7 @@ Both buttons open the same phone.email verification flow. The system automatical
    - Frontend redirects user to Didit WebView and then exits after submission
    - Backend waits for asynchronous Didit webhook (`/api/kyc/webhook`) to mark final result
    - On approval, backend extracts profile fields and marks user as `IsKycVerified: true`
+9. **Logout behavior:** Logging out from one device removes only that device's session token; other active sessions remain logged in
 
 ---
 
