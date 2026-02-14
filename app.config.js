@@ -1,8 +1,12 @@
+const appVersion = process.env.APP_VERSION || "1.0.0";
+const parsedVersionCode = Number.parseInt(process.env.APP_VERSION_CODE || "1", 10);
+const androidVersionCode = Number.isNaN(parsedVersionCode) ? 1 : parsedVersionCode;
+
 module.exports = {
   expo: {
     name: "RouteMate",
     slug: "routemate",
-    version: "1.0.0",
+    version: appVersion,
     orientation: "portrait",
     icon: "./assets/icon.png",
     scheme: "routemate",
@@ -28,6 +32,7 @@ module.exports = {
       bundleIdentifier: "tech.routemate.app"
     },
     android: {
+      versionCode: androidVersionCode,
       package: "tech.routemate.app",
       adaptiveIcon: {
         foregroundImage: "./assets/icon.png",
