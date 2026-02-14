@@ -28,7 +28,7 @@ export default function HistoryScreen() {
     } else {
       loadHistory();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   async function loadHistory() {
     try {
