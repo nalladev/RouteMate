@@ -106,6 +106,7 @@ Both buttons open the same phone.email verification flow. The system automatical
     - A **Cross (X) button** appears on the right side of the destination area to exit to idle mode
     - In **driving mode**: user becomes discoverable to passengers looking for rides
     - In **riding mode**: user can discover drivers whose routes align with their destination
+    - A visible **Panic Button** is available to both driver and passenger in active mode for immediate emergency access
 
 ### Exit/Idle State
 11. Pressing the **X button** returns to idle mode:
@@ -113,6 +114,13 @@ Both buttons open the same phone.email verification flow. The system automatical
     - Clears destination in Firestore
     - Removes route from map
     - Restores destination search input UI
+
+### Emergency / Panic Behavior
+12. Panic mode behavior (India-first rollout):
+   - Panic button initiates phone dialer call to India's emergency response number: `112`
+   - Feature is available to both passenger and driver while in active mode
+   - Entering panic mode must **not** pause/stop live location updates
+   - Live location continues to be pushed to backend/Firestore during panic mode
 
 ---
 

@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -22,6 +23,8 @@ import PlaceSearchInput from '@/components/maps/PlaceSearchInput';
 import { getRoute } from '@/utils/routing';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
 import type { VehicleType } from '@/constants/vehicles';
+
+const INDIA_EMERGENCY_NUMBER = '112';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -51,6 +54,7 @@ export default function HomeScreen() {
   const [ratingConnection, setRatingConnection] = useState<RideConnection | null>(null);
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [isPanicMode, setIsPanicMode] = useState(false);
   const previousActiveRequestIdRef = useRef<string | null>(null);
 
   // New state for mode selection flow
@@ -283,6 +287,7 @@ export default function HomeScreen() {
             setDestination(null);
             setRouteCoordinates([]);
             setSearchQuery('');
+            setIsPanicMode(false);
           } catch (error: any) {
             Alert.alert('Error', error.message);
           }
@@ -435,6 +440,41 @@ export default function HomeScreen() {
     return `${rating.toFixed(1)} / 5`;
   }
 
+  function handlePanicPress() {
+    Alert.alert(
+      'Panic Mode',
+      `This will call emergency response (${INDIA_EMERGENCY_NUMBER} - India). Live location updates will continue in the background.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call Now',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsPanicMode(true);
+
+              if (userLocation) {
+                api.updateLocation(userLocation.lat, userLocation.lng).catch((error) => {
+                  console.error('Failed to push panic location update:', error);
+                });
+              }
+
+              const dialUrl = `tel:${INDIA_EMERGENCY_NUMBER}`;
+              const canOpen = await Linking.canOpenURL(dialUrl);
+              if (!canOpen) {
+                throw new Error('Dialer is unavailable');
+              }
+              await Linking.openURL(dialUrl);
+            } catch (error) {
+              console.error('Failed to start emergency call:', error);
+              Alert.alert('Error', 'Could not open the phone dialer. Please call 112 manually.');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   if (!user || !userLocation) {
     return (
       <View style={styles.loadingContainer}>
@@ -526,6 +566,18 @@ export default function HomeScreen() {
       <TouchableOpacity style={styles.centerButton} onPress={centerOnUser}>
         <MaterialIcons name="my-location" size={24} color="#e86713" />
       </TouchableOpacity>
+
+      {isActive && (
+        <TouchableOpacity
+          style={[styles.panicButton, isPanicMode && styles.panicButtonActive]}
+          onPress={handlePanicPress}
+        >
+          <MaterialIcons name="warning" size={20} color="#fff" />
+          <Text style={styles.panicButtonText}>
+            {isPanicMode ? `PANIC ON - CALL ${INDIA_EMERGENCY_NUMBER}` : 'PANIC'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Mode Selection Buttons - show when destination is selected but not active */}
       {tempDestination && !isActive && (
@@ -879,6 +931,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  panicButton: {
+    position: 'absolute',
+    top: 190,
+    right: 10,
+    backgroundColor: '#c62828',
+    minWidth: 110,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 6,
+  },
+  panicButtonActive: {
+    backgroundColor: '#b71c1c',
+  },
+  panicButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
   modeSelectionButtons: {
     position: 'absolute',
