@@ -65,16 +65,24 @@ export async function getCommunityById(communityId: string): Promise<CommunityRe
 }
 
 export async function getCommunitiesForUser(userId: string): Promise<CommunityRecord[]> {
+  
   const db = initializeFirestore();
+  
   const snapshot = await db
     .collection('communities')
     .where('MemberIds', 'array-contains', userId)
     .get();
 
-  return snapshot.docs.map((doc) => ({
-    Id: doc.id,
-    ...(doc.data() || {}),
-  } as CommunityRecord));
+  
+  const results = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      Id: doc.id,
+      ...(data || {}),
+    } as CommunityRecord;
+  });
+
+  return results;
 }
 
 export async function getCommunityInviteByToken(token: string): Promise<CommunityInviteRecord | null> {

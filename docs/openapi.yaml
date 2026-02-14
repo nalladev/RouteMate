@@ -1816,7 +1816,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/rewards:
+  /api/rewards/list:
     get:
       summary: Get rewards points, vouchers, and redemptions
       description: Returns passenger and driver reward points, dummy voucher catalog, and recent redemptions.
@@ -2342,6 +2342,8 @@ tags:
     description: Ride request and connection management
   - name: Community
     description: Community management, invite links, and scoped discovery mode
+  - name: Rewards
+    description: Reward points and voucher redemption
   - name: Wallet
     description: Wallet and payment operations
   - name: KYC

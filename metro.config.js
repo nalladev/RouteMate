@@ -3,8 +3,17 @@ const { getDefaultConfig } = require('expo/metro-config');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Exclude native-only modules from web builds
+// Exclude API routes from native builds
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // For native platforms, return empty module for any app/api imports
+  if (platform === 'android' || platform === 'ios') {
+    if (moduleName.includes('/app/api/') || moduleName.includes('\\app\\api\\')) {
+      return {
+        type: 'empty',
+      };
+    }
+  }
+
   // Exclude react-native-maps on web
   if (platform === 'web' && moduleName === 'react-native-maps') {
     return {

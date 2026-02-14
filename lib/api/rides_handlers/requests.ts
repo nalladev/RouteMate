@@ -1,0 +1,48 @@
+import { getAuthToken, validateSession } from '../../middleware';
+import { getDocument } from '../../firestore';
+
+export async function handleRequests(request: Request) {
+  const token = getAuthToken(request);
+
+  if (!token) {
+    return Response.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  const user = await validateSession(token);
+
+  if (!user) {
+    return Response.json(
+      { error: 'Invalid session' },
+      { status: 401 }
+    );
+  }
+
+  // Get all pending requests for this driver
+  const allRequests = await getDocument('rideconnections', { DriverId: user.Id });
+  
+  // Filter for pending/requested state and check expiry
+  const now = new Date();
+  const requests = allRequests.filter((r: any) => {
+    if (r.State !== 'requested') return false;
+
+    if (user.ActiveCommunityId && r.CommunityId !== user.ActiveCommunityId) {
+      return false;
+    }
+    
+    // Check if expired
+    const expiresAt = r.ExpiresAt?.toDate ? r.ExpiresAt.toDate() : (r.ExpiresAt ? new Date(r.ExpiresAt) : null);
+    if (expiresAt && expiresAt < now) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  return Response.json({
+    requests,
+  });
+}
+export default function Handler() { return null; }

@@ -129,7 +129,12 @@ export const api = {
 
   // Communities
   getCommunities: async (): Promise<{ communities: Community[]; activeCommunityId: string | null }> => {
-    return request('/api/communities');
+    try {
+      const result = await request('/api/communities');
+      return result;
+    } catch (error) {
+      throw error;
+    }
   },
 
   createCommunity: async (name: string): Promise<{ community: Community }> => {
@@ -275,7 +280,7 @@ export const api = {
     };
     redemptions: RewardRedemption[];
   }> => {
-    return request('/api/rewards');
+    return request('/api/rewards/list');
   },
 
   redeemReward: async (role: RewardRole, voucherId: string): Promise<{
