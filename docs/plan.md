@@ -130,9 +130,9 @@ Both buttons open the same phone.email verification flow. The system automatical
 ## 5. Discovery & Interaction Logic (Home Section)
 
 ### Intelligent Discovery (Filtering)
-* **Passenger Discovery:** Only shows drivers whose current route (from `LastLocation` to `Destination`) passes through the passenger's pickup and destination points.
+* **Passenger Discovery:** Shows drivers whose current route (from `LastLocation` to `Destination`) is compatible with the passenger trip. Matching is flexible: pickup/destination can be near the driver's route corridor or near the driver's route endpoints (current location/destination), to avoid missing close parallel trips.
 * **Driver Discovery:** Only shows passengers who have an active, non-completed connection.
-* **API Matching:** Marker data is fetched from a dedicated backend endpoint that calculates route overlaps/direction and must be refreshed frequently to reflect movement.
+* **API Matching:** Marker data is fetched from a dedicated backend endpoint that calculates route compatibility (not exact same path) using route-corridor + endpoint proximity, and must be refreshed frequently to reflect movement.
 
 ### Passenger View
 * **Interaction:** Clicking a filtered driver marker opens a **slide-in bottom box** showing driver details along with a "Request Ride" button (the button only works if user has sufficient balance for the fare; otherwise show "Insufficient balance" and a button to account section where they can top up).
@@ -340,7 +340,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ## 10. Technical Architecture
 * **Backend:** Vercel API routing.
-* **Matching Engine:** API endpoint to filter markers based on route similarity and direction.
+* **Matching Engine:** API endpoint to filter markers based on flexible route compatibility and direction.
 * **Database:** Firestore (All operations via backend).
 * **Firestore Wrappers:** All DB calls use `addDocument`, `updateDocument`, `getDocument`, and `getDocumentById`.
 * **Payment Gateway:** Razorpay for top-ups and payouts (currently disabled pending Play Store publication).

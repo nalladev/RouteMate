@@ -2,6 +2,10 @@ import { getAuthToken, validateSession } from '../../../lib/middleware';
 import { getAllDocuments, getDocument } from '../../../lib/firestore';
 import { User, MarkerData } from '../../../types';
 
+const ROUTE_CORRIDOR_KM = 3.5;
+const PICKUP_PROXIMITY_KM = 5;
+const DESTINATION_PROXIMITY_KM = 5;
+
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -66,14 +70,17 @@ async function getFilteredDrivers(
   for (const driver of drivers) {
     if (!driver.LastLocation || !driver.Destination) continue;
 
-    // Check if passenger pickup and destination are near driver's route
+    // Flexible matching:
+    // 1) near the route corridor OR
+    // 2) close to driver's current position / destination endpoints.
     const pickupNearRoute = isPointNearRoute(
       passengerPickup.lat,
       passengerPickup.lng,
       driver.LastLocation.lat,
       driver.LastLocation.lng,
       driver.Destination.lat,
-      driver.Destination.lng
+      driver.Destination.lng,
+      ROUTE_CORRIDOR_KM
     );
 
     const destinationNearRoute = isPointNearRoute(
@@ -82,10 +89,28 @@ async function getFilteredDrivers(
       driver.LastLocation.lat,
       driver.LastLocation.lng,
       driver.Destination.lat,
-      driver.Destination.lng
+      driver.Destination.lng,
+      ROUTE_CORRIDOR_KM
     );
 
-    if (pickupNearRoute && destinationNearRoute) {
+    const pickupNearDriver = calculateDistance(
+      passengerPickup.lat,
+      passengerPickup.lng,
+      driver.LastLocation.lat,
+      driver.LastLocation.lng
+    ) <= PICKUP_PROXIMITY_KM;
+
+    const destinationNearDriverDestination = calculateDistance(
+      passengerDestination.lat,
+      passengerDestination.lng,
+      driver.Destination.lat,
+      driver.Destination.lng
+    ) <= DESTINATION_PROXIMITY_KM;
+
+    const pickupCompatible = pickupNearRoute || pickupNearDriver;
+    const destinationCompatible = destinationNearRoute || destinationNearDriverDestination;
+
+    if (pickupCompatible && destinationCompatible) {
       filteredDrivers.push({
         userId: driver.Id,
         name: driver.Name || 'Driver',

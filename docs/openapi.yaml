@@ -740,7 +740,7 @@ paths:
   /api/match/markers:
     get:
       summary: Get filtered markers
-      description: Returns filtered nearby drivers or passengers based on role and route overlap
+      description: Returns filtered nearby drivers or passengers based on role and flexible route compatibility (route corridor and endpoint proximity, not exact same path).
       tags:
         - Discovery
       security:
