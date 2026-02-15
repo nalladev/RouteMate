@@ -20,6 +20,7 @@ import { Transaction, User } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
 import type { VehicleType } from '@/constants/vehicles';
+import { ProfileImageUpload } from '@/components/ProfileImageUpload';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -53,6 +54,9 @@ export default function AccountScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showTransactions, setShowTransactions] = useState(false);
 
+  // Profile Picture
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | undefined>(undefined);
+
   const loadAccountInfo = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -82,6 +86,9 @@ export default function AccountScreen() {
       setOriginalVehicleName(vName);
       setOriginalVehicleModel(vModel);
       setOriginalVehicleRegistration(vReg);
+
+      // Set profile picture URL
+      setProfilePictureUrl(meData.user?.ProfilePictureUrl);
     } catch (error) {
       console.error('Failed to load account info:', error);
       Alert.alert('Error', 'Failed to load account information');
@@ -276,6 +283,11 @@ export default function AccountScreen() {
     }
   }
 
+  async function handleProfilePictureUploadSuccess(url: string) {
+    setProfilePictureUrl(url);
+    await refreshUser();
+  }
+
   async function handleLogout() {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -358,6 +370,16 @@ export default function AccountScreen() {
             <View style={styles.sectionHeaderRow}>
               <MaterialIcons name="person" size={24} color={colors.text} style={{ marginRight: 8 }} />
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile</Text>
+            </View>
+
+            {/* Profile Picture */}
+            <View style={[styles.infoRow, { borderBottomColor: colors.border, justifyContent: 'center', paddingVertical: 20 }]}>
+              <ProfileImageUpload
+                profilePictureUrl={profilePictureUrl}
+                userName={currentUser.Name}
+                onUploadSuccess={handleProfilePictureUploadSuccess}
+                size={120}
+              />
             </View>
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>

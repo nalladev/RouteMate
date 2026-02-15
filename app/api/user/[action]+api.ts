@@ -2,6 +2,7 @@ import { handleMe } from '../../../lib/api/user_handlers/me';
 import { handleLocation } from '../../../lib/api/user_handlers/location';
 import { handleState } from '../../../lib/api/user_handlers/state';
 import { handleVehicle } from '../../../lib/api/user_handlers/vehicle';
+import { handleUploadProfilePicture } from '../../../lib/api/user_handlers/profile-picture';
 
 export async function GET(request: Request, { action }: { action: string }) {
   try {
@@ -32,6 +33,8 @@ export async function POST(request: Request, { action }: { action: string }) {
         return await handleState(request);
       case 'vehicle':
         return await handleVehicle(request);
+      case 'profile-picture':
+        return await handleUploadProfilePicture(request);
       default:
         return Response.json(
           { error: `Unknown action: ${action}` },

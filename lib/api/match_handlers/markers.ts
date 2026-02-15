@@ -131,6 +131,7 @@ async function getFilteredDrivers(
         vehicleName: driver.VehicleName,
         vehicleModel: driver.VehicleModel,
         vehicleRegistration: driver.VehicleRegistration,
+        profilePictureUrl: driver.ProfilePictureUrl,
         lastLocation: driver.LastLocation,
         destination: driver.Destination,
       });
@@ -174,6 +175,7 @@ async function getFilteredPassengers(
     passengers.push({
       userId: passenger.Id,
       name: passenger.Name || 'Passenger',
+      profilePictureUrl: passenger.ProfilePictureUrl,
       lastLocation: passenger.LastLocation,
       destination: connection.Destination,
     });

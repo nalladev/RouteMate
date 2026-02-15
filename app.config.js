@@ -22,6 +22,8 @@ module.exports = {
         NSLocationWhenInUseUsageDescription: "RouteMate needs your location to show nearby drivers and track rides.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "RouteMate needs your location to provide real-time ride tracking and match you with drivers.",
         NSLocationAlwaysUsageDescription: "RouteMate needs your location in the background to track active rides.",
+        NSPhotoLibraryUsageDescription: "Allow RouteMate to access your photo library to upload profile pictures.",
+        NSCameraUsageDescription: "Allow RouteMate to take photos for your profile picture.",
         NSAppTransportSecurity: {
           NSAllowsArbitraryLoads: true
         }
@@ -89,6 +91,13 @@ module.exports = {
           cameraPermission: "Allow RouteMate to access your camera for identity verification (KYC).",
           microphonePermission: "Allow RouteMate to access your microphone for the verification process.",
           recordAudioAndroid: true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Allow RouteMate to access your photo library to upload profile pictures.",
+          cameraPermission: "Allow RouteMate to take photos for your profile picture."
         }
       ],
       [

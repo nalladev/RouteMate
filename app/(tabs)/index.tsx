@@ -13,6 +13,7 @@ import {
   Linking,
   Share as NativeShare,
 } from 'react-native';
+import { Image } from 'expo-image';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -838,9 +839,18 @@ export default function HomeScreen() {
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <View style={styles.bottomSheetTitleContainer}>
-              <View style={[styles.bottomSheetIcon, { backgroundColor: colors.info }]}>
-                <MaterialIcons name="drive-eta" size={16} color="#fff" />
-              </View>
+              {/* Profile Picture or Avatar */}
+              {selectedMarker.profilePictureUrl ? (
+                <Image
+                  source={{ uri: selectedMarker.profilePictureUrl }}
+                  style={styles.driverProfileImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={[styles.bottomSheetIcon, { backgroundColor: colors.info }]}>
+                  <MaterialIcons name="drive-eta" size={16} color="#fff" />
+                </View>
+              )}
               <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>{selectedMarker.name} (Driver)</Text>
             </View>
             <TouchableOpacity onPress={() => setSelectedMarker(null)}>
@@ -1547,12 +1557,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bottomSheetIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+     width: 32,
+     height: 32,
+     borderRadius: 16,
+     alignItems: 'center',
+     justifyContent: 'center',
+   },
+   driverProfileImage: {
+     width: 32,
+     height: 32,
+     borderRadius: 16,
+     backgroundColor: '#E0E0E0',
+   },
   bottomSheetTitle: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
