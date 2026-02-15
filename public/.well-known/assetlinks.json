@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "tech.routemate.app",
+    "sha256_cert_fingerprints": [
+      "A0:D6:23:3E:AC:76:59:D8:ED:3F:9D:6C:A6:74:62:37:31:20:D3:E6:D0:93:E2:1F:34:2B:FA:F3:4E:FC:7D:63"
+    ]
+  }
+}]

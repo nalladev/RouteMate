@@ -7,6 +7,15 @@
       "includeFiles": "dist/server/**"
     }
   },
+  "routes": [
+    {
+      "src": "/.well-known/assetlinks.json",
+      "dest": "/public/.well-known/assetlinks.json",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
