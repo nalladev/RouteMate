@@ -3,6 +3,7 @@ import { addDocument, getDocument, getDocumentById } from '../../firestore';
 import { generateOTP } from '../../auth';
 import { User } from '../../../types';
 import { areUsersInCommunity } from '../../community';
+import { calculateFare, formatCurrency } from '../../../config/fare';
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
@@ -16,11 +17,7 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
-function calculateFare(distance: number): number {
-  const baseRate = 2; // $2 base
-  const perKm = 1.5; // $1.5 per km
-  return baseRate + (distance * perKm);
-}
+
 
 export async function handleRequest(request: Request) {
   try {
@@ -69,7 +66,7 @@ export async function handleRequest(request: Request) {
     // Check if balance is sufficient for the fare
     if (balance < fare) {
       return Response.json(
-        { error: `Insufficient balance. Required: ₹${fare.toFixed(2)}, Available: ₹${balance.toFixed(2)}` },
+        { error: `Insufficient balance. Required: ${formatCurrency(fare)}, Available: ${formatCurrency(balance)}` },
         { status: 400 }
       );
     }

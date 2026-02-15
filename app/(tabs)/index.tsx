@@ -445,11 +445,11 @@ export default function HomeScreen() {
   async function handleRequestRide(marker: MarkerData) {
     if (!userLocation || !destination) return;
 
-    const minBalance = 10 / 100; // $10 worth
+    const minBalance = 150; // ₹150 minimum balance
     if (balance < minBalance) {
       Alert.alert(
         'Insufficient Balance',
-        'You need at least $10 worth of SOL to request a ride. Please top up your wallet.',
+        'You need at least ₹150 to request a ride. Please top up your wallet.',
         [{ text: 'Go to Account', onPress: () => router.push('/(tabs)/account') }]
       );
       return;
@@ -1105,7 +1105,7 @@ export default function HomeScreen() {
                     <MaterialIcons name="attach-money" size={24} color={colors.success} />
                     <View style={styles.requestDetailTextContainer}>
                       <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Fare</Text>
-                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>${currentRequest.Fare.toFixed(2)}</Text>
+                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>₹{currentRequest.Fare.toFixed(2)}</Text>
                     </View>
                   </View>
 
