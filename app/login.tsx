@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PasswordInput } from '@/components/ui/PasswordInput';
+import { Colors } from '@/constants/theme';
 
 type AuthMode = 'login' | 'phone-email-login' | 'phone-email-signup' | 'signup-password';
 
@@ -34,6 +36,8 @@ function getApiBaseUrl(): string {
 export default function LoginScreen() {
   const router = useRouter();
   const { login, otpLogin, signup, isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [countryCode, setCountryCode] = useState('+91');
@@ -62,10 +66,10 @@ export default function LoginScreen() {
   // Show loading screen while checking authentication or while authenticated (during redirect)
   if (authLoading || isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
         <View style={styles.authLoadingContainer}>
-          <ActivityIndicator size="large" color="#e86713" />
-          <Text style={styles.authLoadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={[styles.authLoadingText, { color: colors.textSecondary }]}>Loading...</Text>
         </View>
       </View>
     );
@@ -212,15 +216,15 @@ export default function LoginScreen() {
   // Render WebView for phone.email authentication
   if (authMode === 'phone-email-login' || authMode === 'phone-email-signup') {
     return (
-      <View style={styles.container}>
-        <View style={styles.webViewHeader}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.webViewHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={switchToPasswordLogin}
           >
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.tint }]}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.webViewTitle}>
+          <Text style={[styles.webViewTitle, { color: colors.text }]}>
             {authMode === 'phone-email-login' ? 'Login with Phone' : 'Sign Up with Phone'}
           </Text>
         </View>
@@ -231,8 +235,8 @@ export default function LoginScreen() {
           onMessage={handleWebViewMessage}
           startInLoadingState={true}
           renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#e86713" />
+            <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
+              <ActivityIndicator size="large" color={colors.tint} />
             </View>
           )}
         />
@@ -243,10 +247,10 @@ export default function LoginScreen() {
   // Render password entry screen after phone verification for new users
   if (authMode === 'signup-password') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome!</Text>
-          <Text style={styles.subtitle}>Create a password to complete your account setup</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome!</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Create a password to complete your account setup</Text>
 
           <View style={styles.form}>
             <PasswordInput
@@ -258,7 +262,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.button, styles.primaryButton]}
+              style={[styles.button, styles.primaryButton, { backgroundColor: colors.tint }]}
               onPress={handleSignupWithPassword}
               disabled={isLoading}
             >
@@ -274,7 +278,7 @@ export default function LoginScreen() {
               onPress={switchToPasswordLogin}
               disabled={isLoading}
             >
-              <Text style={styles.linkText}>Cancel</Text>
+              <Text style={[styles.linkText, { color: colors.tint }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -284,28 +288,28 @@ export default function LoginScreen() {
 
   // Default login screen
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.title}>RouteMate</Text>
-          <Text style={styles.subtitle}>Your ride-sharing companion</Text>
+          <Text style={[styles.title, { color: colors.text }]}>RouteMate</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your ride-sharing companion</Text>
 
           <View style={styles.form}>
             {/* Mobile Number with Country Code */}
             <View style={styles.phoneInputContainer}>
               <TouchableOpacity
-                style={styles.countryCodeButton}
+                style={[styles.countryCodeButton, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => setShowCountryPicker(!showCountryPicker)}
                 disabled={isLoading}
               >
-                <Text style={styles.countryCodeText}>{countryCode}</Text>
-                <Text style={styles.dropdownArrow}>▼</Text>
+                <Text style={[styles.countryCodeText, { color: colors.text }]}>{countryCode}</Text>
+                <Text style={[styles.dropdownArrow, { color: colors.textSecondary }]}>▼</Text>
               </TouchableOpacity>
 
               <TextInput
-                style={styles.phoneInput}
+                style={[styles.phoneInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
                 placeholder="Mobile Number"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textSecondary}
                 value={mobile}
                 onChangeText={setMobile}
                 keyboardType="phone-pad"
@@ -317,21 +321,22 @@ export default function LoginScreen() {
 
             {/* Country Code Picker */}
             {showCountryPicker && (
-              <View style={styles.countryPicker}>
+              <View style={[styles.countryPicker, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 {COUNTRY_CODES.map((item) => (
                   <TouchableOpacity
                     key={item.code}
                     style={[
                       styles.countryOption,
-                      countryCode === item.code && styles.countryOptionSelected,
+                      { borderBottomColor: colors.border },
+                      countryCode === item.code && { backgroundColor: colors.tint + '22' },
                     ]}
                     onPress={() => {
                       setCountryCode(item.code);
                       setShowCountryPicker(false);
                     }}
                   >
-                    <Text style={styles.countryCodeText}>{item.code}</Text>
-                    <Text style={styles.countryNameText}>{item.country}</Text>
+                    <Text style={[styles.countryCodeText, { color: colors.text }]}>{item.code}</Text>
+                    <Text style={[styles.countryNameText, { color: colors.textSecondary }]}>{item.country}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -346,7 +351,7 @@ export default function LoginScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.button, styles.primaryButton]}
+              style={[styles.button, styles.primaryButton, { backgroundColor: colors.tint }]}
               onPress={handleLogin}
               disabled={isLoading}
             >
@@ -358,11 +363,11 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.secondaryButton]}
+              style={[styles.button, styles.secondaryButton, { backgroundColor: colors.card, borderColor: colors.tint }]}
               onPress={switchToPhoneEmailLogin}
               disabled={isLoading}
             >
-              <Text style={styles.secondaryButtonText}>Login with OTP</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.tint }]}>Login with OTP</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -370,7 +375,7 @@ export default function LoginScreen() {
               onPress={switchToPhoneEmailSignup}
               disabled={isLoading}
             >
-              <Text style={styles.linkText}>Don&apos;t have an account? Sign Up with OTP</Text>
+              <Text style={[styles.linkText, { color: colors.tint }]}>Don&apos;t have an account? Sign Up with OTP</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -382,7 +387,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   scrollContent: {
     flexGrow: 1,
@@ -396,25 +400,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 40,
-    color: '#666',
   },
   form: {
     width: '100%',
   },
   input: {
-    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   button: {
     borderRadius: 8,
@@ -423,12 +423,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#e86713',
   },
   secondaryButton: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e86713',
   },
   buttonText: {
     color: '#fff',
@@ -436,7 +433,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButtonText: {
-    color: '#e86713',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -445,7 +441,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#e86713',
     fontSize: 14,
   },
   webView: {
@@ -455,22 +450,18 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
   backButton: {
     paddingVertical: 5,
   },
   backButtonText: {
-    color: '#e86713',
     fontSize: 16,
   },
   webViewTitle: {
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    color: '#333',
     marginTop: 5,
   },
   loadingContainer: {
@@ -481,7 +472,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   phoneInputContainer: {
     flexDirection: 'row',
@@ -492,41 +482,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
     minWidth: 60,
   },
   countryCodeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   dropdownArrow: {
     fontSize: 10,
-    color: '#666',
     marginLeft: 5,
   },
   phoneInput: {
     flex: 1,
-    backgroundColor: '#fff',
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
     padding: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
-    color: '#333',
   },
   countryPicker: {
-    backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
     marginBottom: 15,
     overflow: 'hidden',
   },
@@ -536,24 +517,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   countryOptionSelected: {
-    backgroundColor: '#E3F2FD',
   },
   countryNameText: {
     fontSize: 14,
-    color: '#666',
   },
   authLoadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   authLoadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
   },
 });

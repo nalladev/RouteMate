@@ -97,7 +97,11 @@ module.exports = {
           image: "./assets/icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
+          dark: {
+            image: "./assets/icon.png",
+            backgroundColor: "#151718"
+          }
         }
       ]
     ],

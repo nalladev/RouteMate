@@ -5,10 +5,12 @@ import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, Text, Touchabl
 import { PENDING_COMMUNITY_INVITE_TOKEN_KEY } from '@/constants/community';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/utils/api';
 
 export default function CommunityInviteJoinScreen() {
-  const colors = Colors.light;
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string }>();
   const token = typeof params.token === 'string' ? params.token : '';

@@ -14,13 +14,15 @@ import { useRouter } from 'expo-router';
 import { type CommunityInvitePresetHours } from '@/constants/community';
 import { Colors, Shadow } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Community, CommunityMember } from '@/types';
 import { api } from '@/utils/api';
 
 export default function CommunitiesScreen() {
-  const colors = Colors.light;
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
