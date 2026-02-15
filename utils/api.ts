@@ -344,12 +344,7 @@ export const api = {
     });
   },
 
-  refreshKycStatus: async (sessionId?: string): Promise<{ success: boolean; verified: boolean; status: string }> => {
-    return request('/api/kyc/verify', {
-      method: 'POST',
-      body: JSON.stringify(sessionId ? { sessionId } : {}),
-    });
-  },
+
 };
 
 export async function setAuthToken(token: string): Promise<void> {

@@ -15,7 +15,7 @@ import { api } from '@/utils/api';
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
-  const { user, refreshUser, markKycPromptShown } = useAuth();
+  const { user, markKycPromptShown } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
@@ -62,19 +62,12 @@ export default function KYCVerificationScreen() {
   async function handleVerificationComplete(status: string) {
     setIsLoading(true);
     try {
-      try {
-        await api.refreshKycStatus();
-      } catch (error) {
-        console.warn('Could not refresh KYC status immediately:', error);
-      }
-
-      await refreshUser();
       const normalizedStatus = getCallbackStatus(status);
       const isApproved = normalizedStatus === 'approved';
       const alertTitle = isApproved ? 'Verification Approved' : 'Verification Submitted';
       const alertMessage = isApproved
-        ? 'Your KYC verification has been approved.'
-        : 'Your verification was submitted and is under review. We will update your status automatically when the result is available.';
+        ? 'Your KYC verification has been approved. Your account status will be updated shortly.'
+        : 'Your verification was submitted and is under review. Your account status will be updated automatically when the review is complete.';
 
       Alert.alert(
         alertTitle,
@@ -109,14 +102,18 @@ export default function KYCVerificationScreen() {
         if (status) {
           handleVerificationComplete(status);
         } else {
-          setShowDiditWebView(false);
+          // Redirect to home, webhook will update status
+          markKycPromptShown();
+          router.replace('/(tabs)');
           Alert.alert(
             'Verification Submitted',
-            'Your verification has been submitted. We will update your status once the review is completed.'
+            'Your verification has been submitted. Your account status will be updated automatically when the review is completed.'
           );
         }
       } catch (error) {
         console.error('Failed to parse callback URL:', error);
+        markKycPromptShown();
+        router.replace('/(tabs)');
       }
     }
   }

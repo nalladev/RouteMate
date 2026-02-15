@@ -2245,56 +2245,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/kyc/verify:
-    post:
-      summary: Refresh KYC Status
-      description: Fetch latest Didit session status for the authenticated user and update local KYC fields
-      tags:
-        - KYC
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                sessionId:
-                  type: string
-                  description: Optional Didit session ID. If omitted, backend uses stored user KYC session ID.
-      responses:
-        '200':
-          description: KYC status refreshed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  verified:
-                    type: boolean
-                  status:
-                    $ref: '#/components/schemas/KycStatus'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Failed to fetch status from provider
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+
 
   /api/kyc/webhook:
     post:

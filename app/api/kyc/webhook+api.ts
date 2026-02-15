@@ -135,7 +135,34 @@ export async function POST(request: Request) {
 
     const effectiveSessionId = sessionId || user.KycData?.sessionId;
     const diditSession = effectiveSessionId ? await fetchDiditSession(effectiveSessionId) : null;
-    const extractedProfile = extractKycProfile(diditSession || payload);
+    
+    let extractedProfile;
+    try {
+      extractedProfile = extractKycProfile(diditSession || payload);
+    } catch (error: any) {
+      console.error('KYC profile extraction failed:', {
+        error: error.message,
+        userId: user.Id,
+        sessionId: effectiveSessionId,
+        hasDiditSession: !!diditSession,
+        payloadKeys: Object.keys(payload)
+      });
+      // Still update status but without extracted data
+      const updateData: any = {
+        IsKycVerified: false,
+        KycStatus: normalizedStatus,
+        KycData: {
+          ...(user.KycData || {}),
+          status: normalizedStatus,
+          updatedAt: now,
+          sessionId: effectiveSessionId,
+          extractionError: error.message,
+        },
+      };
+      await updateDocument('users', user.Id, updateData);
+      return Response.json({ received: true, error: 'Failed to extract KYC data' });
+    }
+    
     const isVerified = isApprovedKycStatus(normalizedStatus);
     const kycData: any = {
       ...(user.KycData || {}),
