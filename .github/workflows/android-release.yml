@@ -88,7 +88,52 @@ jobs:
       # Restore keystore
       - name: Restore keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d ' \n' | base64 --decode > android/app/upload-keystore.jks
+
+      # Patch build.gradle to use production signing config
+      - name: Configure production signing
+        run: |
+          echo "=========================================="
+          echo "🔧 Patching build.gradle for production signing..."
+          echo "=========================================="
+          
+          # Create patch script
+          cat > patch_build.sh << 'PATCH_EOF'
+          #!/bin/bash
+          
+          # Add release signing config after debug signing config
+          awk '
+          /signingConfigs \{/ { print; in_signing=1; next }
+          in_signing && /keyPassword.*android/ { 
+            print
+            print "        }"
+            print "        release {"
+            print "            if (project.hasProperty('\''MYAPP_UPLOAD_STORE_FILE'\'')) {"
+            print "                storeFile file(MYAPP_UPLOAD_STORE_FILE)"
+            print "                storePassword MYAPP_UPLOAD_STORE_PASSWORD"
+            print "                keyAlias MYAPP_UPLOAD_KEY_ALIAS"
+            print "                keyPassword MYAPP_UPLOAD_KEY_PASSWORD"
+            print "            }"
+            in_signing=0
+            next
+          }
+          { print }
+          ' android/app/build.gradle > android/app/build.gradle.tmp
+          mv android/app/build.gradle.tmp android/app/build.gradle
+          
+          # Change release buildType to use release signing config
+          sed -i 's/signingConfig signingConfigs\.debug$/signingConfig signingConfigs.release/' android/app/build.gradle
+          PATCH_EOF
+          
+          chmod +x patch_build.sh
+          ./patch_build.sh
+          rm patch_build.sh
+          
+          echo "✅ Build configuration patched"
+          echo ""
+          echo "Verifying release signing config:"
+          grep -A 8 "release {" android/app/build.gradle | grep -A 5 "signingConfig\|storeFile" || echo "Config applied"
+          echo "=========================================="
 
       # Build signed release APK
       - name: Build release APK
