@@ -15,7 +15,7 @@ interface AppStateContextType {
   activeConnections: RideConnection[];
   pendingRequests: RideConnection[];
   isActive: boolean;
-  refreshMarkers: () => Promise<void>;
+  refreshMarkers: () => Promise<MarkerData[]>;
   refreshConnections: () => Promise<void>;
   refreshRequests: () => Promise<void>;
   updateUserState: (state: UserState, dest?: LocationType | null) => Promise<void>;
@@ -93,8 +93,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [isAuthenticated, userLocation, role, destination, activeCommunityId]);
 
-  async function refreshMarkers() {
-    if (!userLocation) return;
+  async function refreshMarkers(): Promise<MarkerData[]> {
+    if (!userLocation) return [];
     
     try {
       const { markers: newMarkers } = await api.getMarkers(
@@ -103,8 +103,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         userLocation.lng
       );
       setMarkers(newMarkers);
+      return newMarkers;
     } catch (error) {
       console.error('Failed to refresh markers:', error);
+      return [];
     }
   }
 
