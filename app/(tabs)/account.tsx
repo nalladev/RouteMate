@@ -72,7 +72,7 @@ export default function AccountScreen() {
       const vehicleType = meData.user?.VehicleType || '';
       setSelectedVehicleType(vehicleType);
       setOriginalVehicleType(vehicleType);
-      
+
       const vName = meData.user?.VehicleName || '';
       const vModel = meData.user?.VehicleModel || '';
       const vReg = meData.user?.VehicleRegistration || '';
@@ -249,7 +249,7 @@ export default function AccountScreen() {
         vehicleModel: vehicleModel.trim() || undefined,
         vehicleRegistration: vehicleRegistration.trim() || undefined,
       });
-      
+
       // Refresh user data and profile without triggering full page loading
       await refreshUser();
       const meData = await api.getMe();
@@ -258,7 +258,7 @@ export default function AccountScreen() {
       const vName = meData.user?.VehicleName || '';
       const vModel = meData.user?.VehicleModel || '';
       const vReg = meData.user?.VehicleRegistration || '';
-      
+
       setSelectedVehicleType(vehicleType);
       setOriginalVehicleType(vehicleType);
       setVehicleName(vName);
@@ -267,7 +267,7 @@ export default function AccountScreen() {
       setOriginalVehicleName(vName);
       setOriginalVehicleModel(vModel);
       setOriginalVehicleRegistration(vReg);
-      
+
       Alert.alert('Success', 'Vehicle information updated');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update vehicle information');
@@ -401,7 +401,7 @@ export default function AccountScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-                
+
                 <TextInput
                   style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   placeholder="Vehicle Name (e.g., Honda, Toyota)"
@@ -410,7 +410,7 @@ export default function AccountScreen() {
                   onChangeText={setVehicleName}
                   editable={!isProcessing}
                 />
-                
+
                 <TextInput
                   style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   placeholder="Model (e.g., City, Innova)"
@@ -419,7 +419,7 @@ export default function AccountScreen() {
                   onChangeText={setVehicleModel}
                   editable={!isProcessing}
                 />
-                
+
                 <TextInput
                   style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   placeholder="Registration (e.g., KL34C3423)"
@@ -430,22 +430,22 @@ export default function AccountScreen() {
                   editable={!isProcessing}
                   maxLength={13}
                 />
-                
+
                 <TouchableOpacity
                   style={[
-                    styles.saveVehicleButton, 
-                    { 
+                    styles.saveVehicleButton,
+                    {
                       backgroundColor: colors.tint,
-                      opacity: (isProcessing || !selectedVehicleType || 
-                        (selectedVehicleType === originalVehicleType && 
+                      opacity: (isProcessing || !selectedVehicleType ||
+                        (selectedVehicleType === originalVehicleType &&
                          vehicleName === originalVehicleName &&
                          vehicleModel === originalVehicleModel &&
                          vehicleRegistration === originalVehicleRegistration)) ? 0.5 : 1,
                     }
                   ]}
                   onPress={handleSaveVehicleType}
-                  disabled={isProcessing || !selectedVehicleType || 
-                    (selectedVehicleType === originalVehicleType && 
+                  disabled={isProcessing || !selectedVehicleType ||
+                    (selectedVehicleType === originalVehicleType &&
                      vehicleName === originalVehicleName &&
                      vehicleModel === originalVehicleModel &&
                      vehicleRegistration === originalVehicleRegistration)}
@@ -601,7 +601,7 @@ export default function AccountScreen() {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
             </View>
 
-            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border, flexDirection: 'column' }]}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Theme</Text>
               <View style={styles.themeOptions}>
                 <TouchableOpacity
@@ -614,10 +614,10 @@ export default function AccountScreen() {
                   ]}
                   onPress={() => setColorScheme('light')}
                 >
-                  <MaterialIcons 
-                    name="light-mode" 
-                    size={20} 
-                    color={colorScheme === 'light' ? colors.tint : colors.textSecondary} 
+                  <MaterialIcons
+                    name="light-mode"
+                    size={20}
+                    color={colorScheme === 'light' ? colors.tint : colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -639,10 +639,10 @@ export default function AccountScreen() {
                   ]}
                   onPress={() => setColorScheme('dark')}
                 >
-                  <MaterialIcons 
-                    name="dark-mode" 
-                    size={20} 
-                    color={colorScheme === 'dark' ? colors.tint : colors.textSecondary} 
+                  <MaterialIcons
+                    name="dark-mode"
+                    size={20}
+                    color={colorScheme === 'dark' ? colors.tint : colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -664,10 +664,10 @@ export default function AccountScreen() {
                   ]}
                   onPress={() => setColorScheme('system')}
                 >
-                  <MaterialIcons 
-                    name="brightness-auto" 
-                    size={20} 
-                    color={colorScheme === 'system' ? colors.tint : colors.textSecondary} 
+                  <MaterialIcons
+                    name="brightness-auto"
+                    size={20}
+                    color={colorScheme === 'system' ? colors.tint : colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -894,6 +894,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.md,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   header: {
     padding: Spacing.lg,
@@ -902,7 +903,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   content: {
     padding: Spacing.md,
@@ -921,6 +922,7 @@ const styles = StyleSheet.create({
   sectionIcon: {
     fontSize: 24,
     marginRight: Spacing.sm,
+    fontFamily: 'Inter-Regular',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -930,11 +932,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   viewAllText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   infoRow: {
     flexDirection: 'row',
@@ -945,11 +947,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Inter-Medium',
   },
   value: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   vehicleTypeContainer: {
     alignItems: 'flex-end',
@@ -969,7 +971,7 @@ const styles = StyleSheet.create({
   },
   vehicleTypeOptionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   themeOptions: {
     flexDirection: 'row',
@@ -987,7 +989,7 @@ const styles = StyleSheet.create({
   },
   themeOptionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   saveVehicleButton: {
     marginTop: Spacing.sm,
@@ -998,7 +1000,7 @@ const styles = StyleSheet.create({
   saveVehicleButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   vehicleInput: {
     width: '100%',
@@ -1007,11 +1009,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     marginTop: Spacing.sm,
   },
   vehicleNote: {
     fontSize: 12,
-    fontStyle: 'italic',
+    fontFamily: 'Inter-Italic',
     marginBottom: Spacing.xs,
   },
   badgeContainer: {
@@ -1024,7 +1027,7 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   unverifiedBadge: {
     paddingHorizontal: Spacing.md,
@@ -1033,7 +1036,7 @@ const styles = StyleSheet.create({
   },
   unverifiedText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   verifyKycButton: {
     paddingVertical: Spacing.md,
@@ -1046,7 +1049,7 @@ const styles = StyleSheet.create({
   verifyKycButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   balanceContainer: {
     alignItems: 'center',
@@ -1056,15 +1059,14 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginBottom: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   balanceValue: {
     fontSize: 42,
-    fontWeight: 'bold',
-    fontFamily: "inter",
+    fontFamily: 'Inter-Bold',
   },
   walletActions: {
     flexDirection: 'row',
@@ -1083,6 +1085,7 @@ const styles = StyleSheet.create({
   },
   disabledNotice: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginTop: Spacing.md,
     padding: Spacing.sm,
@@ -1091,7 +1094,7 @@ const styles = StyleSheet.create({
   walletButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   transactionItem: {
     flexDirection: 'row',
@@ -1109,31 +1112,33 @@ const styles = StyleSheet.create({
   },
   transactionIconText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   transactionDetails: {
     flex: 1,
   },
   transactionDescription: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
   },
   transactionStatus: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginTop: 4,
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     paddingVertical: Spacing.lg,
   },
   actionsSection: {
@@ -1148,7 +1153,7 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   modalOverlay: {
     flex: 1,
@@ -1166,23 +1171,25 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   modalLabel: {
     fontSize: 14,
     marginBottom: Spacing.sm,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   modalInput: {
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     marginBottom: Spacing.md,
   },
   modalHint: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     marginBottom: Spacing.lg,
   },
   upiIdDisplay: {
@@ -1193,16 +1200,16 @@ const styles = StyleSheet.create({
   upiIdLabel: {
     fontSize: 12,
     marginBottom: Spacing.xs,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   upiIdValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     marginBottom: Spacing.sm,
   },
   changeUpiText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -1220,15 +1227,15 @@ const styles = StyleSheet.create({
   },
   modalCancelButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-SemiBold',
   },
   modalConfirmButton: {
     // Color set inline
   },
   modalConfirmButtonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-SemiBold',
   },
   fullScreenModal: {
     flex: 1,

@@ -136,7 +136,7 @@ export default function CommunitiesScreen() {
           expiresAt: result.expiresAt,
         },
       }));
-      
+
       // Show success message with expiry info
       Alert.alert(
         'Invite Link Created',
@@ -180,7 +180,7 @@ export default function CommunitiesScreen() {
       setLoadingMembersCommunityId(communityId);
       const result = await api.getCommunityMembers(communityId);
       const members = result.members || [];
-      
+
       setMembersByCommunityId((prev) => ({
         ...prev,
         [communityId]: members,
@@ -206,7 +206,7 @@ export default function CommunitiesScreen() {
     }
 
     setOpenMembersCommunityId(community.Id);
-    
+
     // Always reload members when opening the panel
     await reloadMembers(community.Id);
   }
@@ -233,7 +233,7 @@ export default function CommunitiesScreen() {
       await api.removeCommunityMember(community.Id, member.Id);
 
       const updatedMembers = (membersByCommunityId[community.Id] || []).filter((item) => item.Id !== member.Id);
-      
+
       setMembersByCommunityId((prev) => ({
         ...prev,
         [community.Id]: updatedMembers,
@@ -264,7 +264,7 @@ export default function CommunitiesScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary, paddingTop: 40 }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Community Mode</Text>
@@ -355,7 +355,7 @@ export default function CommunitiesScreen() {
 
                 {inviteByCommunityId[community.Id] && (
                   <View style={[styles.inviteCard, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: 'Inter-Regular' }}>
                       Expires: {new Date(inviteByCommunityId[community.Id].expiresAt).toLocaleString()}
                     </Text>
                     <Text selectable style={[styles.inviteLinkText, { color: colors.text }]}>
@@ -389,7 +389,7 @@ export default function CommunitiesScreen() {
                         onPress={() => reloadMembers(community.Id)}
                         disabled={loadingMembersCommunityId === community.Id}
                       >
-                        <Text style={{ color: colors.tint, fontSize: 12 }}>
+                        <Text style={{ color: colors.tint, fontSize: 12, fontFamily: 'Inter-Regular' }}>
                           {loadingMembersCommunityId === community.Id ? 'Loading...' : '🔄 Reload'}
                         </Text>
                       </TouchableOpacity>
@@ -403,10 +403,10 @@ export default function CommunitiesScreen() {
                         return (
                           <View key={member.Id} style={[styles.memberRow, { borderBottomColor: colors.border }]}>
                             <View style={styles.memberInfo}>
-                              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                              <Text style={{ color: colors.text, fontFamily: 'Inter-SemiBold' }}>
                                 {member.Name || 'Unnamed user'}
                               </Text>
-                              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                              <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: 'Inter-Regular' }}>
                                 {member.Mobile || 'No mobile'}{member.isAdmin ? ' • Admin' : ''}
                               </Text>
                             </View>
@@ -452,6 +452,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   section: {
     borderRadius: 14,
@@ -461,10 +462,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   sectionSubTitle: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   input: {
     borderWidth: 1,
@@ -472,6 +474,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
+    fontFamily: 'Inter-Regular',
   },
   primaryButton: {
     borderRadius: 10,
@@ -480,7 +483,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: 'white',
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   offButton: {
     borderWidth: 1,
@@ -489,7 +492,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   offButtonText: {
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
 
   communityCard: {
@@ -507,7 +510,7 @@ const styles = StyleSheet.create({
   },
   communityName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     flex: 1,
   },
   communityActions: {
@@ -531,6 +534,7 @@ const styles = StyleSheet.create({
   },
   inviteLinkText: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
   },
   inviteActions: {
     flexDirection: 'row',
@@ -551,7 +555,7 @@ const styles = StyleSheet.create({
   },
   membersTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   reloadButton: {
     borderWidth: 1,

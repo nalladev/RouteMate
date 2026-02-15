@@ -23,14 +23,14 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 85 : 65 + insets.bottom,
-          paddingBottom: insets.bottom,
+          height: Platform.OS === 'ios' ? 95 : 75 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom + 20, 28),
           ...Shadow.medium,
           elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontFamily: 'Inter-SemiBold',
           marginTop: 4,
         },
         tabBarItemStyle: {
