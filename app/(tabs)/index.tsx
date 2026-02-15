@@ -211,6 +211,11 @@ export default function HomeScreen() {
   }
 
   async function handlePlaceSelected(place: { lat: number; lng: number; name: string }) {
+    // Prevent place selection when in active mode
+    if (isActive) {
+      return;
+    }
+
     // Store temporarily and show mode selection buttons
     setTempDestination(place);
     setSearchQuery(place.name);
@@ -411,6 +416,11 @@ export default function HomeScreen() {
   }
 
   async function handleMapPoiClick(event: any) {
+    // Prevent place selection when in active mode
+    if (isActive) {
+      return;
+    }
+
     const poi = event.nativeEvent;
     if (poi.coordinate) {
       const { latitude, longitude } = poi.coordinate;
