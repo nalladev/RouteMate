@@ -239,6 +239,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   header: {
     paddingTop: 64,
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   content: {
     padding: Spacing.md,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   roleToggleRow: {
     flexDirection: 'row',
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
   },
   roleToggleButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   pointsCard: {
     borderWidth: 1,
@@ -292,11 +293,12 @@ const styles = StyleSheet.create({
   },
   pointsLabel: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
     marginBottom: 4,
   },
   pointsValue: {
     fontSize: 30,
-    fontWeight: '800',
+    fontFamily: 'Inter-ExtraBold',
   },
   voucherCard: {
     borderWidth: 1,
@@ -306,11 +308,12 @@ const styles = StyleSheet.create({
   },
   voucherTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     marginBottom: 2,
   },
   voucherDescription: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
     marginBottom: 10,
   },
   voucherFooter: {
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
   },
   pointsCost: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   redeemButton: {
     borderRadius: 10,
@@ -333,10 +336,11 @@ const styles = StyleSheet.create({
   redeemButtonText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   emptyText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   redemptionRow: {
     borderBottomWidth: 1,
@@ -344,10 +348,11 @@ const styles = StyleSheet.create({
   },
   redemptionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   redemptionMeta: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     marginTop: 2,
     textTransform: 'capitalize',
   },

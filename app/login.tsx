@@ -398,12 +398,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -415,6 +416,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     borderWidth: 1,
   },
   button: {
@@ -431,11 +433,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   linkButton: {
     marginTop: 10,
@@ -443,6 +445,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   webView: {
     flex: 1,
@@ -458,10 +461,11 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   webViewTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     textAlign: 'center',
     marginTop: 5,
   },
@@ -492,10 +496,11 @@ const styles = StyleSheet.create({
   },
   countryCodeText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   dropdownArrow: {
     fontSize: 10,
+    fontFamily: 'Inter-Regular',
     marginLeft: 5,
   },
   phoneInput: {
@@ -504,6 +509,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
     padding: 15,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     borderWidth: 1,
   },
   countryPicker: {
@@ -523,6 +529,7 @@ const styles = StyleSheet.create({
   },
   countryNameText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   authLoadingContainer: {
     flex: 1,
@@ -532,5 +539,6 @@ const styles = StyleSheet.create({
   authLoadingText: {
     marginTop: 16,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
 });

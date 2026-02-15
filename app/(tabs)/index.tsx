@@ -872,7 +872,7 @@ export default function HomeScreen() {
             {selectedMarker.vehicleRegistration && (
               <View style={styles.detailRow}>
                 <MaterialIcons name="pin" size={16} color={colors.textSecondary} />
-                <Text style={[styles.detailText, { color: colors.text, fontWeight: '600' }]}>
+                <Text style={[styles.detailText, { color: colors.text, fontFamily: 'Inter-SemiBold' }]}>
                   {selectedMarker.vehicleRegistration}
                 </Text>
               </View>
@@ -1007,7 +1007,7 @@ export default function HomeScreen() {
               {activeRequest.RequestedVehicleRegistration && (
                 <View style={styles.detailRow}>
                   <MaterialIcons name="pin" size={16} color={colors.textSecondary} />
-                  <Text style={[styles.detailText, { color: colors.text, fontWeight: '600' }]}>
+                  <Text style={[styles.detailText, { color: colors.text, fontFamily: 'Inter-SemiBold' }]}>
                     {activeRequest.RequestedVehicleRegistration}
                   </Text>
                 </View>
@@ -1388,6 +1388,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   searchContainer: {
     position: 'absolute',
@@ -1427,11 +1428,12 @@ const styles = StyleSheet.create({
   },
   destinationPrefix: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     marginBottom: 2,
   },
   destinationText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   exitButton: {
     marginLeft: 10,
@@ -1478,7 +1480,7 @@ const styles = StyleSheet.create({
   panicButtonText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     marginLeft: 6,
   },
   modeSelectionButtons: {
@@ -1510,7 +1512,7 @@ const styles = StyleSheet.create({
 
   modeButtonBottomText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     color: '#fff',
     marginLeft: 8,
   },
@@ -1553,7 +1555,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   detailRow: {
     flexDirection: 'row',
@@ -1563,15 +1565,17 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     fontSize: 24,
+    fontFamily: 'Inter-Regular',
     color: '#666',
   },
   detailText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     color: '#333',
   },
   otpText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     color: '#e86713',
     marginBottom: 10,
   },
@@ -1593,7 +1597,7 @@ const styles = StyleSheet.create({
   },
   vehicleConfirmButtonText: {
     color: '#fff',
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     fontSize: 13,
   },
   vehicleInfoSection: {
@@ -1606,11 +1610,13 @@ const styles = StyleSheet.create({
   vehicleConfirmedText: {
     color: '#2e7d32',
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     marginBottom: 6,
   },
   vehicleMismatchText: {
     color: '#c62828',
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     marginBottom: 6,
   },
   requestButton: {
@@ -1622,7 +1628,7 @@ const styles = StyleSheet.create({
   requestButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   cancelButton: {
     padding: 15,
@@ -1633,7 +1639,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   shareButton: {
     padding: 15,
@@ -1644,7 +1650,7 @@ const styles = StyleSheet.create({
   shareButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   minimizedBar: {
     position: 'absolute',
@@ -1658,7 +1664,7 @@ const styles = StyleSheet.create({
   minimizedText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   modalContent: {
     borderTopLeftRadius: 20,
@@ -1672,12 +1678,13 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     marginBottom: 15,
     textAlign: 'center',
   },
   modalText: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     marginBottom: 10,
     color: '#333',
   },
@@ -1705,7 +1712,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   vehicleOptionList: {
     flexDirection: 'row',
@@ -1723,12 +1730,12 @@ const styles = StyleSheet.create({
   },
   vehicleOptionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
 
   modalSectionLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginTop: 12,
     marginBottom: 6,
   },
@@ -1738,6 +1745,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
+    fontFamily: 'Inter-Regular',
     marginBottom: 8,
   },
   starsRow: {
@@ -1766,7 +1774,7 @@ const styles = StyleSheet.create({
   },
   connectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     marginBottom: 10,
   },
   connectionList: {
@@ -1780,6 +1788,7 @@ const styles = StyleSheet.create({
   },
   connectionText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     marginBottom: 5,
   },
   driverShareButton: {
@@ -1791,7 +1800,7 @@ const styles = StyleSheet.create({
   },
   driverShareButtonText: {
     color: '#fff',
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     fontSize: 14,
   },
   otpEntry: {
@@ -1814,7 +1823,7 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   customMarker: {
     alignItems: 'center',
@@ -1855,7 +1864,7 @@ const styles = StyleSheet.create({
   },
   estimateTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     color: '#333',
     marginBottom: 12,
   },
@@ -1875,16 +1884,18 @@ const styles = StyleSheet.create({
   },
   estimateLabel: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     color: '#666',
     marginBottom: 2,
   },
   estimateValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     color: '#333',
   },
   estimateCalculatingText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     color: '#666',
     marginLeft: 8,
   },
@@ -1905,12 +1916,13 @@ const styles = StyleSheet.create({
   },
   requestDetailLabel: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
     color: '#666',
     marginBottom: 2,
   },
   requestDetailValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     color: '#333',
   },
   requestLocationInfo: {
@@ -1924,6 +1936,7 @@ const styles = StyleSheet.create({
   },
   requestLocationText: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
     color: '#666',
     flex: 1,
   },
@@ -1943,7 +1956,7 @@ const styles = StyleSheet.create({
   },
   balanceCheckText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   balanceCheckTextGreen: {
     color: '#2e7d32',

@@ -5,12 +5,15 @@ import 'react-native-reanimated';
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Button, Alert, Platform, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { PENDING_COMMUNITY_INVITE_TOKEN_KEY } from '@/constants/community';
 import { api } from '@/utils/api';
+
+SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -41,13 +44,13 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+          <Text style={{ fontSize: 18, fontFamily: 'Inter-Bold', marginBottom: 10 }}>
             App Crashed
           </Text>
-          <Text style={{ marginBottom: 20, textAlign: 'center' }}>
+          <Text style={{ marginBottom: 20, textAlign: 'center', fontFamily: 'Inter-Regular' }}>
             {this.state.error?.message || 'Unknown error'}
           </Text>
-          <Text style={{ fontSize: 12, marginBottom: 20, textAlign: 'center', color: '#666' }}>
+          <Text style={{ fontSize: 12, marginBottom: 20, textAlign: 'center', color: '#666', fontFamily: 'Inter-Regular' }}>
             {this.state.error?.stack}
           </Text>
           <Button
@@ -196,6 +199,35 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    'Inter-Black': require('../assets/fonts/Inter-Black.ttf'),
+    'Inter-BlackItalic': require('../assets/fonts/Inter-BlackItalic.ttf'),
+    'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
+    'Inter-BoldItalic': require('../assets/fonts/Inter-BoldItalic.ttf'),
+    'Inter-ExtraBold': require('../assets/fonts/Inter-ExtraBold.ttf'),
+    'Inter-ExtraBoldItalic': require('../assets/fonts/Inter-ExtraBoldItalic.ttf'),
+    'Inter-ExtraLightItalic': require('../assets/fonts/Inter-ExtraLightItalic.ttf'),
+    'Inter-Italic': require('../assets/fonts/Inter-Italic.ttf'),
+    'Inter-Light': require('../assets/fonts/Inter-Light.ttf'),
+    'Inter-LightItalic': require('../assets/fonts/Inter-LightItalic.ttf'),
+    'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
+    'Inter-MediumItalic': require('../assets/fonts/Inter-MediumItalic.ttf'),
+    'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
+    'Inter-SemiBold': require('../assets/fonts/Inter-SemiBold.ttf'),
+    'Inter-SemiBoldItalic': require('../assets/fonts/Inter-SemiBoldItalic.ttf'),
+    'Inter-ThinItalic': require('../assets/fonts/Inter-ThinItalic.ttf'),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -225,13 +257,14 @@ const styles = StyleSheet.create({
   },
   webOnlyTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     color: '#111827',
     textAlign: 'center',
     marginBottom: 10,
   },
   webOnlyText: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     color: '#4b5563',
     textAlign: 'center',
     marginBottom: 6,
@@ -239,6 +272,7 @@ const styles = StyleSheet.create({
   },
   webOnlyTextSmall: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     color: '#6b7280',
     textAlign: 'center',
     lineHeight: 20,
@@ -260,6 +294,6 @@ const styles = StyleSheet.create({
   downloadButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
 });

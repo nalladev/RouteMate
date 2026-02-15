@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.md,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   header: {
     padding: Spacing.lg,
@@ -182,11 +183,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   listContent: {
     padding: Spacing.md,
@@ -211,11 +213,11 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   dateText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Inter-Medium',
   },
   rideDetails: {
     gap: Spacing.sm,
@@ -242,13 +244,14 @@ const styles = StyleSheet.create({
   },
   locationLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginBottom: 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   locationValue: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   infoRow: {
     flexDirection: 'row',
@@ -264,18 +267,18 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
   },
   fareValue: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
   },
   divider: {
     width: 1,
@@ -290,15 +293,17 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
+    fontFamily: 'Inter-Regular',
     marginBottom: Spacing.md,
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     marginBottom: Spacing.xs,
   },
   emptySubtext: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     textAlign: 'center',
   },
 });

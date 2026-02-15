@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   eyeButton: {
     padding: 16,

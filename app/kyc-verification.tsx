@@ -271,12 +271,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: 'Inter-Bold',
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
   },
   benefitsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     marginBottom: 16,
   },
   benefitItem: {
@@ -303,12 +304,14 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 18,
+    fontFamily: 'Inter-Regular',
     marginRight: 12,
     marginTop: 2,
   },
   benefitText: {
     flex: 1,
     fontSize: 15,
+    fontFamily: 'Inter-Regular',
     lineHeight: 22,
   },
   securityNote: {
@@ -320,11 +323,13 @@ const styles = StyleSheet.create({
   },
   securityIcon: {
     fontSize: 24,
+    fontFamily: 'Inter-Regular',
     marginRight: 12,
   },
   securityText: {
     flex: 1,
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     lineHeight: 20,
   },
   pendingNote: {
@@ -335,11 +340,12 @@ const styles = StyleSheet.create({
   },
   pendingTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     marginBottom: 6,
   },
   pendingText: {
     fontSize: 14,
+    fontFamily: 'Inter-Regular',
     lineHeight: 20,
   },
   button: {
@@ -361,15 +367,16 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   secondaryButtonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   footer: {
     textAlign: 'center',
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
     marginTop: 16,
     lineHeight: 20,
   },
@@ -387,10 +394,11 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
   webViewTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     textAlign: 'center',
     marginTop: 5,
   },
@@ -406,5 +414,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
+    fontFamily: 'Inter-Regular',
   },
 });
