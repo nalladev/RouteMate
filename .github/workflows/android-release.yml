@@ -82,6 +82,7 @@ jobs:
         env:
           APP_VERSION: ${{ steps.version.outputs.version_name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: npx expo prebuild --platform android --clean --non-interactive
 
       # Restore keystore
