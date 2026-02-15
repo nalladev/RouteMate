@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isPanicMode, setIsPanicMode] = useState(false);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const previousActiveRequestIdRef = useRef<string | null>(null);
 
   // New state for mode selection flow
@@ -238,6 +239,9 @@ export default function HomeScreen() {
       // Set destination
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
 
+      // Start loading state
+      setIsLoadingRoute(true);
+
       // Fetch and draw route using OSRM API (free alternative to Google Directions)
       const routeResult = await getRoute(
         { lat: userLocation.lat, lng: userLocation.lng },
@@ -263,11 +267,13 @@ export default function HomeScreen() {
       // Clear temporary state
       setTempDestination(null);
       setIsSelectingMode(false);
+      setIsLoadingRoute(false);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to activate mode');
       setTempDestination(null);
       setSearchQuery('');
       setIsSelectingMode(false);
+      setIsLoadingRoute(false);
     }
   }
 
@@ -585,12 +591,21 @@ export default function HomeScreen() {
         ) : (
           // Active mode: Show destination name with exit button
           <View style={styles.destinationDisplay}>
-            <Text style={styles.destinationText} numberOfLines={1}>
-              {searchQuery || 'Destination'}
-            </Text>
-            <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
-              <MaterialIcons name="close" size={24} color="#e86713" />
-            </TouchableOpacity>
+            <View style={styles.destinationTextContainer}>
+              <Text style={styles.destinationPrefix}>
+                {role === 'driver' ? 'Driving to' : 'Going to'}
+              </Text>
+              <Text style={styles.destinationText} numberOfLines={1}>
+                {searchQuery || 'Destination'}
+              </Text>
+            </View>
+            {isLoadingRoute ? (
+              <ActivityIndicator size="small" color="#e86713" style={styles.exitButton} />
+            ) : (
+              <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
+                <MaterialIcons name="close" size={24} color="#e86713" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -951,8 +966,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  destinationText: {
+  destinationTextContainer: {
     flex: 1,
+    flexDirection: 'column',
+  },
+  destinationPrefix: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  destinationText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
