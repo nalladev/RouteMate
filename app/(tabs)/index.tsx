@@ -48,6 +48,7 @@ export default function HomeScreen() {
     pendingRequests,
     isActive,
     updateUserState,
+    refreshMarkers,
   } = useAppState();
 
   const mapRef = useRef<MapView>(null);
@@ -64,6 +65,7 @@ export default function HomeScreen() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [isPanicMode, setIsPanicMode] = useState(false);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [isExitingActive, setIsExitingActive] = useState(false);
   const previousActiveRequestIdRef = useRef<string | null>(null);
 
   // New state for mode selection flow
@@ -237,6 +239,10 @@ export default function HomeScreen() {
   async function handleModeSelection(selectedMode: 'driver' | 'passenger', skipVehicleCheck = false) {
     if (!tempDestination || isSelectingMode) return;
 
+    // Show loader immediately
+    setIsLoadingRoute(true);
+    setIsSelectingMode(true);
+
     if (selectedMode === 'driver' && !skipVehicleCheck) {
       // Check if vehicle details are complete
       const hasCompleteVehicleInfo = user?.VehicleType &&
@@ -246,12 +252,11 @@ export default function HomeScreen() {
 
       if (!hasCompleteVehicleInfo) {
         setShowVehicleTypeModal(true);
+        setIsLoadingRoute(false);
+        setIsSelectingMode(false);
         return;
       }
     }
-
-    // Disable buttons during processing
-    setIsSelectingMode(true);
 
     // Set the role first
     setRole(selectedMode);
@@ -267,12 +272,14 @@ export default function HomeScreen() {
             setTempDestination(null);
             setSearchQuery('');
             setIsSelectingMode(false);
+            setIsLoadingRoute(false);
           }},
           { text: 'Verify Now', onPress: () => {
             router.push('/kyc-verification' as any);
             setTempDestination(null);
             setSearchQuery('');
             setIsSelectingMode(false);
+            setIsLoadingRoute(false);
           }}
         ]
       );
@@ -342,9 +349,12 @@ export default function HomeScreen() {
       // Clear temporary state to show active mode UI
       setTempDestination(null);
       setIsSelectingMode(false);
+      // Keep isLoadingRoute true (already set when button was clicked)
 
-      // Start loading state (now active mode UI is visible)
-      setIsLoadingRoute(true);
+      // If passenger mode, refresh markers to get available drivers
+      if (selectedMode === 'passenger') {
+        await refreshMarkers();
+      }
 
       // Fetch and draw route using OSRM API (free alternative to Google Directions)
       const routeResult = await getRoute(
@@ -355,9 +365,41 @@ export default function HomeScreen() {
       if (routeResult && routeResult.coordinates.length > 0) {
         setRouteCoordinates(routeResult.coordinates);
 
-        // Fit map to show entire route
+        // Fit map to show entire route and nearest driver (for passengers)
         if (mapRef.current) {
-          mapRef.current.fitToCoordinates(routeResult.coordinates, {
+          let coordinatesToFit = [...routeResult.coordinates];
+
+          // If passenger mode, include nearest driver in map bounds
+          if (selectedMode === 'passenger' && markers.length > 0) {
+            // Find nearest driver
+            const markersTyped = markers as MarkerData[];
+            let nearestDriver: MarkerData | null = null;
+            let minDistance = Infinity;
+
+            markersTyped.forEach((marker) => {
+              const distance = calculateDistance(
+                userLocation.lat,
+                userLocation.lng,
+                marker.lastLocation.lat,
+                marker.lastLocation.lng
+              );
+              if (distance < minDistance) {
+                minDistance = distance;
+                nearestDriver = marker;
+              }
+            });
+
+            // Add nearest driver's location to coordinates for fitting
+            if (nearestDriver) {
+              const driver = nearestDriver as MarkerData;
+              coordinatesToFit.push({
+                latitude: driver.lastLocation.lat,
+                longitude: driver.lastLocation.lng,
+              });
+            }
+          }
+
+          mapRef.current.fitToCoordinates(coordinatesToFit, {
             edgePadding: { top: 100, right: 50, bottom: 150, left: 50 },
             animated: true,
           });
@@ -402,13 +444,23 @@ export default function HomeScreen() {
         text: 'Exit',
         onPress: async () => {
           try {
+            // Show loader immediately when exiting
+            setIsExitingActive(true);
+            setIsLoadingRoute(true);
+            
             await updateUserState('idle', null);
             setDestination(null);
             setRouteCoordinates([]);
             setSearchQuery('');
             setIsPanicMode(false);
+            
+            // Clear loaders after everything is done
+            setIsLoadingRoute(false);
+            setIsExitingActive(false);
           } catch (error: any) {
             Alert.alert('Error', error.message);
+            setIsLoadingRoute(false);
+            setIsExitingActive(false);
           }
         },
       },
@@ -759,6 +811,7 @@ export default function HomeScreen() {
               onClear={handleClearSearch}
               containerStyle={[styles.placesSearchContainer, { backgroundColor: colors.card }]}
               initialValue={searchQuery}
+              showExternalLoader={isSelectingMode || isLoadingRoute}
             />
           </View>
         ) : (
@@ -772,7 +825,7 @@ export default function HomeScreen() {
                 {searchQuery || 'Destination'}
               </Text>
             </View>
-            {isLoadingRoute ? (
+            {isLoadingRoute || isExitingActive ? (
               <ActivityIndicator size="small" color={colors.tint} style={styles.exitButton} />
             ) : (
               <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
