@@ -108,16 +108,8 @@ export default function CommunitiesScreen() {
           onPress: () => createInviteLinkWithExpiry(community, 1),
         },
         {
-          text: '6 hours',
-          onPress: () => createInviteLinkWithExpiry(community, 6),
-        },
-        {
           text: '24 hours',
           onPress: () => createInviteLinkWithExpiry(community, 24),
-        },
-        {
-          text: '3 days',
-          onPress: () => createInviteLinkWithExpiry(community, 72),
         },
         {
           text: '1 week',
