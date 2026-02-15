@@ -769,7 +769,14 @@ export default function HomeScreen() {
       </View>
 
       {/* Center on user button */}
-      <TouchableOpacity style={[styles.centerButton, { backgroundColor: colors.card }]} onPress={centerOnUser}>
+      <TouchableOpacity 
+        style={[
+          styles.centerButton, 
+          { backgroundColor: colors.card },
+          isActive && styles.centerButtonActive
+        ]} 
+        onPress={centerOnUser}
+      >
         <MaterialIcons name="my-location" size={24} color={colors.tint} />
       </TouchableOpacity>
 
@@ -1445,9 +1452,12 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  centerButtonActive: {
+    top: 140,
+  },
   panicButton: {
     position: 'absolute',
-    top: 190,
+    top: 200,
     right: 10,
     minWidth: 110,
     height: 50,
