@@ -305,11 +305,13 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.phoneInput}
                 placeholder="Mobile Number"
+                placeholderTextColor="#999"
                 value={mobile}
                 onChangeText={setMobile}
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 editable={!isLoading}
+                returnKeyType="next"
               />
             </View>
 
@@ -340,6 +342,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               placeholder="Password"
               editable={!isLoading}
+              onSubmitEditing={handleLogin}
             />
 
             <TouchableOpacity
@@ -517,6 +520,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+    color: '#333',
   },
   countryPicker: {
     backgroundColor: '#fff',

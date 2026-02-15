@@ -10,6 +10,7 @@ interface PasswordInputProps {
   autoFocus?: boolean;
   containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
+  onSubmitEditing?: () => void;
 }
 
 export function PasswordInput({
@@ -20,6 +21,7 @@ export function PasswordInput({
   autoFocus = false,
   containerStyle,
   inputStyle,
+  onSubmitEditing,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -28,11 +30,14 @@ export function PasswordInput({
       <TextInput
         style={[styles.passwordInput, inputStyle]}
         placeholder={placeholder}
+        placeholderTextColor="#999"
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!showPassword}
         editable={editable}
         autoFocus={autoFocus}
+        onSubmitEditing={onSubmitEditing}
+        returnKeyType="go"
       />
       <TouchableOpacity
         style={styles.eyeButton}
@@ -63,6 +68,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     fontSize: 16,
+    color: '#333',
   },
   eyeButton: {
     padding: 16,
