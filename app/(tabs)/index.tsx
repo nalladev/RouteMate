@@ -546,14 +546,44 @@ export default function HomeScreen() {
         }}
       >
         {/* Show markers only in active mode and only for the opposite role */}
-        {isActive && markers.map((marker) => (
-          <Marker
-            key={marker.userId}
-            coordinate={{ latitude: marker.lastLocation.lat, longitude: marker.lastLocation.lng }}
-            title={marker.name}
-            onPress={() => setSelectedMarker(marker)}
-          />
-        ))}
+        {isActive && markers.map((marker) => {
+          // If user is a passenger, markers show drivers (blue)
+          // If user is a driver, markers show passengers (green)
+          const markerIsDriver = role === 'passenger';
+          const markerTitle = markerIsDriver 
+            ? `${marker.name} (Driver)` 
+            : `${marker.name} (Passenger)`;
+          const description = markerIsDriver && marker.vehicle
+            ? `Vehicle: ${marker.vehicle}${marker.rating ? ` • ⭐ ${marker.rating.toFixed(1)}` : ''}`
+            : marker.rating ? `⭐ ${marker.rating.toFixed(1)}` : undefined;
+
+          return (
+            <Marker
+              key={marker.userId}
+              coordinate={{ latitude: marker.lastLocation.lat, longitude: marker.lastLocation.lng }}
+              title={markerTitle}
+              description={description}
+              onPress={() => setSelectedMarker(marker)}
+            >
+              <View style={styles.customMarker}>
+                <View style={[
+                  styles.markerIconContainer,
+                  { backgroundColor: markerIsDriver ? '#2196F3' : '#4CAF50' }
+                ]}>
+                  <MaterialIcons 
+                    name={markerIsDriver ? 'drive-eta' : 'person'} 
+                    size={20} 
+                    color="#fff" 
+                  />
+                </View>
+                <View style={[
+                  styles.markerArrow,
+                  { borderTopColor: markerIsDriver ? '#2196F3' : '#4CAF50' }
+                ]} />
+              </View>
+            </Marker>
+          );
+        })}
 
         {/* Destination marker (red pin like Google Maps) - show when destination selected or in active mode */}
         {(destination && isActive) || tempDestination ? (
@@ -629,6 +659,30 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
+      {/* Map Legend - show when in active mode with markers */}
+      {isActive && markers.length > 0 && (
+        <View style={styles.mapLegend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendIcon, { backgroundColor: role === 'passenger' ? '#2196F3' : '#4CAF50' }]}>
+              <MaterialIcons 
+                name={role === 'passenger' ? 'drive-eta' : 'person'} 
+                size={14} 
+                color="#fff" 
+              />
+            </View>
+            <Text style={styles.legendText}>
+              {role === 'passenger' ? 'Drivers' : 'Passengers'}
+            </Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendIcon, { backgroundColor: '#FF0000' }]}>
+              <MaterialIcons name="place" size={14} color="#fff" />
+            </View>
+            <Text style={styles.legendText}>Destination</Text>
+          </View>
+        </View>
+      )}
+
       {/* Mode Selection Buttons - show when destination is selected but not active */}
       {tempDestination && !isActive && (
         <View style={styles.modeSelectionButtons}>
@@ -658,13 +712,24 @@ export default function HomeScreen() {
       {selectedMarker && role === 'passenger' && isActive && (
         <View style={styles.bottomSheet}>
           <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>{selectedMarker.name}</Text>
+            <View style={styles.bottomSheetTitleContainer}>
+              <View style={[styles.bottomSheetIcon, { backgroundColor: '#2196F3' }]}>
+                <MaterialIcons name="drive-eta" size={16} color="#fff" />
+              </View>
+              <Text style={styles.bottomSheetTitle}>{selectedMarker.name} (Driver)</Text>
+            </View>
             <TouchableOpacity onPress={() => setSelectedMarker(null)}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.detailText}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
-          <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
+          <View style={styles.detailRow}>
+            <MaterialIcons name="star" size={16} color="#FFC107" />
+            <Text style={styles.detailText}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialIcons name="directions-car" size={16} color="#666" />
+            <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
+          </View>
           <TouchableOpacity
             style={styles.requestButton}
             onPress={() => handleRequestRide(selectedMarker)}
@@ -1093,19 +1158,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
+  },
+  bottomSheetTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomSheetIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomSheetTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   closeButton: {
     fontSize: 24,
     color: '#666',
   },
   detailText: {
-    fontSize: 16,
-    marginBottom: 8,
+    fontSize: 14,
     color: '#333',
   },
   otpText: {
@@ -1346,7 +1428,68 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  customMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  markerArrow: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -2,
+  },
+  mapLegend: {
+    position: 'absolute',
+    top: 160,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 8,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  legendIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
   },
 });
