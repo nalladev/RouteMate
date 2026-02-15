@@ -348,8 +348,9 @@ export default function HomeScreen() {
       // Keep isLoadingRoute true (already set when button was clicked)
 
       // If passenger mode, refresh markers to get available drivers
+      let freshMarkers: MarkerData[] = [];
       if (selectedMode === 'passenger') {
-        await refreshMarkers();
+        freshMarkers = await refreshMarkers();
       }
 
       // Fetch and draw route using OSRM API (free alternative to Google Directions)
@@ -366,13 +367,12 @@ export default function HomeScreen() {
           let coordinatesToFit = [...routeResult.coordinates];
 
           // If passenger mode, include nearest driver in map bounds
-          if (selectedMode === 'passenger' && markers.length > 0) {
+          if (selectedMode === 'passenger' && freshMarkers.length > 0) {
             // Find nearest driver
-            const markersTyped = markers as MarkerData[];
             let nearestDriver: MarkerData | null = null;
             let minDistance = Infinity;
 
-            markersTyped.forEach((marker) => {
+            freshMarkers.forEach((marker) => {
               const distance = calculateDistance(
                 userLocation.lat,
                 userLocation.lng,
