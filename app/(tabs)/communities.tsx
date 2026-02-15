@@ -173,6 +173,30 @@ export default function CommunitiesScreen() {
     }
   }
 
+  async function reloadMembers(communityId: string) {
+    try {
+      setLoadingMembersCommunityId(communityId);
+      const result = await api.getCommunityMembers(communityId);
+      const members = result.members || [];
+      
+      setMembersByCommunityId((prev) => ({
+        ...prev,
+        [communityId]: members,
+      }));
+
+      // Update the member count in communities state
+      setCommunities((prev) =>
+        prev.map((c) =>
+          c.Id === communityId ? { ...c, participantCount: members.length } : c
+        )
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to load members');
+    } finally {
+      setLoadingMembersCommunityId(null);
+    }
+  }
+
   async function handleToggleMembersOverview(community: Community) {
     if (openMembersCommunityId === community.Id) {
       setOpenMembersCommunityId(null);
@@ -180,22 +204,9 @@ export default function CommunitiesScreen() {
     }
 
     setOpenMembersCommunityId(community.Id);
-    if (membersByCommunityId[community.Id]) {
-      return;
-    }
-
-    try {
-      setLoadingMembersCommunityId(community.Id);
-      const result = await api.getCommunityMembers(community.Id);
-      setMembersByCommunityId((prev) => ({
-        ...prev,
-        [community.Id]: result.members || [],
-      }));
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to load members');
-    } finally {
-      setLoadingMembersCommunityId(null);
-    }
+    
+    // Always reload members when opening the panel
+    await reloadMembers(community.Id);
   }
 
   function handleRemoveMember(community: Community, member: CommunityMember) {
@@ -219,10 +230,19 @@ export default function CommunitiesScreen() {
       setRemovingMemberKey(key);
       await api.removeCommunityMember(community.Id, member.Id);
 
+      const updatedMembers = (membersByCommunityId[community.Id] || []).filter((item) => item.Id !== member.Id);
+      
       setMembersByCommunityId((prev) => ({
         ...prev,
-        [community.Id]: (prev[community.Id] || []).filter((item) => item.Id !== member.Id),
+        [community.Id]: updatedMembers,
       }));
+
+      // Update the member count immediately
+      setCommunities((prev) =>
+        prev.map((c) =>
+          c.Id === community.Id ? { ...c, participantCount: updatedMembers.length } : c
+        )
+      );
 
       await loadCommunities();
     } catch (error: any) {
@@ -358,7 +378,20 @@ export default function CommunitiesScreen() {
 
                 {community.isAdmin && openMembersCommunityId === community.Id && (
                   <View style={[styles.membersPanel, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
-                    <Text style={[styles.membersTitle, { color: colors.text }]}>Members</Text>
+                    <View style={styles.membersPanelHeader}>
+                      <Text style={[styles.membersTitle, { color: colors.text }]}>
+                        Members ({membersByCommunityId[community.Id]?.length || 0})
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.reloadButton, { borderColor: colors.border }]}
+                        onPress={() => reloadMembers(community.Id)}
+                        disabled={loadingMembersCommunityId === community.Id}
+                      >
+                        <Text style={{ color: colors.tint, fontSize: 12 }}>
+                          {loadingMembersCommunityId === community.Id ? 'Loading...' : '🔄 Reload'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
 
                     {loadingMembersCommunityId === community.Id ? (
                       <ActivityIndicator size="small" color={colors.tint} />
@@ -508,9 +541,21 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 8,
   },
+  membersPanelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   membersTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reloadButton: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   memberRow: {
     flexDirection: 'row',
