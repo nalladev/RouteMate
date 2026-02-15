@@ -28,6 +28,7 @@ import { getRoute } from '@/utils/routing';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
 import type { VehicleType } from '@/constants/vehicles';
 import { getTripEstimate, formatFare, formatDistanceKm, formatDuration, formatETA, calculateDistance, type TripEstimate } from '@/utils/tripEstimates';
+import { TestUserPanel } from '@/components/TestUserPanel';
 
 const INDIA_EMERGENCY_NUMBER = '112';
 
@@ -78,6 +79,9 @@ export default function HomeScreen() {
   // Trip estimate state for passenger preview
   const [tripEstimate, setTripEstimate] = useState<TripEstimate | null>(null);
   const [isCalculatingEstimate, setIsCalculatingEstimate] = useState(false);
+
+  // Test User Panel state
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   const checkForPendingRating = useCallback(async () => {
     if (!user || ratingConnection) return;
@@ -230,11 +234,11 @@ export default function HomeScreen() {
 
     if (selectedMode === 'driver' && !skipVehicleCheck) {
       // Check if vehicle details are complete
-      const hasCompleteVehicleInfo = user?.VehicleType && 
-                                      user?.VehicleName && 
-                                      user?.VehicleModel && 
+      const hasCompleteVehicleInfo = user?.VehicleType &&
+                                      user?.VehicleName &&
+                                      user?.VehicleModel &&
                                       user?.VehicleRegistration;
-      
+
       if (!hasCompleteVehicleInfo) {
         setShowVehicleTypeModal(true);
         return;
@@ -491,7 +495,7 @@ export default function HomeScreen() {
           try {
             const result = await api.cancelConnection(activeRequest.Id);
             setActiveRequest(null);
-            
+
             if (result.penalty > 0) {
               Alert.alert(
                 'Ride Cancelled',
@@ -501,7 +505,7 @@ export default function HomeScreen() {
             } else {
               Alert.alert('Success', result.message);
             }
-            
+
             // Refresh user data to update balance if penalty was charged
             if (isDriver) {
               await refreshUser();
@@ -677,8 +681,8 @@ export default function HomeScreen() {
           // If user is a passenger, markers show drivers (blue)
           // If user is a driver, markers show passengers (green)
           const markerIsDriver = role === 'passenger';
-          const markerTitle = markerIsDriver 
-            ? `${marker.name} (Driver)` 
+          const markerTitle = markerIsDriver
+            ? `${marker.name} (Driver)`
             : `${marker.name} (Passenger)`;
           const description = markerIsDriver && marker.vehicle
             ? `Vehicle: ${marker.vehicle}${marker.rating ? ` • ⭐ ${marker.rating.toFixed(1)}` : ''}`
@@ -697,10 +701,10 @@ export default function HomeScreen() {
                   styles.markerIconContainer,
                   { backgroundColor: markerIsDriver ? colors.info : colors.success }
                 ]}>
-                  <MaterialIcons 
-                    name={markerIsDriver ? 'drive-eta' : 'person'} 
-                    size={20} 
-                    color="#fff" 
+                  <MaterialIcons
+                    name={markerIsDriver ? 'drive-eta' : 'person'}
+                    size={20}
+                    color="#fff"
                   />
                 </View>
                 <View style={[
@@ -770,12 +774,12 @@ export default function HomeScreen() {
       </View>
 
       {/* Center on user button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
-          styles.centerButton, 
+          styles.centerButton,
           { backgroundColor: colors.card },
           isActive && styles.centerButtonActive
-        ]} 
+        ]}
         onPress={centerOnUser}
       >
         <MaterialIcons name="my-location" size={24} color={colors.tint} />
@@ -793,14 +797,25 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
+      {/* Test User Panel Button - Floating button below panic */}
+      <TouchableOpacity
+        style={[
+          styles.testPanelButton,
+          { backgroundColor: colors.warning },
+        ]}
+        onPress={() => setShowTestPanel(true)}
+      >
+        <MaterialIcons name="science" size={24} color="#fff" />
+      </TouchableOpacity>
+
       {/* Mode Selection Buttons - show when destination is selected but not active */}
       {tempDestination && !isActive && (
         <View style={[styles.modeSelectionButtons, { backgroundColor: 'transparent', borderColor: colors.border }]}>
           <TouchableOpacity
             style={[
-              styles.modeButtonBottom, 
-              styles.modeButtonLeft, 
-              { 
+              styles.modeButtonBottom,
+              styles.modeButtonLeft,
+              {
                 backgroundColor: colors.success,
                 borderWidth: 2,
                 borderColor: colors.success,
@@ -816,9 +831,9 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={[
-              styles.modeButtonBottom, 
-              styles.modeButtonRight, 
-              { 
+              styles.modeButtonBottom,
+              styles.modeButtonRight,
+              {
                 backgroundColor: colors.info,
                 borderWidth: 2,
                 borderColor: colors.info,
@@ -857,12 +872,12 @@ export default function HomeScreen() {
               <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.detailRow}>
             <MaterialIcons name="star" size={16} color="#FFC107" />
             <Text style={[styles.detailText, { color: colors.textSecondary }]}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
           </View>
-          
+
           {/* Vehicle Information */}
           <View style={styles.vehicleInfoSection}>
             <View style={styles.detailRow}>
@@ -898,7 +913,7 @@ export default function HomeScreen() {
           ) : tripEstimate ? (
             <View style={styles.estimateContainer}>
               <Text style={[styles.estimateTitle, { color: colors.text }]}>Trip Estimate</Text>
-              
+
               <View style={styles.estimateRow}>
                 <View style={styles.estimateItem}>
                   <MaterialIcons name="attach-money" size={20} color={colors.success} />
@@ -907,7 +922,7 @@ export default function HomeScreen() {
                     <Text style={[styles.estimateValue, { color: colors.text }]}>{formatFare(tripEstimate.fare)}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.estimateItem}>
                   <MaterialIcons name="straighten" size={20} color={colors.info} />
                   <View style={styles.estimateTextContainer}>
@@ -935,7 +950,7 @@ export default function HomeScreen() {
                     <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDuration(tripEstimate.durationMinutes)}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.estimateItem}>
                   <MaterialIcons name="flag" size={20} color={colors.error} />
                   <View style={styles.estimateTextContainer}>
@@ -951,17 +966,17 @@ export default function HomeScreen() {
                   styles.balanceCheckContainer,
                   balance >= tripEstimate.fare ? styles.balanceCheckSufficient : styles.balanceCheckInsufficient
                 ]}>
-                  <MaterialIcons 
-                    name={balance >= tripEstimate.fare ? "check-circle" : "warning"} 
-                    size={18} 
-                    color={balance >= tripEstimate.fare ? colors.success : colors.error} 
+                  <MaterialIcons
+                    name={balance >= tripEstimate.fare ? "check-circle" : "warning"}
+                    size={18}
+                    color={balance >= tripEstimate.fare ? colors.success : colors.error}
                   />
                   <Text style={[
                     styles.balanceCheckText,
                     balance >= tripEstimate.fare ? styles.balanceCheckTextGreen : styles.balanceCheckTextRed
                   ]}>
-                    {balance >= tripEstimate.fare 
-                      ? `Balance: ${formatFare(balance)} ✓` 
+                    {balance >= tripEstimate.fare
+                      ? `Balance: ${formatFare(balance)} ✓`
                       : `Insufficient balance (${formatFare(balance)})`}
                   </Text>
                 </View>
@@ -995,7 +1010,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <Text style={[styles.detailText, { color: colors.textSecondary }]}>Status: {activeRequest.State}</Text>
-          
+
           {/* Vehicle Information */}
           {activeRequest.RequestedVehicleType && (
             <View style={styles.vehicleInfoSection}>
@@ -1195,7 +1210,7 @@ export default function HomeScreen() {
             <Text style={[styles.modalText, { color: colors.textSecondary }]}>
               Please provide complete vehicle details. Passengers will use this to identify your vehicle.
             </Text>
-            
+
             <Text style={[styles.modalSectionLabel, { color: colors.text }]}>Vehicle Type *</Text>
             <View style={styles.vehicleOptionList}>
               {VEHICLE_TYPES.map((type) => (
@@ -1379,6 +1394,13 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       )}
+
+      {/* Test User Panel Modal */}
+      <TestUserPanel
+        visible={showTestPanel}
+        onClose={() => setShowTestPanel(false)}
+        isDarkMode={isDarkMode}
+      />
     </View>
   );
 }
@@ -1485,13 +1507,28 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   panicButtonActive: {
-    opacity: 0.85,
+    opacity: 0.8,
   },
   panicButtonText: {
     color: '#fff',
-    fontSize: 12,
-    fontFamily: 'Inter-Bold',
-    marginLeft: 6,
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    marginLeft: 8,
+  },
+  testPanelButton: {
+    position: 'absolute',
+    top: 150,
+    left: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   modeSelectionButtons: {
     position: 'absolute',
