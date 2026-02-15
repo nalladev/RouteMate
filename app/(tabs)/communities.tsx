@@ -11,7 +11,7 @@ import {
   Share as NativeShare,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COMMUNITY_INVITE_PRESET_HOURS, type CommunityInvitePresetHours } from '@/constants/community';
+import { type CommunityInvitePresetHours } from '@/constants/community';
 import { Colors, Shadow } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Community, CommunityMember } from '@/types';
@@ -28,7 +28,7 @@ export default function CommunitiesScreen() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [newCommunityName, setNewCommunityName] = useState('');
-  const [expiresInHours, setExpiresInHours] = useState<CommunityInvitePresetHours>(24);
+
   const [inviteByCommunityId, setInviteByCommunityId] = useState<
     Record<string, { inviteUrl: string; expiresAt: string }>
   >({});
@@ -46,10 +46,7 @@ export default function CommunitiesScreen() {
     return community ? `Community mode: ${community.Name}` : 'Community mode is ON';
   }, [activeCommunityId, communities]);
 
-  const canCreateInvites = useMemo(
-    () => communities.some((community) => community.isAdmin),
-    [communities]
-  );
+
 
   const loadCommunities = useCallback(async () => {
     try {
@@ -102,6 +99,39 @@ export default function CommunitiesScreen() {
   }
 
   async function handleCreateInviteLink(community: Community) {
+    Alert.alert(
+      'Select Expiry Time',
+      'Choose how long the invite link should be valid',
+      [
+        {
+          text: '1 hour',
+          onPress: () => createInviteLinkWithExpiry(community, 1),
+        },
+        {
+          text: '6 hours',
+          onPress: () => createInviteLinkWithExpiry(community, 6),
+        },
+        {
+          text: '24 hours',
+          onPress: () => createInviteLinkWithExpiry(community, 24),
+        },
+        {
+          text: '3 days',
+          onPress: () => createInviteLinkWithExpiry(community, 72),
+        },
+        {
+          text: '1 week',
+          onPress: () => createInviteLinkWithExpiry(community, 168),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  }
+
+  async function createInviteLinkWithExpiry(community: Community, expiresInHours: CommunityInvitePresetHours) {
     try {
       setCreatingInviteId(community.Id);
       const result = await api.createCommunityInviteLink(community.Id, expiresInHours);
@@ -112,6 +142,12 @@ export default function CommunitiesScreen() {
           expiresAt: result.expiresAt,
         },
       }));
+      
+      // Show success message with expiry info
+      Alert.alert(
+        'Invite Link Created',
+        `Link expires: ${new Date(result.expiresAt).toLocaleString()}`
+      );
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'Failed to create invite link');
     } finally {
@@ -250,32 +286,6 @@ export default function CommunitiesScreen() {
             <Text style={styles.primaryButtonText}>{creating ? 'Creating...' : 'Create Community'}</Text>
           </TouchableOpacity>
         </View>
-
-        {canCreateInvites && (
-          <View style={[styles.section, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Invite Link Expiry</Text>
-            <View style={styles.expiryOptions}>
-              {COMMUNITY_INVITE_PRESET_HOURS.map((hours) => {
-                const selected = hours === expiresInHours;
-                return (
-                  <TouchableOpacity
-                    key={hours}
-                    style={[
-                      styles.expiryChip,
-                      {
-                        borderColor: selected ? colors.tint : colors.border,
-                        backgroundColor: selected ? `${colors.tint}22` : 'transparent',
-                      },
-                    ]}
-                    onPress={() => setExpiresInHours(hours)}
-                  >
-                    <Text style={{ color: selected ? colors.tint : colors.textSecondary }}>{hours}h</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
 
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Communities</Text>
@@ -454,17 +464,7 @@ const styles = StyleSheet.create({
   offButtonText: {
     fontWeight: '600',
   },
-  expiryOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  expiryChip: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
+
   communityCard: {
     borderWidth: 1,
     borderRadius: 12,
