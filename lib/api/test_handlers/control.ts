@@ -10,7 +10,7 @@ interface ControlTestUserRequest {
   role?: 'driver' | 'passenger';
   location?: { lat: number; lng: number };
   destination?: { lat: number; lng: number } | null;
-  state?: 'idle' | 'looking' | 'driving';
+  state?: 'idle' | 'riding' | 'driving';
   vehicleType?: string;
   vehicleName?: string;
   vehicleModel?: string;

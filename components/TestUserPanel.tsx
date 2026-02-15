@@ -160,7 +160,7 @@ export function TestUserPanel({
       console.log('[BackendTestUserPanel] Spawn response:', spawnResponse);
 
       // Set the user to active state
-      const state = profile.role === 'driver' ? 'driving' : 'looking';
+      const state = profile.role === 'driver' ? 'driving' : 'riding';
       console.log('[BackendTestUserPanel] Setting state:', state);
       await api.testSetState(state, destination);
 
@@ -480,15 +480,15 @@ export function TestUserPanel({
                       style={[
                         styles.roleToggleButton,
                         { borderColor: colors.border },
-                        testUserInfo?.state === 'looking' && { backgroundColor: colors.success, borderColor: colors.success }
+                        testUserInfo?.state === 'riding' && { backgroundColor: colors.success, borderColor: colors.success }
                       ]}
                       onPress={async () => {
                         try {
                           setLoading(true);
-                          await api.testSetState('looking', testUserInfo.destination);
+                          await api.testSetState('riding', testUserInfo.destination);
                           await checkTestUserStatus();
                         } catch (error: any) {
-                          console.error('[TestUserPanel] Failed to set looking:', error);
+                          console.error('[TestUserPanel] Failed to set riding:', error);
                         } finally {
                           setLoading(false);
                         }
@@ -498,9 +498,9 @@ export function TestUserPanel({
                       <Text style={[
                         styles.roleToggleText,
                         { color: colors.text },
-                        testUserInfo?.state === 'looking' && { color: '#fff' }
+                        testUserInfo?.state === 'riding' && { color: '#fff' }
                       ]}>
-                        Looking
+                        Riding
                       </Text>
                     </TouchableOpacity>
                   </View>

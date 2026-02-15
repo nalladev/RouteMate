@@ -417,7 +417,7 @@ export const api = {
     });
   },
 
-  testSetState: async (state: 'idle' | 'looking' | 'driving', destination?: Location | null): Promise<{ success: boolean; state: string; destination?: Location | null }> => {
+  testSetState: async (state: 'idle' | 'riding' | 'driving', destination?: Location | null): Promise<{ success: boolean; state: string; destination?: Location | null }> => {
     return request('/api/test/control', {
       method: 'POST',
       body: JSON.stringify({
