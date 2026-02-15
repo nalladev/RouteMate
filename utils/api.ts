@@ -387,6 +387,62 @@ export const api = {
     });
   },
 
+  // Test Control API
+  testSpawnUser: async (params: {
+    name: string;
+    role: 'driver' | 'passenger';
+    location: Location;
+    destination?: Location | null;
+    vehicleType?: string;
+    vehicleName?: string;
+    vehicleModel?: string;
+    vehicleRegistration?: string;
+  }): Promise<{ success: boolean; userId: string; name: string; role: string; location: Location }> => {
+    return request('/api/test/control', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'spawn',
+        ...params,
+      }),
+    });
+  },
+
+  testUpdateLocation: async (location: Location): Promise<{ success: boolean; location: Location }> => {
+    return request('/api/test/control', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update_location',
+        location,
+      }),
+    });
+  },
+
+  testSetState: async (state: 'idle' | 'looking' | 'driving', destination?: Location | null): Promise<{ success: boolean; state: string; destination?: Location | null }> => {
+    return request('/api/test/control', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'set_state',
+        state,
+        destination,
+      }),
+    });
+  },
+
+  testDespawn: async (): Promise<{ success: boolean; message: string }> => {
+    return request('/api/test/control', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'despawn',
+      }),
+    });
+  },
+
+  testGetStatus: async (): Promise<{ exists: boolean; user?: any }> => {
+    return request('/api/test/control', {
+      method: 'GET',
+    });
+  },
+
 };
 
 export async function setAuthToken(token: string): Promise<void> {
