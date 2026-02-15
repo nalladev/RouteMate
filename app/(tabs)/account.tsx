@@ -39,6 +39,7 @@ export default function AccountScreen() {
   const [upiId, setUpiId] = useState('');
   const [showUpiInput, setShowUpiInput] = useState(false);
   const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | ''>('');
+  const [originalVehicleType, setOriginalVehicleType] = useState<VehicleType | ''>('');
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -60,7 +61,9 @@ export default function AccountScreen() {
       if (meData.user?.UpiId) {
         setUpiId(meData.user.UpiId);
       }
-      setSelectedVehicleType(meData.user?.VehicleType || '');
+      const vehicleType = meData.user?.VehicleType || '';
+      setSelectedVehicleType(vehicleType);
+      setOriginalVehicleType(vehicleType);
     } catch (error) {
       console.error('Failed to load account info:', error);
       Alert.alert('Error', 'Failed to load account information');
@@ -214,7 +217,15 @@ export default function AccountScreen() {
     try {
       setIsProcessing(true);
       await api.updateVehicleType(selectedVehicleType);
-      await Promise.all([loadAccountInfo(), refreshUser()]);
+      
+      // Refresh user data and profile without triggering full page loading
+      await refreshUser();
+      const meData = await api.getMe();
+      setProfileUser(meData.user);
+      const vehicleType = meData.user?.VehicleType || '';
+      setSelectedVehicleType(vehicleType);
+      setOriginalVehicleType(vehicleType);
+      
       Alert.alert('Success', 'Vehicle type updated');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update vehicle type');
@@ -346,11 +357,21 @@ export default function AccountScreen() {
                   ))}
                 </View>
                 <TouchableOpacity
-                  style={[styles.saveVehicleButton, { backgroundColor: colors.tint }]}
+                  style={[
+                    styles.saveVehicleButton, 
+                    { 
+                      backgroundColor: colors.tint,
+                      opacity: (isProcessing || !selectedVehicleType || selectedVehicleType === originalVehicleType) ? 0.5 : 1,
+                    }
+                  ]}
                   onPress={handleSaveVehicleType}
-                  disabled={isProcessing || !selectedVehicleType}
+                  disabled={isProcessing || !selectedVehicleType || selectedVehicleType === originalVehicleType}
                 >
-                  <Text style={styles.saveVehicleButtonText}>Save Vehicle</Text>
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.saveVehicleButtonText}>Save Vehicle</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

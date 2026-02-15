@@ -59,8 +59,8 @@ export default function LoginScreen() {
     }
   }, [isAuthenticated, user, router]);
 
-  // Show loading screen while checking authentication
-  if (authLoading) {
+  // Show loading screen while checking authentication or while authenticated (during redirect)
+  if (authLoading || isAuthenticated) {
     return (
       <View style={styles.container}>
         <View style={styles.authLoadingContainer}>
