@@ -10,12 +10,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { WebView } from 'react-native-webview';
 import { api } from '@/utils/api';
+import { Colors } from '@/constants/theme';
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
   const { user, markKycPromptShown } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
@@ -140,16 +144,16 @@ export default function KYCVerificationScreen() {
 
   if (showDiditWebView) {
     return (
-      <View style={styles.container}>
-        <View style={styles.webViewHeader}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.webViewHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setShowDiditWebView(false)}
             disabled={isLoading}
           >
-            <Text style={styles.backButtonText}>← Back</Text>
+            <Text style={[styles.backButtonText, { color: colors.tint }]}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.webViewTitle}>KYC Verification</Text>
+          <Text style={[styles.webViewTitle, { color: colors.text }]}>KYC Verification</Text>
         </View>
         <WebView
           source={{ uri: verificationUrl }}
@@ -164,9 +168,9 @@ export default function KYCVerificationScreen() {
           onNavigationStateChange={handleNavigationStateChange}
           startInLoadingState={true}
           renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#e86713" />
-              <Text style={styles.loadingText}>Loading verification...</Text>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
+              <ActivityIndicator size="large" color={colors.tint} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading verification...</Text>
             </View>
           )}
         />
@@ -175,51 +179,51 @@ export default function KYCVerificationScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]} contentContainerStyle={styles.scrollContent}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Text style={styles.icon}>🔒</Text>
         </View>
 
-        <Text style={styles.title}>Complete KYC Verification</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, { color: colors.text }]}>Complete KYC Verification</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           To ensure the safety and security of all users, we require identity verification.
         </Text>
 
-        <View style={styles.benefitsContainer}>
-          <Text style={styles.benefitsTitle}>What you&apos;ll need:</Text>
+        <View style={[styles.benefitsContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.benefitsTitle, { color: colors.text }]}>What you&apos;ll need:</Text>
           <View style={styles.benefitItem}>
-            <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.benefitText}>Valid government-issued ID (Aadhaar, Passport, or Driver&apos;s License)</Text>
+            <Text style={[styles.checkmark, { color: colors.success }]}>✓</Text>
+            <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Valid government-issued ID (Aadhaar, Passport, or Driver&apos;s License)</Text>
           </View>
           <View style={styles.benefitItem}>
-            <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.benefitText}>Clear selfie photo</Text>
+            <Text style={[styles.checkmark, { color: colors.success }]}>✓</Text>
+            <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Clear selfie photo</Text>
           </View>
           <View style={styles.benefitItem}>
-            <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.benefitText}>5-10 minutes of your time</Text>
+            <Text style={[styles.checkmark, { color: colors.success }]}>✓</Text>
+            <Text style={[styles.benefitText, { color: colors.textSecondary }]}>5-10 minutes of your time</Text>
           </View>
         </View>
 
-        <View style={styles.securityNote}>
+        <View style={[styles.securityNote, { backgroundColor: colors.info + '22' }]}>
           <Text style={styles.securityIcon}>🔐</Text>
-          <Text style={styles.securityText}>
+          <Text style={[styles.securityText, { color: colors.info }]}>
             Your data is encrypted and securely processed by Didit, our trusted verification partner.
           </Text>
         </View>
 
         {hasPendingReview && (
-          <View style={styles.pendingNote}>
-            <Text style={styles.pendingTitle}>Verification in progress</Text>
-            <Text style={styles.pendingText}>
+          <View style={[styles.pendingNote, { backgroundColor: colors.warning + '22', borderColor: colors.warning }]}>
+            <Text style={[styles.pendingTitle, { color: colors.warning }]}>Verification in progress</Text>
+            <Text style={[styles.pendingText, { color: colors.warning }]}>
               Your KYC is currently under review. You do not need to submit again.
             </Text>
           </View>
         )}
 
         <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
+          style={[styles.button, styles.primaryButton, { backgroundColor: colors.tint }]}
           onPress={createVerificationSession}
           disabled={isLoading}
         >
@@ -231,14 +235,14 @@ export default function KYCVerificationScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
+          style={[styles.button, styles.secondaryButton, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={handleSkip}
           disabled={isLoading}
         >
-          <Text style={styles.secondaryButtonText}>Skip for Now</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Skip for Now</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footer}>
+        <Text style={[styles.footer, { color: colors.textSecondary }]}>
           You can complete this verification later from your account settings.
         </Text>
       </View>
@@ -249,7 +253,6 @@ export default function KYCVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   scrollContent: {
     flexGrow: 1,
@@ -271,17 +274,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
-    color: '#333',
   },
   description: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 32,
-    color: '#666',
     lineHeight: 24,
   },
   benefitsContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
@@ -295,7 +295,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#333',
   },
   benefitItem: {
     flexDirection: 'row',
@@ -304,20 +303,17 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 18,
-    color: '#4CAF50',
     marginRight: 12,
     marginTop: 2,
   },
   benefitText: {
     flex: 1,
     fontSize: 15,
-    color: '#555',
     lineHeight: 22,
   },
   securityNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
     borderRadius: 8,
     padding: 16,
     marginBottom: 32,
@@ -329,26 +325,21 @@ const styles = StyleSheet.create({
   securityText: {
     flex: 1,
     fontSize: 14,
-    color: '#1976D2',
     lineHeight: 20,
   },
   pendingNote: {
-    backgroundColor: '#fff7e6',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#ffd591',
   },
   pendingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ad6800',
     marginBottom: 6,
   },
   pendingText: {
     fontSize: 14,
-    color: '#8c6d1f',
     lineHeight: 20,
   },
   button: {
@@ -358,7 +349,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#e86713',
     shadowColor: '#e86713',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -366,9 +356,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   secondaryButton: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   buttonText: {
     color: '#fff',
@@ -376,14 +364,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButtonText: {
-    color: '#666',
     fontSize: 17,
     fontWeight: '600',
   },
   footer: {
     textAlign: 'center',
     fontSize: 13,
-    color: '#999',
     marginTop: 16,
     lineHeight: 20,
   },
@@ -394,22 +380,18 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
   },
   backButton: {
     paddingVertical: 5,
   },
   backButtonText: {
-    color: '#e86713',
     fontSize: 16,
   },
   webViewTitle: {
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    color: '#333',
     marginTop: 5,
   },
   loadingContainer: {
@@ -420,11 +402,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
   },
 });

@@ -14,6 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/utils/api';
 import { Transaction, User } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
@@ -23,11 +24,12 @@ import type { VehicleType } from '@/constants/vehicles';
 export default function AccountScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout, refreshUser } = useAuth();
+  const { colorScheme, isDarkMode, setColorScheme } = useTheme();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const colors = Colors['light'];
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
   // Top-up state
   const [showTopupModal, setShowTopupModal] = useState(false);
@@ -511,6 +513,94 @@ export default function AccountScreen() {
             )}
           </View>
 
+          {/* Settings Section */}
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <View style={styles.sectionHeaderRow}>
+              <MaterialIcons name="settings" size={24} color={colors.text} style={{ marginRight: 8 }} />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+            </View>
+
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Theme</Text>
+              <View style={styles.themeOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    {
+                      borderColor: colorScheme === 'light' ? colors.tint : colors.border,
+                      backgroundColor: colorScheme === 'light' ? colors.tint + '22' : 'transparent',
+                    },
+                  ]}
+                  onPress={() => setColorScheme('light')}
+                >
+                  <MaterialIcons 
+                    name="light-mode" 
+                    size={20} 
+                    color={colorScheme === 'light' ? colors.tint : colors.textSecondary} 
+                  />
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      { color: colorScheme === 'light' ? colors.tint : colors.textSecondary },
+                    ]}
+                  >
+                    Light
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    {
+                      borderColor: colorScheme === 'dark' ? colors.tint : colors.border,
+                      backgroundColor: colorScheme === 'dark' ? colors.tint + '22' : 'transparent',
+                    },
+                  ]}
+                  onPress={() => setColorScheme('dark')}
+                >
+                  <MaterialIcons 
+                    name="dark-mode" 
+                    size={20} 
+                    color={colorScheme === 'dark' ? colors.tint : colors.textSecondary} 
+                  />
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      { color: colorScheme === 'dark' ? colors.tint : colors.textSecondary },
+                    ]}
+                  >
+                    Dark
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    {
+                      borderColor: colorScheme === 'system' ? colors.tint : colors.border,
+                      backgroundColor: colorScheme === 'system' ? colors.tint + '22' : 'transparent',
+                    },
+                  ]}
+                  onPress={() => setColorScheme('system')}
+                >
+                  <MaterialIcons 
+                    name="brightness-auto" 
+                    size={20} 
+                    color={colorScheme === 'system' ? colors.tint : colors.textSecondary} 
+                  />
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      { color: colorScheme === 'system' ? colors.tint : colors.textSecondary },
+                    ]}
+                  >
+                    System
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           {/* Actions */}
           <View style={styles.actionsSection}>
             <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.error }]} onPress={handleLogout}>
@@ -797,6 +887,24 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   vehicleTypeOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  themeOptionText: {
     fontSize: 12,
     fontWeight: '600',
   },

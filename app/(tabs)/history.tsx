@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/utils/api';
 import { RideConnection } from '@/types';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
@@ -17,10 +18,11 @@ import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
 export default function HistoryScreen() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const [rides, setRides] = useState<RideConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const colors = Colors['light'];
 
   useEffect(() => {
     if (!isAuthenticated) {

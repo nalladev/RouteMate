@@ -12,6 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppState } from '@/contexts/AppStateContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Colors, Shadow, BorderRadius, Spacing } from '@/constants/theme';
 import type { RewardRedemption, RewardRole, RewardVoucher } from '@/types';
 import { api } from '@/utils/api';
@@ -32,7 +33,8 @@ export default function RewardsScreen() {
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
   const { role } = useAppState();
-  const colors = Colors.light;
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
   const [selectedRole, setSelectedRole] = useState<RewardRole>(role);
   const [rewards, setRewards] = useState<RewardsPayload | null>(null);

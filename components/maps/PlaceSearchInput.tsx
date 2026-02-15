@@ -10,6 +10,8 @@ import {
   Keyboard,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Colors } from '@/constants/theme';
 
 interface PlaceResult {
   place_id: string;
@@ -41,6 +43,8 @@ export default function PlaceSearchInput({
   autoFocus = false,
   initialValue = '',
 }: PlaceSearchInputProps) {
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const [query, setQuery] = useState(initialValue);
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -187,11 +191,11 @@ export default function PlaceSearchInput({
     <>
       <View style={[styles.container, containerStyle]}>
         <View style={styles.inputContainer}>
-          <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
+          <MaterialIcons name="search" size={24} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={[styles.input, inputStyle]}
+            style={[styles.input, { color: colors.text }, inputStyle]}
             placeholder={placeholder}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textSecondary}
             value={query}
             onChangeText={setQuery}
             autoFocus={autoFocus}
@@ -201,17 +205,17 @@ export default function PlaceSearchInput({
               }
             }}
           />
-          {loading && <ActivityIndicator size="small" color="#e86713" style={styles.loader} />}
+          {loading && <ActivityIndicator size="small" color={colors.tint} style={styles.loader} />}
           {!loading && query.length > 0 && (
             <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-              <MaterialIcons name="close" size={24} color="#666" />
+              <MaterialIcons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
       {showResults && results.length > 0 && (
-        <View style={styles.resultsContainer}>
+        <View style={[styles.resultsContainer, { backgroundColor: colors.card }]}>
           <FlatList
             data={results}
             keyExtractor={(item) => item.place_id}
@@ -222,16 +226,16 @@ export default function PlaceSearchInput({
                 onPress={() => handlePlaceSelect(item)}
                 activeOpacity={0.7}
               >
-                <MaterialIcons name="place" size={20} color="#e86713" style={styles.resultIcon} />
+                <MaterialIcons name="place" size={20} color={colors.tint} style={styles.resultIcon} />
                 <View style={styles.resultTextContainer}>
-                  <Text style={styles.resultText} numberOfLines={2}>
+                  <Text style={[styles.resultText, { color: colors.text }]} numberOfLines={2}>
                     {item.display_name}
                   </Text>
-                  <Text style={styles.resultType}>{item.type}</Text>
+                  <Text style={[styles.resultType, { color: colors.textSecondary }]}>{item.type}</Text>
                 </View>
               </TouchableOpacity>
             )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
           />
         </View>
       )}
@@ -256,7 +260,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#000',
     height: 50,
   },
   loader: {
@@ -270,7 +273,6 @@ const styles = StyleSheet.create({
     top: 54,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
     borderRadius: 8,
     maxHeight: 300,
     shadowColor: '#000',
@@ -294,17 +296,14 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 14,
-    color: '#333',
     marginBottom: 2,
   },
   resultType: {
     fontSize: 12,
-    color: '#666',
     textTransform: 'capitalize',
   },
   separator: {
     height: 1,
-    backgroundColor: '#eee',
     marginHorizontal: 12,
   },
 });

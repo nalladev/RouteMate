@@ -21,7 +21,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: "white",
+          backgroundColor: colors.card,
           borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 85 : 65 + insets.bottom,
           paddingBottom: insets.bottom,

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -6,9 +6,9 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Button, Alert, Platform, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { PENDING_COMMUNITY_INVITE_TOKEN_KEY } from '@/constants/community';
 import { api } from '@/utils/api';
 
@@ -184,19 +184,27 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function ThemedApp() {
+  const { isDarkMode } = useTheme();
 
   return (
+    <NavigationThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
+      <RootLayoutNav />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+    </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppStateProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <RootLayoutNav />
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </AppStateProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppStateProvider>
+            <ThemedApp />
+          </AppStateProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

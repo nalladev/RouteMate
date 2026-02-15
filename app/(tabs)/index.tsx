@@ -17,9 +17,11 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useAppState } from '@/contexts/AppStateContext';
 import { MarkerData, RideConnection } from '@/types';
 import { api } from '@/utils/api';
+import { Colors } from '@/constants/theme';
 import PlaceSearchInput from '@/components/maps/PlaceSearchInput';
 import { getRoute } from '@/utils/routing';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
@@ -31,6 +33,8 @@ const INDIA_EMERGENCY_NUMBER = '112';
 export default function HomeScreen() {
   const router = useRouter();
   const { user, isAuthenticated, refreshUser } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const {
     role,
     setRole,
@@ -590,9 +594,9 @@ export default function HomeScreen() {
 
   if (!user || !userLocation) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading location...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <ActivityIndicator size="large" color={colors.tint} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading location...</Text>
       </View>
     );
   }
@@ -640,7 +644,7 @@ export default function HomeScreen() {
               <View style={styles.customMarker}>
                 <View style={[
                   styles.markerIconContainer,
-                  { backgroundColor: markerIsDriver ? '#2196F3' : '#4CAF50' }
+                  { backgroundColor: markerIsDriver ? colors.info : colors.success }
                 ]}>
                   <MaterialIcons 
                     name={markerIsDriver ? 'drive-eta' : 'person'} 
@@ -650,7 +654,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={[
                   styles.markerArrow,
-                  { borderTopColor: markerIsDriver ? '#2196F3' : '#4CAF50' }
+                  { borderTopColor: markerIsDriver ? colors.info : colors.success }
                 ]} />
               </View>
             </Marker>
@@ -673,7 +677,7 @@ export default function HomeScreen() {
         {routeCoordinates.length > 0 && isActive && (
           <Polyline
             coordinates={routeCoordinates}
-            strokeColor="#4285F4"
+            strokeColor={colors.info}
             strokeWidth={4}
           />
         )}
@@ -688,26 +692,26 @@ export default function HomeScreen() {
               placeholder="Search destination..."
               onPlaceSelected={handlePlaceSelected}
               onClear={handleClearSearch}
-              containerStyle={styles.placesSearchContainer}
+              containerStyle={[styles.placesSearchContainer, { backgroundColor: colors.card }]}
               initialValue={searchQuery}
             />
           </View>
         ) : (
           // Active mode: Show destination name with exit button
-          <View style={styles.destinationDisplay}>
+          <View style={[styles.destinationDisplay, { backgroundColor: colors.card }]}>
             <View style={styles.destinationTextContainer}>
-              <Text style={styles.destinationPrefix}>
+              <Text style={[styles.destinationPrefix, { color: colors.textSecondary }]}>
                 {role === 'driver' ? 'Driving to' : 'Going to'}
               </Text>
-              <Text style={styles.destinationText} numberOfLines={1}>
+              <Text style={[styles.destinationText, { color: colors.text }]} numberOfLines={1}>
                 {searchQuery || 'Destination'}
               </Text>
             </View>
             {isLoadingRoute ? (
-              <ActivityIndicator size="small" color="#e86713" style={styles.exitButton} />
+              <ActivityIndicator size="small" color={colors.tint} style={styles.exitButton} />
             ) : (
               <TouchableOpacity style={styles.exitButton} onPress={handleExitActive}>
-                <MaterialIcons name="close" size={24} color="#e86713" />
+                <MaterialIcons name="close" size={24} color={colors.tint} />
               </TouchableOpacity>
             )}
           </View>
@@ -715,13 +719,13 @@ export default function HomeScreen() {
       </View>
 
       {/* Center on user button */}
-      <TouchableOpacity style={styles.centerButton} onPress={centerOnUser}>
-        <MaterialIcons name="my-location" size={24} color="#e86713" />
+      <TouchableOpacity style={[styles.centerButton, { backgroundColor: colors.card }]} onPress={centerOnUser}>
+        <MaterialIcons name="my-location" size={24} color={colors.tint} />
       </TouchableOpacity>
 
       {isActive && (
         <TouchableOpacity
-          style={[styles.panicButton, isPanicMode && styles.panicButtonActive]}
+          style={[styles.panicButton, { backgroundColor: '#c62828' }, isPanicMode && styles.panicButtonActive]}
           onPress={handlePanicPress}
         >
           <MaterialIcons name="warning" size={20} color="#fff" />
@@ -733,9 +737,18 @@ export default function HomeScreen() {
 
       {/* Mode Selection Buttons - show when destination is selected but not active */}
       {tempDestination && !isActive && (
-        <View style={styles.modeSelectionButtons}>
+        <View style={[styles.modeSelectionButtons, { backgroundColor: 'transparent', borderColor: colors.border }]}>
           <TouchableOpacity
-            style={[styles.modeButtonBottom, styles.modeButtonLeft]}
+            style={[
+              styles.modeButtonBottom, 
+              styles.modeButtonLeft, 
+              { 
+                backgroundColor: colors.success,
+                borderWidth: 2,
+                borderColor: colors.success,
+                marginRight: 6,
+              }
+            ]}
             onPress={() => handleModeSelection('passenger')}
             disabled={isSelectingMode}
           >
@@ -743,10 +756,17 @@ export default function HomeScreen() {
             <Text style={styles.modeButtonBottomText}>Find a Ride</Text>
           </TouchableOpacity>
 
-          <View style={styles.buttonDivider} />
-
           <TouchableOpacity
-            style={[styles.modeButtonBottom, styles.modeButtonRight]}
+            style={[
+              styles.modeButtonBottom, 
+              styles.modeButtonRight, 
+              { 
+                backgroundColor: colors.info,
+                borderWidth: 2,
+                borderColor: colors.info,
+                marginLeft: 6,
+              }
+            ]}
             onPress={() => handleModeSelection('driver')}
             disabled={isSelectingMode}
           >
@@ -758,80 +778,80 @@ export default function HomeScreen() {
 
       {/* Selected marker detail (passenger view in active mode) */}
       {selectedMarker && role === 'passenger' && isActive && (
-        <View style={styles.bottomSheet}>
+        <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <View style={styles.bottomSheetTitleContainer}>
-              <View style={[styles.bottomSheetIcon, { backgroundColor: '#2196F3' }]}>
+              <View style={[styles.bottomSheetIcon, { backgroundColor: colors.info }]}>
                 <MaterialIcons name="drive-eta" size={16} color="#fff" />
               </View>
-              <Text style={styles.bottomSheetTitle}>{selectedMarker.name} (Driver)</Text>
+              <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>{selectedMarker.name} (Driver)</Text>
             </View>
             <TouchableOpacity onPress={() => setSelectedMarker(null)}>
-              <Text style={styles.closeButton}>✕</Text>
+              <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
           
           <View style={styles.detailRow}>
             <MaterialIcons name="star" size={16} color="#FFC107" />
-            <Text style={styles.detailText}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
+            <Text style={[styles.detailText, { color: colors.textSecondary }]}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <MaterialIcons name="directions-car" size={16} color="#666" />
-            <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
+            <MaterialIcons name="directions-car" size={16} color={colors.textSecondary} />
+            <Text style={[styles.detailText, { color: colors.textSecondary }]}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
           </View>
 
           {/* Trip Estimate Section */}
           {isCalculatingEstimate ? (
             <View style={styles.estimateContainer}>
-              <ActivityIndicator size="small" color="#e86713" />
-              <Text style={styles.estimateCalculatingText}>Calculating trip details...</Text>
+              <ActivityIndicator size="small" color={colors.tint} />
+              <Text style={[styles.estimateCalculatingText, { color: colors.textSecondary }]}>Calculating trip details...</Text>
             </View>
           ) : tripEstimate ? (
             <View style={styles.estimateContainer}>
-              <Text style={styles.estimateTitle}>Trip Estimate</Text>
+              <Text style={[styles.estimateTitle, { color: colors.text }]}>Trip Estimate</Text>
               
               <View style={styles.estimateRow}>
                 <View style={styles.estimateItem}>
-                  <MaterialIcons name="attach-money" size={20} color="#4CAF50" />
+                  <MaterialIcons name="attach-money" size={20} color={colors.success} />
                   <View style={styles.estimateTextContainer}>
-                    <Text style={styles.estimateLabel}>Fare</Text>
-                    <Text style={styles.estimateValue}>{formatFare(tripEstimate.fare)}</Text>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Fare</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatFare(tripEstimate.fare)}</Text>
                   </View>
                 </View>
                 
                 <View style={styles.estimateItem}>
-                  <MaterialIcons name="straighten" size={20} color="#2196F3" />
+                  <MaterialIcons name="straighten" size={20} color={colors.info} />
                   <View style={styles.estimateTextContainer}>
-                    <Text style={styles.estimateLabel}>Distance</Text>
-                    <Text style={styles.estimateValue}>{formatDistanceKm(tripEstimate.distance)}</Text>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Distance</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDistanceKm(tripEstimate.distance)}</Text>
                   </View>
                 </View>
               </View>
 
               <View style={styles.estimateRow}>
                 <View style={styles.estimateItem}>
-                  <MaterialIcons name="access-time" size={20} color="#FF9800" />
+                  <MaterialIcons name="access-time" size={20} color={colors.warning} />
                   <View style={styles.estimateTextContainer}>
-                    <Text style={styles.estimateLabel}>Driver ETA</Text>
-                    <Text style={styles.estimateValue}>{formatDuration(Math.ceil((tripEstimate.eta.getTime() - Date.now()) / 60000))} • {formatETA(tripEstimate.eta)}</Text>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Driver ETA</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDuration(Math.ceil((tripEstimate.eta.getTime() - Date.now()) / 60000))} • {formatETA(tripEstimate.eta)}</Text>
                   </View>
                 </View>
               </View>
 
               <View style={styles.estimateRow}>
                 <View style={styles.estimateItem}>
-                  <MaterialIcons name="schedule" size={20} color="#9C27B0" />
+                  <MaterialIcons name="schedule" size={20} color={colors.tint} />
                   <View style={styles.estimateTextContainer}>
-                    <Text style={styles.estimateLabel}>Ride Duration</Text>
-                    <Text style={styles.estimateValue}>{formatDuration(tripEstimate.durationMinutes)}</Text>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Ride Duration</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDuration(tripEstimate.durationMinutes)}</Text>
                   </View>
                 </View>
                 
                 <View style={styles.estimateItem}>
-                  <MaterialIcons name="flag" size={20} color="#F44336" />
+                  <MaterialIcons name="flag" size={20} color={colors.error} />
                   <View style={styles.estimateTextContainer}>
-                    <Text style={styles.estimateLabel}>Arrival Time</Text>
-                    <Text style={styles.estimateValue}>{formatETA(tripEstimate.rideCompletionTime)}</Text>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Arrival Time</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatETA(tripEstimate.rideCompletionTime)}</Text>
                   </View>
                 </View>
               </View>
@@ -845,7 +865,7 @@ export default function HomeScreen() {
                   <MaterialIcons 
                     name={balance >= tripEstimate.fare ? "check-circle" : "warning"} 
                     size={18} 
-                    color={balance >= tripEstimate.fare ? "#4CAF50" : "#f44336"} 
+                    color={balance >= tripEstimate.fare ? colors.success : colors.error} 
                   />
                   <Text style={[
                     styles.balanceCheckText,
@@ -863,6 +883,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={[
               styles.requestButton,
+              { backgroundColor: colors.tint },
               tripEstimate && balance < tripEstimate.fare && styles.requestButtonDisabled
             ]}
             onPress={() => handleRequestRide(selectedMarker)}
@@ -877,16 +898,16 @@ export default function HomeScreen() {
 
       {/* Active request pane */}
       {activeRequest && role === 'passenger' && !isMinimized && (
-        <View style={styles.bottomSheet}>
+        <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>Active Request</Text>
+            <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>Active Request</Text>
             <TouchableOpacity onPress={() => setIsMinimized(true)}>
-              <Text style={styles.closeButton}>−</Text>
+              <Text style={[styles.closeButton, { color: colors.textSecondary }]}>−</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.detailText}>Status: {activeRequest.State}</Text>
+          <Text style={[styles.detailText, { color: colors.textSecondary }]}>Status: {activeRequest.State}</Text>
           {activeRequest.RequestedVehicleType && (
-            <Text style={styles.detailText}>Expected Vehicle: {activeRequest.RequestedVehicleType}</Text>
+            <Text style={[styles.detailText, { color: colors.textSecondary }]}>Expected Vehicle: {activeRequest.RequestedVehicleType}</Text>
           )}
           {activeRequest.State === 'accepted' && activeRequest.RequestedVehicleType && (
             <>
@@ -894,13 +915,13 @@ export default function HomeScreen() {
                 activeRequest.PassengerVehicleConfirmation === 'pending') && (
                 <View style={styles.vehicleConfirmRow}>
                   <TouchableOpacity
-                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmYes]}
+                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmYes, { backgroundColor: colors.success }]}
                     onPress={() => handleConfirmVehicle(activeRequest.Id, true)}
                   >
                     <Text style={styles.vehicleConfirmButtonText}>Vehicle Matches</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmNo]}
+                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmNo, { backgroundColor: colors.error }]}
                     onPress={() => handleConfirmVehicle(activeRequest.Id, false)}
                   >
                     <Text style={styles.vehicleConfirmButtonText}>Not This Vehicle</Text>
@@ -908,29 +929,29 @@ export default function HomeScreen() {
                 </View>
               )}
               {activeRequest.PassengerVehicleConfirmation === 'confirmed' && (
-                <Text style={styles.vehicleConfirmedText}>Vehicle confirmed. Share OTP only after boarding.</Text>
+                <Text style={[styles.vehicleConfirmedText, { color: colors.success }]}>Vehicle confirmed. Share OTP only after boarding.</Text>
               )}
               {activeRequest.PassengerVehicleConfirmation === 'mismatch' && (
-                <Text style={styles.vehicleMismatchText}>Vehicle mismatch reported. Wait for correction before OTP.</Text>
+                <Text style={[styles.vehicleMismatchText, { color: colors.error }]}>Vehicle mismatch reported. Wait for correction before OTP.</Text>
               )}
             </>
           )}
           {activeRequest.State === 'accepted' && activeRequest.OtpCode && (
-            <Text style={styles.otpText}>OTP: {activeRequest.OtpCode}</Text>
+            <Text style={[styles.otpText, { color: colors.tint }]}>OTP: {activeRequest.OtpCode}</Text>
           )}
           <TouchableOpacity
-            style={styles.shareButton}
+            style={[styles.shareButton, { backgroundColor: colors.info }]}
             onPress={() => handleShareRide(activeRequest.Id)}
           >
             <Text style={styles.shareButtonText}>Share Live Ride</Text>
           </TouchableOpacity>
           {activeRequest.State === 'requested' && (
-            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRequest}>
+            <TouchableOpacity style={[styles.cancelButton, { backgroundColor: colors.error }]} onPress={handleCancelRequest}>
               <Text style={styles.cancelButtonText}>Cancel Request</Text>
             </TouchableOpacity>
           )}
           {(activeRequest.State === 'accepted' || activeRequest.State === 'picked_up') && (
-            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelConnection}>
+            <TouchableOpacity style={[styles.cancelButton, { backgroundColor: colors.error }]} onPress={handleCancelConnection}>
               <Text style={styles.cancelButtonText}>Cancel Ride</Text>
             </TouchableOpacity>
           )}
@@ -940,7 +961,7 @@ export default function HomeScreen() {
       {/* Minimized status bar */}
       {activeRequest && isMinimized && (
         <TouchableOpacity
-          style={styles.minimizedBar}
+          style={[styles.minimizedBar, { backgroundColor: colors.tint }]}
           onPress={() => setIsMinimized(false)}
         >
           <Text style={styles.minimizedText}>Active Request - Tap to expand</Text>
@@ -950,32 +971,32 @@ export default function HomeScreen() {
       {/* Driver request popup */}
       <Modal visible={showRequestPopup} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>New Ride Request</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>New Ride Request</Text>
             {currentRequest && (
               <>
                 <View style={styles.requestDetailCard}>
                   <View style={styles.requestDetailRow}>
-                    <MaterialIcons name="attach-money" size={24} color="#4CAF50" />
+                    <MaterialIcons name="attach-money" size={24} color={colors.success} />
                     <View style={styles.requestDetailTextContainer}>
-                      <Text style={styles.requestDetailLabel}>Fare</Text>
-                      <Text style={styles.requestDetailValue}>${currentRequest.Fare.toFixed(2)}</Text>
+                      <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Fare</Text>
+                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>${currentRequest.Fare.toFixed(2)}</Text>
                     </View>
                   </View>
 
                   <View style={styles.requestDetailRow}>
-                    <MaterialIcons name="straighten" size={24} color="#2196F3" />
+                    <MaterialIcons name="straighten" size={24} color={colors.info} />
                     <View style={styles.requestDetailTextContainer}>
-                      <Text style={styles.requestDetailLabel}>Distance</Text>
-                      <Text style={styles.requestDetailValue}>{currentRequest.Distance.toFixed(1)} km</Text>
+                      <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Distance</Text>
+                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>{(currentRequest.Distance / 1000).toFixed(1)} km</Text>
                     </View>
                   </View>
 
                   <View style={styles.requestDetailRow}>
-                    <MaterialIcons name="schedule" size={24} color="#FF9800" />
+                    <MaterialIcons name="access-time" size={24} color={colors.warning} />
                     <View style={styles.requestDetailTextContainer}>
-                      <Text style={styles.requestDetailLabel}>Est. Duration</Text>
-                      <Text style={styles.requestDetailValue}>
+                      <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Passenger Rating</Text>
+                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>
                         {formatDuration(Math.ceil((currentRequest.Distance / 30) * 60))}
                       </Text>
                     </View>
@@ -983,7 +1004,7 @@ export default function HomeScreen() {
 
                   {userLocation && currentRequest.PickupLocation && (
                     <View style={styles.requestDetailRow}>
-                      <MaterialIcons name="navigation" size={24} color="#9C27B0" />
+                      <MaterialIcons name="person" size={24} color={colors.tint} />
                       <View style={styles.requestDetailTextContainer}>
                         <Text style={styles.requestDetailLabel}>Pickup ETA</Text>
                         <Text style={styles.requestDetailValue}>
@@ -1003,7 +1024,7 @@ export default function HomeScreen() {
                   )}
 
                   <View style={styles.requestDetailRow}>
-                    <MaterialIcons name="flag" size={24} color="#F44336" />
+                    <MaterialIcons name="star" size={24} color={colors.warning} />
                     <View style={styles.requestDetailTextContainer}>
                       <Text style={styles.requestDetailLabel}>Est. Completion</Text>
                       <Text style={styles.requestDetailValue}>
@@ -1014,8 +1035,8 @@ export default function HomeScreen() {
 
                   {currentRequest.PickupLocation && (
                     <View style={styles.requestLocationInfo}>
-                      <MaterialIcons name="place" size={20} color="#666" />
-                      <Text style={styles.requestLocationText}>
+                      <MaterialIcons name="place" size={20} color={colors.textSecondary} />
+                      <Text style={[styles.requestLocationText, { color: colors.textSecondary }]}>
                         Pickup: {currentRequest.PickupLocation.lat.toFixed(4)}, {currentRequest.PickupLocation.lng.toFixed(4)}
                       </Text>
                     </View>
@@ -1023,8 +1044,8 @@ export default function HomeScreen() {
 
                   {currentRequest.Destination && (
                     <View style={styles.requestLocationInfo}>
-                      <MaterialIcons name="flag" size={20} color="#666" />
-                      <Text style={styles.requestLocationText}>
+                      <MaterialIcons name="flag" size={20} color={colors.textSecondary} />
+                      <Text style={[styles.requestLocationText, { color: colors.textSecondary }]}>
                         Destination: {currentRequest.Destination.lat.toFixed(4)}, {currentRequest.Destination.lng.toFixed(4)}
                       </Text>
                     </View>
@@ -1054,16 +1075,17 @@ export default function HomeScreen() {
       {/* Vehicle type selection modal for drivers */}
       <Modal visible={showVehicleTypeModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Set Your Vehicle Type</Text>
-            <Text style={styles.modalText}>Passengers will see this before requesting your ride.</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Set Your Vehicle Type</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>Passengers will see this before requesting your ride.</Text>
             <View style={styles.vehicleOptionList}>
               {VEHICLE_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.vehicleOptionButton,
-                    selectedVehicleType === type && styles.vehicleOptionButtonSelected,
+                    { borderColor: colors.border },
+                    selectedVehicleType === type && { backgroundColor: colors.tint + '22', borderColor: colors.tint },
                   ]}
                   onPress={() => setSelectedVehicleType(type)}
                   disabled={isSavingVehicleType}
@@ -1087,7 +1109,7 @@ export default function HomeScreen() {
                 }}
                 disabled={isSavingVehicleType}
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.acceptButton]}
@@ -1108,9 +1130,9 @@ export default function HomeScreen() {
       {/* Post-ride rating popup (passenger) */}
       <Modal visible={!!ratingConnection} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.ratingModalContent}>
-            <Text style={styles.modalTitle}>Rate Your Driver</Text>
-            <Text style={styles.modalText}>How was your ride experience?</Text>
+          <View style={[styles.ratingModalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Rate Your Driver</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>How was your ride experience?</Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -1122,7 +1144,7 @@ export default function HomeScreen() {
                   <MaterialIcons
                     name={star <= selectedRating ? 'star' : 'star-border'}
                     size={36}
-                    color={star <= selectedRating ? '#f59e0b' : '#9ca3af'}
+                    color={star <= selectedRating ? colors.warning : colors.textSecondary}
                   />
                 </TouchableOpacity>
               ))}
@@ -1191,7 +1213,7 @@ export default function HomeScreen() {
                 )}
                 {(conn.State === 'accepted' || conn.State === 'picked_up') && (
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={[styles.acceptButton, { backgroundColor: colors.success }]}
                     onPress={() => {
                       setActiveRequest(conn);
                       handleCancelConnection();
@@ -1220,7 +1242,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white'
   },
   loadingText: {
     marginTop: 10,
@@ -1238,7 +1259,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   placesSearchContainer: {
-    backgroundColor: '#fff',
     borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -1251,7 +1271,6 @@ const styles = StyleSheet.create({
   destinationDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 8,
     shadowColor: '#000',
@@ -1266,13 +1285,11 @@ const styles = StyleSheet.create({
   },
   destinationPrefix: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 2,
   },
   destinationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
   },
   exitButton: {
     marginLeft: 10,
@@ -1282,7 +1299,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 130,
     right: 10,
-    backgroundColor: '#fff',
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -1298,7 +1314,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 190,
     right: 10,
-    backgroundColor: '#c62828',
     minWidth: 110,
     height: 50,
     borderRadius: 25,
@@ -1313,7 +1328,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   panicButtonActive: {
-    backgroundColor: '#b71c1c',
+    opacity: 0.85,
   },
   panicButtonText: {
     color: '#fff',
@@ -1327,34 +1342,27 @@ const styles = StyleSheet.create({
     left: 10,
     right: 10,
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 8,
     height: 60,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
+    paddingHorizontal: 10,
   },
   modeButtonBottom: {
     flex: 1,
-    backgroundColor: '#e86713',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     opacity: 1,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   modeButtonLeft: {
-    backgroundColor: '#e86713',
   },
   modeButtonRight: {
-    backgroundColor: '#e86713',
   },
-  buttonDivider: {
-    width: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
+
   modeButtonBottomText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1371,7 +1379,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1436,10 +1443,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   vehicleConfirmYes: {
-    backgroundColor: '#4CAF50',
   },
   vehicleConfirmNo: {
-    backgroundColor: '#f44336',
   },
   vehicleConfirmButtonText: {
     color: '#fff',
@@ -1457,7 +1462,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   requestButton: {
-    backgroundColor: '#e86713',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -1469,7 +1473,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#f44336',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -1481,7 +1484,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   shareButton: {
-    backgroundColor: '#2563eb',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -1497,7 +1499,6 @@ const styles = StyleSheet.create({
     bottom: 80,
     left: 10,
     right: 10,
-    backgroundColor: '#e86713',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -1508,13 +1509,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
   },
   ratingModalContent: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,

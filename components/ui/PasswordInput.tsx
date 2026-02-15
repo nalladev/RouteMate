@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Colors } from '@/constants/theme';
 
 interface PasswordInputProps {
   value: string;
@@ -24,13 +26,15 @@ export function PasswordInput({
   onSubmitEditing,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const { isDarkMode } = useTheme();
+  const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
   return (
-    <View style={[styles.passwordContainer, containerStyle]}>
+    <View style={[styles.passwordContainer, { backgroundColor: colors.card, borderColor: colors.border }, containerStyle]}>
       <TextInput
-        style={[styles.passwordInput, inputStyle]}
+        style={[styles.passwordInput, { color: colors.text }, inputStyle]}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textSecondary}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={!showPassword}
@@ -47,7 +51,7 @@ export function PasswordInput({
         <MaterialIcons
           name={showPassword ? 'visibility' : 'visibility-off'}
           size={24}
-          color="#666"
+          color={colors.textSecondary}
         />
       </TouchableOpacity>
     </View>
@@ -58,17 +62,14 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
     marginBottom: 16,
   },
   passwordInput: {
     flex: 1,
     padding: 16,
     fontSize: 16,
-    color: '#333',
   },
   eyeButton: {
     padding: 16,
