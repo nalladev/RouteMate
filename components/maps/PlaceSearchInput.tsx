@@ -32,6 +32,7 @@ interface PlaceSearchInputProps {
   inputStyle?: any;
   autoFocus?: boolean;
   initialValue?: string;
+  showExternalLoader?: boolean;
 }
 
 export default function PlaceSearchInput({
@@ -42,6 +43,7 @@ export default function PlaceSearchInput({
   inputStyle,
   autoFocus = false,
   initialValue = '',
+  showExternalLoader = false,
 }: PlaceSearchInputProps) {
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
@@ -205,8 +207,8 @@ export default function PlaceSearchInput({
               }
             }}
           />
-          {loading && <ActivityIndicator size="small" color={colors.tint} style={styles.loader} />}
-          {!loading && query.length > 0 && (
+          {(loading || showExternalLoader) && <ActivityIndicator size="small" color={colors.tint} style={styles.loader} />}
+          {!loading && !showExternalLoader && query.length > 0 && (
             <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
               <MaterialIcons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
