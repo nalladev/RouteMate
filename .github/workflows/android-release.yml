@@ -1,9 +1,10 @@
-name: Build and Release Android App
+name: Build & Release Android APK
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,134 +12,111 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      version_name: ${{ steps.version.outputs.version_name }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Set up Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          version: 10
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Parse version from tag
-        id: version
+      - name: Get pnpm store directory
         shell: bash
         run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Extract version from tag (v1.2.3 → 1.2.3)
+      - name: Parse version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG=$(git describe --tags --abbrev=0)
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
           VERSION="${TAG#v}"
-
-          if [[ "$VERSION" == "$TAG" ]]; then
-            echo "Tag must start with 'v' (example: v1.2.3)"
-            exit 1
-          fi
-
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Tag version '$VERSION' is not in expected form (example: v1.2.3 or v1.2.3-beta.1)"
-            exit 1
-          fi
-
-          IFS='.' read -r MAJOR MINOR PATCH_WITH_SUFFIX <<< "$VERSION"
-          PATCH="${PATCH_WITH_SUFFIX%%[^0-9]*}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
 
           echo "version_name=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
-      - name: Generate Android project with tag version
+      # Generate native Android project
+      - name: Expo prebuild
         env:
           APP_VERSION: ${{ steps.version.outputs.version_name }}
           APP_VERSION_CODE: ${{ steps.version.outputs.version_code }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: npx expo prebuild --platform android --clean --non-interactive
 
-      - name: Prepare Android signing
-        shell: bash
+      # Restore keystore
+      - name: Restore keystore
         run: |
-          set -euo pipefail
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'android/app/build.gradle';
-          let file = fs.readFileSync(path, 'utf8');
-
-          const signingConfigsNeedle = `    signingConfigs {\n        debug {\n            storeFile file('debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n    }`;
-
-          const signingConfigsReplacement = `    signingConfigs {\n        debug {\n            storeFile file('debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n        release {\n            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {\n                storeFile file(MYAPP_UPLOAD_STORE_FILE)\n                storePassword MYAPP_UPLOAD_STORE_PASSWORD\n                keyAlias MYAPP_UPLOAD_KEY_ALIAS\n                keyPassword MYAPP_UPLOAD_KEY_PASSWORD\n            }\n        }\n    }`;
-
-          if (!file.includes("MYAPP_UPLOAD_STORE_FILE")) {
-            if (!file.includes(signingConfigsNeedle)) {
-              throw new Error('Could not find expected signingConfigs block in android/app/build.gradle');
-            }
-            file = file.replace(signingConfigsNeedle, signingConfigsReplacement);
-          }
-
-          file = file.replace(
-            /signingConfig signingConfigs\.debug/g,
-            "signingConfig project.hasProperty('MYAPP_UPLOAD_STORE_FILE') ? signingConfigs.release : signingConfigs.debug"
-          );
-
-          fs.writeFileSync(path, file);
-          NODE
-
-      - name: Build release APK and AAB
+      # Build signed release APK
+      - name: Build release APK
         working-directory: android
         env:
           ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_FILE: upload-keystore.jks
           ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           ORG_GRADLE_PROJECT_MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           ORG_GRADLE_PROJECT_MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease bundleRelease
+        run: ./gradlew --no-daemon assembleRelease
 
-      - name: Rename artifacts with version
-        shell: bash
+      - name: Rename APK
         run: |
-          set -euo pipefail
           VERSION="${{ steps.version.outputs.version_name }}"
-          cp android/app/build/outputs/apk/release/app-release.apk "routemate-${VERSION}.apk"
-          cp android/app/build/outputs/bundle/release/app-release.aab "routemate-${VERSION}.aab"
+          cp android/app/build/outputs/apk/release/app-release.apk app-$VERSION.apk
 
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-release-assets
-          path: |
-            routemate-${{ steps.version.outputs.version_name }}.apk
-            routemate-${{ steps.version.outputs.version_name }}.aab
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: android-release-assets
-          path: ./release
-
+      # Create GitHub release + upload APK (only on tag push)
       - name: Create GitHub release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: RouteMate ${{ needs.build.outputs.version_name }}
-          generate_release_notes: true
-          files: |
-            ./release/routemate-${{ needs.build.outputs.version_name }}.apk
-            ./release/routemate-${{ needs.build.outputs.version_name }}.aab
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: app-${{ steps.version.outputs.version_name }}.apk
+
+      # Upload APK as artifact for manual runs
+      - name: Upload APK as artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ steps.version.outputs.version_name }}
+          path: app-${{ steps.version.outputs.version_name }}.apk
+          if-no-files-found: warn
