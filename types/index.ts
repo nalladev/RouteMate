@@ -55,7 +55,8 @@ export interface User {
   ActiveCommunityId?: string | null;
 }
 
-export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed';
+export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed' | 'cancelled';
+export type CancellationInitiator = 'passenger' | 'driver';
 export type PaymentStatus = 'pending' | 'success' | 'failed';
 
 export interface RideConnection {
@@ -78,6 +79,10 @@ export interface RideConnection {
   ShareToken?: string;
   ShareCreatedAt?: any;
   CommunityId?: string | null;
+  AcceptedAt?: any;
+  CancelledAt?: any;
+  CancelledBy?: CancellationInitiator;
+  CancellationPenalty?: number;
   CreatedAt: any;
 }
 
