@@ -24,6 +24,7 @@ import PlaceSearchInput from '@/components/maps/PlaceSearchInput';
 import { getRoute } from '@/utils/routing';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
 import type { VehicleType } from '@/constants/vehicles';
+import { getTripEstimate, formatFare, formatDistanceKm, formatDuration, formatETA, calculateDistance, type TripEstimate } from '@/utils/tripEstimates';
 
 const INDIA_EMERGENCY_NUMBER = '112';
 
@@ -65,6 +66,10 @@ export default function HomeScreen() {
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(false);
   const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType>(VEHICLE_TYPES[0]);
   const [isSavingVehicleType, setIsSavingVehicleType] = useState(false);
+
+  // Trip estimate state for passenger preview
+  const [tripEstimate, setTripEstimate] = useState<TripEstimate | null>(null);
+  const [isCalculatingEstimate, setIsCalculatingEstimate] = useState(false);
 
   const checkForPendingRating = useCallback(async () => {
     if (!user || ratingConnection) return;
@@ -145,6 +150,33 @@ export default function HomeScreen() {
       console.error('Failed to load balance:', error);
     }
   }
+
+  // Calculate trip estimate when marker is selected (passenger preview)
+  useEffect(() => {
+    async function calculateEstimate() {
+      if (selectedMarker && role === 'passenger' && userLocation && destination) {
+        setIsCalculatingEstimate(true);
+        const estimate = await getTripEstimate(
+          userLocation,
+          destination,
+          selectedMarker.lastLocation
+        );
+        setTripEstimate(estimate);
+        setIsCalculatingEstimate(false);
+      } else {
+        setTripEstimate(null);
+      }
+    }
+
+    calculateEstimate();
+  }, [selectedMarker, role, userLocation, destination]);
+
+  // Reset trip estimate when marker is deselected
+  useEffect(() => {
+    if (!selectedMarker) {
+      setTripEstimate(null);
+    }
+  }, [selectedMarker]);
 
   function centerOnUser() {
     if (userLocation && mapRef.current) {
@@ -738,6 +770,7 @@ export default function HomeScreen() {
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
+          
           <View style={styles.detailRow}>
             <MaterialIcons name="star" size={16} color="#FFC107" />
             <Text style={styles.detailText}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
@@ -746,11 +779,98 @@ export default function HomeScreen() {
             <MaterialIcons name="directions-car" size={16} color="#666" />
             <Text style={styles.detailText}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
           </View>
+
+          {/* Trip Estimate Section */}
+          {isCalculatingEstimate ? (
+            <View style={styles.estimateContainer}>
+              <ActivityIndicator size="small" color="#e86713" />
+              <Text style={styles.estimateCalculatingText}>Calculating trip details...</Text>
+            </View>
+          ) : tripEstimate ? (
+            <View style={styles.estimateContainer}>
+              <Text style={styles.estimateTitle}>Trip Estimate</Text>
+              
+              <View style={styles.estimateRow}>
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="attach-money" size={20} color="#4CAF50" />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateLabel}>Fare</Text>
+                    <Text style={styles.estimateValue}>{formatFare(tripEstimate.fare)}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="straighten" size={20} color="#2196F3" />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateLabel}>Distance</Text>
+                    <Text style={styles.estimateValue}>{formatDistanceKm(tripEstimate.distance)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.estimateRow}>
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="access-time" size={20} color="#FF9800" />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateLabel}>Driver ETA</Text>
+                    <Text style={styles.estimateValue}>{formatDuration(Math.ceil((tripEstimate.eta.getTime() - Date.now()) / 60000))} • {formatETA(tripEstimate.eta)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.estimateRow}>
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="schedule" size={20} color="#9C27B0" />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateLabel}>Ride Duration</Text>
+                    <Text style={styles.estimateValue}>{formatDuration(tripEstimate.durationMinutes)}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="flag" size={20} color="#F44336" />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateLabel}>Arrival Time</Text>
+                    <Text style={styles.estimateValue}>{formatETA(tripEstimate.rideCompletionTime)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Balance Check */}
+              {tripEstimate && (
+                <View style={[
+                  styles.balanceCheckContainer,
+                  balance >= tripEstimate.fare ? styles.balanceCheckSufficient : styles.balanceCheckInsufficient
+                ]}>
+                  <MaterialIcons 
+                    name={balance >= tripEstimate.fare ? "check-circle" : "warning"} 
+                    size={18} 
+                    color={balance >= tripEstimate.fare ? "#4CAF50" : "#f44336"} 
+                  />
+                  <Text style={[
+                    styles.balanceCheckText,
+                    balance >= tripEstimate.fare ? styles.balanceCheckTextGreen : styles.balanceCheckTextRed
+                  ]}>
+                    {balance >= tripEstimate.fare 
+                      ? `Balance: ${formatFare(balance)} ✓` 
+                      : `Insufficient balance (${formatFare(balance)})`}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+
           <TouchableOpacity
-            style={styles.requestButton}
+            style={[
+              styles.requestButton,
+              tripEstimate && balance < tripEstimate.fare && styles.requestButtonDisabled
+            ]}
             onPress={() => handleRequestRide(selectedMarker)}
+            disabled={tripEstimate ? balance < tripEstimate.fare : false}
           >
-            <Text style={styles.requestButtonText}>Request Ride</Text>
+            <Text style={styles.requestButtonText}>
+              {tripEstimate && balance < tripEstimate.fare ? 'Insufficient Balance' : 'Request Ride'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -834,8 +954,83 @@ export default function HomeScreen() {
             <Text style={styles.modalTitle}>New Ride Request</Text>
             {currentRequest && (
               <>
-                <Text style={styles.modalText}>Fare: ${currentRequest.Fare.toFixed(2)}</Text>
-                <Text style={styles.modalText}>Distance: {currentRequest.Distance.toFixed(2)} km</Text>
+                <View style={styles.requestDetailCard}>
+                  <View style={styles.requestDetailRow}>
+                    <MaterialIcons name="attach-money" size={24} color="#4CAF50" />
+                    <View style={styles.requestDetailTextContainer}>
+                      <Text style={styles.requestDetailLabel}>Fare</Text>
+                      <Text style={styles.requestDetailValue}>${currentRequest.Fare.toFixed(2)}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.requestDetailRow}>
+                    <MaterialIcons name="straighten" size={24} color="#2196F3" />
+                    <View style={styles.requestDetailTextContainer}>
+                      <Text style={styles.requestDetailLabel}>Distance</Text>
+                      <Text style={styles.requestDetailValue}>{currentRequest.Distance.toFixed(1)} km</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.requestDetailRow}>
+                    <MaterialIcons name="schedule" size={24} color="#FF9800" />
+                    <View style={styles.requestDetailTextContainer}>
+                      <Text style={styles.requestDetailLabel}>Est. Duration</Text>
+                      <Text style={styles.requestDetailValue}>
+                        {formatDuration(Math.ceil((currentRequest.Distance / 30) * 60))}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {userLocation && currentRequest.PickupLocation && (
+                    <View style={styles.requestDetailRow}>
+                      <MaterialIcons name="navigation" size={24} color="#9C27B0" />
+                      <View style={styles.requestDetailTextContainer}>
+                        <Text style={styles.requestDetailLabel}>Pickup ETA</Text>
+                        <Text style={styles.requestDetailValue}>
+                          {(() => {
+                            const pickupDistanceKm = calculateDistance(
+                              userLocation.lat,
+                              userLocation.lng,
+                              currentRequest.PickupLocation.lat,
+                              currentRequest.PickupLocation.lng
+                            );
+                            const pickupEtaMinutes = Math.ceil((pickupDistanceKm / 30) * 60);
+                            return `${formatDuration(pickupEtaMinutes)} (${pickupDistanceKm.toFixed(1)} km away)`;
+                          })()}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={styles.requestDetailRow}>
+                    <MaterialIcons name="flag" size={24} color="#F44336" />
+                    <View style={styles.requestDetailTextContainer}>
+                      <Text style={styles.requestDetailLabel}>Est. Completion</Text>
+                      <Text style={styles.requestDetailValue}>
+                        {formatETA(new Date(Date.now() + (currentRequest.Distance / 30) * 3600 * 1000))}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {currentRequest.PickupLocation && (
+                    <View style={styles.requestLocationInfo}>
+                      <MaterialIcons name="place" size={20} color="#666" />
+                      <Text style={styles.requestLocationText}>
+                        Pickup: {currentRequest.PickupLocation.lat.toFixed(4)}, {currentRequest.PickupLocation.lng.toFixed(4)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {currentRequest.Destination && (
+                    <View style={styles.requestLocationInfo}>
+                      <MaterialIcons name="flag" size={20} color="#666" />
+                      <Text style={styles.requestLocationText}>
+                        Destination: {currentRequest.Destination.lat.toFixed(4)}, {currentRequest.Destination.lng.toFixed(4)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.rejectButton]}
@@ -1492,5 +1687,114 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     marginTop: -2,
+  },
+  estimateContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  estimateTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+  },
+  estimateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  estimateItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  estimateTextContainer: {
+    flex: 1,
+  },
+  estimateLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  estimateValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  estimateCalculatingText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  requestDetailCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  requestDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  requestDetailTextContainer: {
+    flex: 1,
+  },
+  requestDetailLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 2,
+  },
+  requestDetailValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  requestLocationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  requestLocationText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
+  },
+  balanceCheckContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  balanceCheckSufficient: {
+    backgroundColor: '#e8f5e9',
+  },
+  balanceCheckInsufficient: {
+    backgroundColor: '#ffebee',
+  },
+  balanceCheckText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  balanceCheckTextGreen: {
+    color: '#2e7d32',
+  },
+  balanceCheckTextRed: {
+    color: '#c62828',
+  },
+  requestButtonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
 });
