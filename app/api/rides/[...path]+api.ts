@@ -10,6 +10,7 @@ import { handleConnectionComplete } from '../../../lib/api/rides_handlers/connec
 import { handleConnectionConfirmVehicle } from '../../../lib/api/rides_handlers/connection-confirm-vehicle';
 import { handleConnectionVerifyOtp } from '../../../lib/api/rides_handlers/connection-verify-otp';
 import { handleConnectionRate } from '../../../lib/api/rides_handlers/connection-rate';
+import { handleConnectionCancel } from '../../../lib/api/rides_handlers/connection-cancel';
 
 export async function GET(request: Request, { path }: { path: string[] }) {
   try {
@@ -60,6 +61,8 @@ export async function POST(request: Request, { path }: { path: string[] }) {
         return await handleConnectionVerifyOtp(request);
       case 'connection/rate':
         return await handleConnectionRate(request);
+      case 'connection/cancel':
+        return await handleConnectionCancel(request);
       default:
         return Response.json(
           { error: `Unknown route: /api/rides/${routePath}` },

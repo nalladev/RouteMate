@@ -387,6 +387,46 @@ export default function HomeScreen() {
     ]);
   }
 
+  async function handleCancelConnection() {
+    if (!activeRequest) return;
+
+    const isDriver = role === 'driver';
+    const warningMessage = isDriver
+      ? 'Cancelling may result in a penalty based on time since acceptance:\n\n• 0-2 min: ₹0\n• 2-5 min: ₹10\n• 5-10 min: ₹20\n• >10 min: ₹50\n\nAre you sure?'
+      : 'Are you sure you want to cancel this ride?';
+
+    Alert.alert('Cancel Ride', warningMessage, [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes, Cancel',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const result = await api.cancelConnection(activeRequest.Id);
+            setActiveRequest(null);
+            
+            if (result.penalty > 0) {
+              Alert.alert(
+                'Ride Cancelled',
+                `${result.message}\nNew Balance: ₹${result.newBalance?.toFixed(2) || '0.00'}`,
+                [{ text: 'OK', onPress: () => refreshUser() }]
+              );
+            } else {
+              Alert.alert('Success', result.message);
+            }
+            
+            // Refresh user data to update balance if penalty was charged
+            if (isDriver) {
+              await refreshUser();
+            }
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to cancel ride');
+          }
+        },
+      },
+    ]);
+  }
+
   async function handleRespondToRequest(action: 'accepted' | 'rejected') {
     if (!currentRequest) return;
 
@@ -659,30 +699,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Map Legend - show when in active mode with markers */}
-      {isActive && markers.length > 0 && (
-        <View style={styles.mapLegend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendIcon, { backgroundColor: role === 'passenger' ? '#2196F3' : '#4CAF50' }]}>
-              <MaterialIcons 
-                name={role === 'passenger' ? 'drive-eta' : 'person'} 
-                size={14} 
-                color="#fff" 
-              />
-            </View>
-            <Text style={styles.legendText}>
-              {role === 'passenger' ? 'Drivers' : 'Passengers'}
-            </Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendIcon, { backgroundColor: '#FF0000' }]}>
-              <MaterialIcons name="place" size={14} color="#fff" />
-            </View>
-            <Text style={styles.legendText}>Destination</Text>
-          </View>
-        </View>
-      )}
-
       {/* Mode Selection Buttons - show when destination is selected but not active */}
       {tempDestination && !isActive && (
         <View style={styles.modeSelectionButtons}>
@@ -791,6 +807,11 @@ export default function HomeScreen() {
           {activeRequest.State === 'requested' && (
             <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRequest}>
               <Text style={styles.cancelButtonText}>Cancel Request</Text>
+            </TouchableOpacity>
+          )}
+          {(activeRequest.State === 'accepted' || activeRequest.State === 'picked_up') && (
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelConnection}>
+              <Text style={styles.cancelButtonText}>Cancel Ride</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -971,6 +992,17 @@ export default function HomeScreen() {
                     onPress={() => handleCompleteRide(conn.Id)}
                   >
                     <Text style={styles.completeButtonText}>Complete Ride</Text>
+                  </TouchableOpacity>
+                )}
+                {(conn.State === 'accepted' || conn.State === 'picked_up') && (
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setActiveRequest(conn);
+                      handleCancelConnection();
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel Ride</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1460,36 +1492,5 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     marginTop: -2,
-  },
-  mapLegend: {
-    position: 'absolute',
-    top: 160,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 8,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  legendIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  legendText: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: '500',
   },
 });

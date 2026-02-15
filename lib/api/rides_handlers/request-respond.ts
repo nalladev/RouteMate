@@ -81,9 +81,16 @@ export async function handleRequestRespond(request: Request) {
     );
   }
 
-  await updateDocument('rideconnections', requestId, {
+  const updateData: any = {
     State: action,
-  });
+  };
+
+  // Track when driver accepts the ride for cancellation penalty calculation
+  if (action === 'accepted') {
+    updateData.AcceptedAt = new Date();
+  }
+
+  await updateDocument('rideconnections', requestId, updateData);
 
   const updatedConnection = await getDocumentById('rideconnections', requestId);
 

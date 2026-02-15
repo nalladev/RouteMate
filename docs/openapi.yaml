@@ -1219,6 +1219,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/rides/connection/cancel:
+    post:
+      summary: Cancel an accepted ride
+      description: Cancel an accepted or picked up ride. If driver cancels, a penalty will be charged based on time elapsed since accepting the ride. Passenger can cancel without penalty.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Ride cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cancelled:
+                    type: boolean
+                  cancelledBy:
+                    type: string
+                    enum: [passenger, driver]
+                  penalty:
+                    type: number
+                    format: double
+                    description: Penalty amount charged (only for driver cancellations)
+                  newBalance:
+                    type: number
+                    format: double
+                    description: Driver's new wallet balance after penalty (only for driver cancellations with penalty)
+                  message:
+                    type: string
+        '400':
+          description: Invalid request or connection cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not authorized to cancel this connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to process cancellation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/rides/connection/rate:
     post:
       summary: Rate driver after ride

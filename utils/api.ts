@@ -254,6 +254,20 @@ export const api = {
     });
   },
 
+  cancelConnection: async (connectionId: string): Promise<{
+    success: boolean;
+    cancelled: boolean;
+    cancelledBy: 'passenger' | 'driver';
+    penalty: number;
+    newBalance?: number;
+    message: string;
+  }> => {
+    return request('/api/rides/connection/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId }),
+    });
+  },
+
   getConnections: async (): Promise<{ connections: RideConnection[] }> => {
     return request('/api/rides/connections');
   },

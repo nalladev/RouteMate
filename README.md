@@ -213,13 +213,22 @@ Authorization: Bearer <token>
 
 #### Rides
 - `POST /api/rides/request` - Request ride
-- `POST /api/rides/request/cancel` - Cancel request
+- `POST /api/rides/request/cancel` - Cancel request (for pending requests)
 - `GET /api/rides/requests` - Get pending requests (driver)
 - `POST /api/rides/request/respond` - Accept/reject request
 - `POST /api/rides/connection/verify-otp` - Verify OTP
+- `POST /api/rides/connection/cancel` - Cancel accepted/picked up ride (with driver penalty if applicable)
 - `POST /api/rides/connection/complete` - Complete ride
 - `GET /api/rides/connections` - Get active connections
 - `GET /api/rides/history` - Get ride history
+
+##### Cancellation Policy
+- **Passenger**: Can cancel accepted rides anytime without penalty
+- **Driver**: Penalty charged based on time since accepting:
+  - 0-2 minutes: ₹0 (grace period)
+  - 2-5 minutes: ₹10
+  - 5-10 minutes: ₹20
+  - >10 minutes: ₹50
 
 #### Wallet
 - `GET /api/wallet/balance` - Get balance
