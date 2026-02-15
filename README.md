@@ -241,7 +241,7 @@ Authorization: Bearer <token>
 2. **Set Destination**: Tap search bar and select destination
 3. **View Drivers**: See filtered drivers whose routes overlap yours
 4. **Request Ride**: Tap driver marker and press "Request Ride"
-   - Minimum balance: $10 worth of SOL required
+   - Minimum balance: ₹150 required
 5. **Wait for Acceptance**: Request expires in 10 minutes
 6. **View OTP**: When accepted, OTP is displayed
 7. **Share OTP**: Give OTP to driver at pickup

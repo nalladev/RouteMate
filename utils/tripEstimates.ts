@@ -4,6 +4,7 @@
 
 import { Location } from '@/types';
 import { getRoute, calculateDistance as calcDistanceMeters } from './routing';
+import { calculateFare, formatFare as formatFareAmount } from '@/config/fare';
 
 export interface TripEstimate {
   distance: number; // in km
@@ -15,18 +16,7 @@ export interface TripEstimate {
   rideCompletionTime: Date; // estimated ride completion time
 }
 
-// Fare calculation constants
-const BASE_FARE = 2; // $2 base fare
-const PER_KM_RATE = 1.5; // $1.5 per km
 
-/**
- * Calculate fare based on distance
- * @param distanceKm - Distance in kilometers
- * @returns Calculated fare
- */
-export function calculateFare(distanceKm: number): number {
-  return BASE_FARE + (distanceKm * PER_KM_RATE);
-}
 
 /**
  * Calculate distance in kilometers using Haversine formula
@@ -188,10 +178,10 @@ export function formatDistanceKm(km: number): string {
 /**
  * Format fare for display
  * @param fare - Fare amount
- * @returns Formatted string (e.g., "$12.50")
+ * @returns Formatted string (e.g., "₹150.00")
  */
 export function formatFare(fare: number): string {
-  return `$${fare.toFixed(2)}`;
+  return formatFareAmount(fare);
 }
 
 /**
