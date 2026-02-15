@@ -55,6 +55,9 @@ export async function handleShareDetails(request: Request) {
     driver: {
       name: driver?.Name || 'Driver',
       vehicleType: driver?.VehicleType || null,
+      vehicleName: driver?.VehicleName || null,
+      vehicleModel: driver?.VehicleModel || null,
+      vehicleRegistration: driver?.VehicleRegistration || null,
       ratingAverage: driver?.DriverRatingAverage || null,
       ratingCount: driver?.DriverRatingCount || 0,
       lastLocation: driver?.LastLocation || null,

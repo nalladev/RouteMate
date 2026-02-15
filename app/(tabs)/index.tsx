@@ -70,6 +70,9 @@ export default function HomeScreen() {
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(false);
   const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType>(VEHICLE_TYPES[0]);
   const [isSavingVehicleType, setIsSavingVehicleType] = useState(false);
+  const [modalVehicleName, setModalVehicleName] = useState('');
+  const [modalVehicleModel, setModalVehicleModel] = useState('');
+  const [modalVehicleRegistration, setModalVehicleRegistration] = useState('');
 
   // Trip estimate state for passenger preview
   const [tripEstimate, setTripEstimate] = useState<TripEstimate | null>(null);
@@ -144,7 +147,16 @@ export default function HomeScreen() {
     if (user?.VehicleType) {
       setSelectedVehicleType(user.VehicleType);
     }
-  }, [user?.VehicleType]);
+    if (user?.VehicleName) {
+      setModalVehicleName(user.VehicleName);
+    }
+    if (user?.VehicleModel) {
+      setModalVehicleModel(user.VehicleModel);
+    }
+    if (user?.VehicleRegistration) {
+      setModalVehicleRegistration(user.VehicleRegistration);
+    }
+  }, [user?.VehicleType, user?.VehicleName, user?.VehicleModel, user?.VehicleRegistration]);
 
   async function loadBalance() {
     try {
@@ -215,9 +227,17 @@ export default function HomeScreen() {
   async function handleModeSelection(selectedMode: 'driver' | 'passenger', skipVehicleCheck = false) {
     if (!tempDestination || isSelectingMode) return;
 
-    if (selectedMode === 'driver' && !skipVehicleCheck && !user?.VehicleType) {
-      setShowVehicleTypeModal(true);
-      return;
+    if (selectedMode === 'driver' && !skipVehicleCheck) {
+      // Check if vehicle details are complete
+      const hasCompleteVehicleInfo = user?.VehicleType && 
+                                      user?.VehicleName && 
+                                      user?.VehicleModel && 
+                                      user?.VehicleRegistration;
+      
+      if (!hasCompleteVehicleInfo) {
+        setShowVehicleTypeModal(true);
+        return;
+      }
     }
 
     // Disable buttons during processing
@@ -253,16 +273,46 @@ export default function HomeScreen() {
   }
 
   async function handleSaveVehicleTypeAndContinue() {
-    if (!selectedVehicleType) return;
+    if (!selectedVehicleType) {
+      Alert.alert('Required', 'Please select a vehicle type');
+      return;
+    }
+
+    if (!modalVehicleName.trim()) {
+      Alert.alert('Required', 'Please enter vehicle name (e.g., Honda, Toyota)');
+      return;
+    }
+
+    if (!modalVehicleModel.trim()) {
+      Alert.alert('Required', 'Please enter vehicle model');
+      return;
+    }
+
+    if (!modalVehicleRegistration.trim()) {
+      Alert.alert('Required', 'Please enter vehicle registration number');
+      return;
+    }
+
+    // Validate registration format
+    const regPattern = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}$/i;
+    if (!regPattern.test(modalVehicleRegistration.trim())) {
+      Alert.alert('Invalid Registration', 'Registration format should be like KL34C3423');
+      return;
+    }
 
     try {
       setIsSavingVehicleType(true);
-      await api.updateVehicleType(selectedVehicleType);
+      await api.updateVehicleDetails({
+        vehicleType: selectedVehicleType,
+        vehicleName: modalVehicleName.trim(),
+        vehicleModel: modalVehicleModel.trim(),
+        vehicleRegistration: modalVehicleRegistration.trim(),
+      });
       await refreshUser();
       setShowVehicleTypeModal(false);
       await handleModeSelection('driver', true);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save vehicle type');
+      Alert.alert('Error', error.message || 'Failed to save vehicle information');
     } finally {
       setIsSavingVehicleType(false);
     }
@@ -795,9 +845,31 @@ export default function HomeScreen() {
             <MaterialIcons name="star" size={16} color="#FFC107" />
             <Text style={[styles.detailText, { color: colors.textSecondary }]}>Rating: {formatMarkerRating(selectedMarker.rating)}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="directions-car" size={16} color={colors.textSecondary} />
-            <Text style={[styles.detailText, { color: colors.textSecondary }]}>Vehicle: {selectedMarker.vehicle || 'N/A'}</Text>
+          
+          {/* Vehicle Information */}
+          <View style={styles.vehicleInfoSection}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="directions-car" size={16} color={colors.textSecondary} />
+              <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                Vehicle: {selectedMarker.vehicle || 'N/A'}
+              </Text>
+            </View>
+            {selectedMarker.vehicleName && (
+              <View style={styles.detailRow}>
+                <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
+                <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                  {selectedMarker.vehicleName}{selectedMarker.vehicleModel ? ` ${selectedMarker.vehicleModel}` : ''}
+                </Text>
+              </View>
+            )}
+            {selectedMarker.vehicleRegistration && (
+              <View style={styles.detailRow}>
+                <MaterialIcons name="pin" size={16} color={colors.textSecondary} />
+                <Text style={[styles.detailText, { color: colors.text, fontWeight: '600' }]}>
+                  {selectedMarker.vehicleRegistration}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Trip Estimate Section */}
@@ -906,8 +978,34 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <Text style={[styles.detailText, { color: colors.textSecondary }]}>Status: {activeRequest.State}</Text>
+          
+          {/* Vehicle Information */}
           {activeRequest.RequestedVehicleType && (
-            <Text style={[styles.detailText, { color: colors.textSecondary }]}>Expected Vehicle: {activeRequest.RequestedVehicleType}</Text>
+            <View style={styles.vehicleInfoSection}>
+              <View style={styles.detailRow}>
+                <MaterialIcons name="directions-car" size={16} color={colors.textSecondary} />
+                <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                  Expected Vehicle: {activeRequest.RequestedVehicleType}
+                </Text>
+              </View>
+              {activeRequest.RequestedVehicleName && (
+                <View style={styles.detailRow}>
+                  <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                    {activeRequest.RequestedVehicleName}
+                    {activeRequest.RequestedVehicleModel ? ` ${activeRequest.RequestedVehicleModel}` : ''}
+                  </Text>
+                </View>
+              )}
+              {activeRequest.RequestedVehicleRegistration && (
+                <View style={styles.detailRow}>
+                  <MaterialIcons name="pin" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.detailText, { color: colors.text, fontWeight: '600' }]}>
+                    {activeRequest.RequestedVehicleRegistration}
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
           {activeRequest.State === 'accepted' && activeRequest.RequestedVehicleType && (
             <>
@@ -1072,12 +1170,16 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* Vehicle type selection modal for drivers */}
+      {/* Vehicle details modal for drivers */}
       <Modal visible={showVehicleTypeModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Set Your Vehicle Type</Text>
-            <Text style={[styles.modalText, { color: colors.textSecondary }]}>Passengers will see this before requesting your ride.</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Complete Vehicle Information</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>
+              Please provide complete vehicle details. Passengers will use this to identify your vehicle.
+            </Text>
+            
+            <Text style={[styles.modalSectionLabel, { color: colors.text }]}>Vehicle Type *</Text>
             <View style={styles.vehicleOptionList}>
               {VEHICLE_TYPES.map((type) => (
                 <TouchableOpacity
@@ -1093,7 +1195,7 @@ export default function HomeScreen() {
                   <Text
                     style={[
                       styles.vehicleOptionText,
-                      selectedVehicleType === type && styles.vehicleOptionTextSelected,
+                      { color: selectedVehicleType === type ? colors.tint : colors.textSecondary },
                     ]}
                   >
                     {type}
@@ -1101,6 +1203,39 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            <Text style={[styles.modalSectionLabel, { color: colors.text }]}>Vehicle Name/Company *</Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="e.g., Honda, Toyota, Maruti"
+              placeholderTextColor={colors.textSecondary}
+              value={modalVehicleName}
+              onChangeText={setModalVehicleName}
+              editable={!isSavingVehicleType}
+            />
+
+            <Text style={[styles.modalSectionLabel, { color: colors.text }]}>Model *</Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="e.g., City, Innova, Swift"
+              placeholderTextColor={colors.textSecondary}
+              value={modalVehicleModel}
+              onChangeText={setModalVehicleModel}
+              editable={!isSavingVehicleType}
+            />
+
+            <Text style={[styles.modalSectionLabel, { color: colors.text }]}>Registration Number *</Text>
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="e.g., KL34C3423"
+              placeholderTextColor={colors.textSecondary}
+              value={modalVehicleRegistration}
+              onChangeText={(text) => setModalVehicleRegistration(text.toUpperCase())}
+              autoCapitalize="characters"
+              editable={!isSavingVehicleType}
+              maxLength={13}
+            />
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.rejectButton]}
@@ -1109,15 +1244,15 @@ export default function HomeScreen() {
                 }}
                 disabled={isSavingVehicleType}
               >
-                <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.acceptButton]}
+                style={[styles.modalButton, styles.acceptButton, isSavingVehicleType && styles.disabledActionButton]}
                 onPress={handleSaveVehicleTypeAndContinue}
                 disabled={isSavingVehicleType}
               >
                 {isSavingVehicleType ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={styles.modalButtonText}>Save & Continue</Text>
                 )}
@@ -1451,6 +1586,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
+  vehicleInfoSection: {
+    marginTop: 8,
+    marginBottom: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
   vehicleConfirmedText: {
     color: '#2e7d32',
     fontSize: 14,
@@ -1560,26 +1702,33 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 4,
+    marginBottom: 12,
   },
   vehicleOptionButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 6,
   },
-  vehicleOptionButtonSelected: {
-    backgroundColor: '#e86713',
-    borderColor: '#e86713',
-  },
   vehicleOptionText: {
-    color: '#333',
     fontSize: 14,
     fontWeight: '600',
   },
-  vehicleOptionTextSelected: {
-    color: '#fff',
+
+  modalSectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginBottom: 8,
   },
   starsRow: {
     flexDirection: 'row',

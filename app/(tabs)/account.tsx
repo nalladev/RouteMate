@@ -42,6 +42,12 @@ export default function AccountScreen() {
   const [showUpiInput, setShowUpiInput] = useState(false);
   const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | ''>('');
   const [originalVehicleType, setOriginalVehicleType] = useState<VehicleType | ''>('');
+  const [vehicleName, setVehicleName] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleRegistration, setVehicleRegistration] = useState('');
+  const [originalVehicleName, setOriginalVehicleName] = useState('');
+  const [originalVehicleModel, setOriginalVehicleModel] = useState('');
+  const [originalVehicleRegistration, setOriginalVehicleRegistration] = useState('');
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -66,6 +72,16 @@ export default function AccountScreen() {
       const vehicleType = meData.user?.VehicleType || '';
       setSelectedVehicleType(vehicleType);
       setOriginalVehicleType(vehicleType);
+      
+      const vName = meData.user?.VehicleName || '';
+      const vModel = meData.user?.VehicleModel || '';
+      const vReg = meData.user?.VehicleRegistration || '';
+      setVehicleName(vName);
+      setVehicleModel(vModel);
+      setVehicleRegistration(vReg);
+      setOriginalVehicleName(vName);
+      setOriginalVehicleModel(vModel);
+      setOriginalVehicleRegistration(vReg);
     } catch (error) {
       console.error('Failed to load account info:', error);
       Alert.alert('Error', 'Failed to load account information');
@@ -216,21 +232,45 @@ export default function AccountScreen() {
       return;
     }
 
+    // Validate registration format if provided
+    if (vehicleRegistration.trim()) {
+      const regPattern = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}$/i;
+      if (!regPattern.test(vehicleRegistration.trim())) {
+        Alert.alert('Invalid Registration', 'Registration format should be like KL34C3423');
+        return;
+      }
+    }
+
     try {
       setIsProcessing(true);
-      await api.updateVehicleType(selectedVehicleType);
+      await api.updateVehicleDetails({
+        vehicleType: selectedVehicleType,
+        vehicleName: vehicleName.trim() || undefined,
+        vehicleModel: vehicleModel.trim() || undefined,
+        vehicleRegistration: vehicleRegistration.trim() || undefined,
+      });
       
       // Refresh user data and profile without triggering full page loading
       await refreshUser();
       const meData = await api.getMe();
       setProfileUser(meData.user);
       const vehicleType = meData.user?.VehicleType || '';
+      const vName = meData.user?.VehicleName || '';
+      const vModel = meData.user?.VehicleModel || '';
+      const vReg = meData.user?.VehicleRegistration || '';
+      
       setSelectedVehicleType(vehicleType);
       setOriginalVehicleType(vehicleType);
+      setVehicleName(vName);
+      setVehicleModel(vModel);
+      setVehicleRegistration(vReg);
+      setOriginalVehicleName(vName);
+      setOriginalVehicleModel(vModel);
+      setOriginalVehicleRegistration(vReg);
       
-      Alert.alert('Success', 'Vehicle type updated');
+      Alert.alert('Success', 'Vehicle information updated');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update vehicle type');
+      Alert.alert('Error', error.message || 'Failed to update vehicle information');
     } finally {
       setIsProcessing(false);
     }
@@ -331,8 +371,11 @@ export default function AccountScreen() {
             </View>
 
             <View style={[styles.infoRow, { borderBottomColor: colors.border, alignItems: 'flex-start' }]}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Vehicle Type</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Vehicle Info</Text>
               <View style={styles.vehicleTypeContainer}>
+                <Text style={[styles.vehicleNote, { color: colors.textSecondary }]}>
+                  All fields required for driving mode
+                </Text>
                 <View style={styles.vehicleTypeOptions}>
                   {VEHICLE_TYPES.map((type) => (
                     <TouchableOpacity
@@ -358,16 +401,54 @@ export default function AccountScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+                
+                <TextInput
+                  style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  placeholder="Vehicle Name (e.g., Honda, Toyota)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={vehicleName}
+                  onChangeText={setVehicleName}
+                  editable={!isProcessing}
+                />
+                
+                <TextInput
+                  style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  placeholder="Model (e.g., City, Innova)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={vehicleModel}
+                  onChangeText={setVehicleModel}
+                  editable={!isProcessing}
+                />
+                
+                <TextInput
+                  style={[styles.vehicleInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  placeholder="Registration (e.g., KL34C3423)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={vehicleRegistration}
+                  onChangeText={(text) => setVehicleRegistration(text.toUpperCase())}
+                  autoCapitalize="characters"
+                  editable={!isProcessing}
+                  maxLength={13}
+                />
+                
                 <TouchableOpacity
                   style={[
                     styles.saveVehicleButton, 
                     { 
                       backgroundColor: colors.tint,
-                      opacity: (isProcessing || !selectedVehicleType || selectedVehicleType === originalVehicleType) ? 0.5 : 1,
+                      opacity: (isProcessing || !selectedVehicleType || 
+                        (selectedVehicleType === originalVehicleType && 
+                         vehicleName === originalVehicleName &&
+                         vehicleModel === originalVehicleModel &&
+                         vehicleRegistration === originalVehicleRegistration)) ? 0.5 : 1,
                     }
                   ]}
                   onPress={handleSaveVehicleType}
-                  disabled={isProcessing || !selectedVehicleType || selectedVehicleType === originalVehicleType}
+                  disabled={isProcessing || !selectedVehicleType || 
+                    (selectedVehicleType === originalVehicleType && 
+                     vehicleName === originalVehicleName &&
+                     vehicleModel === originalVehicleModel &&
+                     vehicleRegistration === originalVehicleRegistration)}
                 >
                   {isProcessing ? (
                     <ActivityIndicator size="small" color="#fff" />
@@ -916,8 +997,22 @@ const styles = StyleSheet.create({
   },
   saveVehicleButtonText: {
     color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  vehicleInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 14,
+    marginTop: Spacing.sm,
+  },
+  vehicleNote: {
     fontSize: 12,
-    fontWeight: '700',
+    fontStyle: 'italic',
+    marginBottom: Spacing.xs,
   },
   badgeContainer: {
     flexDirection: 'row',

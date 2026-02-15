@@ -22,7 +22,7 @@ export async function handleVehicle(request: Request) {
   }
 
   const body = await request.json();
-  const { vehicleType } = body;
+  const { vehicleType, vehicleName, vehicleModel, vehicleRegistration } = body;
 
   if (!vehicleType || typeof vehicleType !== 'string') {
     return Response.json(
@@ -38,13 +38,43 @@ export async function handleVehicle(request: Request) {
     );
   }
 
-  await updateDocument('users', user.Id, {
+  // Validate registration format if provided (e.g., KL34C3423)
+  if (vehicleRegistration && typeof vehicleRegistration === 'string') {
+    const regPattern = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}$/;
+    if (!regPattern.test(vehicleRegistration)) {
+      return Response.json(
+        { error: 'Invalid registration format. Expected format: KL34C3423' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Build update object - backward compatible
+  const updateData: any = {
     VehicleType: vehicleType,
-  });
+  };
+
+  // Only add optional fields if provided
+  if (vehicleName && typeof vehicleName === 'string' && vehicleName.trim()) {
+    updateData.VehicleName = vehicleName.trim();
+  }
+
+  if (vehicleModel && typeof vehicleModel === 'string' && vehicleModel.trim()) {
+    updateData.VehicleModel = vehicleModel.trim();
+  }
+
+  if (vehicleRegistration && typeof vehicleRegistration === 'string' && vehicleRegistration.trim()) {
+    updateData.VehicleRegistration = vehicleRegistration.trim().toUpperCase();
+  }
+
+  await updateDocument('users', user.Id, updateData);
 
   return Response.json({
     success: true,
     vehicleType,
+    vehicleName: updateData.VehicleName,
+    vehicleModel: updateData.VehicleModel,
+    vehicleRegistration: updateData.VehicleRegistration,
   });
 }
 export default function Handler() { return null; }
