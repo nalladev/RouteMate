@@ -94,24 +94,30 @@ export function TestUserPanel({
       setTestUserActive(response.exists);
       setTestUserInfo(response.user || null);
 
+      // Reset selections first
+      setSelectedLocation(null);
+      setSelectedDestination(null);
+
       // Update selected location and destination based on current test user info
-      if (response.user?.location) {
+      if (response.exists && response.user?.location) {
         const matchedLocation = Object.entries(TEST_LOCATIONS).find(([key, loc]) =>
           Math.abs(loc.lat - response.user.location.lat) < 0.0001 &&
           Math.abs(loc.lng - response.user.location.lng) < 0.0001
         );
         if (matchedLocation) {
           setSelectedLocation(matchedLocation[0]);
+          console.log('[BackendTestUserPanel] Restored location selection:', matchedLocation[0]);
         }
       }
 
-      if (response.user?.destination) {
+      if (response.exists && response.user?.destination) {
         const matchedDestination = Object.entries(TEST_LOCATIONS).find(([key, loc]) =>
           Math.abs(loc.lat - response.user.destination.lat) < 0.0001 &&
           Math.abs(loc.lng - response.user.destination.lng) < 0.0001
         );
         if (matchedDestination) {
           setSelectedDestination(matchedDestination[0]);
+          console.log('[BackendTestUserPanel] Restored destination selection:', matchedDestination[0]);
         }
       }
 
@@ -121,6 +127,8 @@ export function TestUserPanel({
       console.error('[BackendTestUserPanel] Error details:', error.message || error);
       setTestUserActive(false);
       setTestUserInfo(null);
+      setSelectedLocation(null);
+      setSelectedDestination(null);
     }
   };
 
@@ -268,12 +276,12 @@ export function TestUserPanel({
 
   const handleDespawn = async () => {
     Alert.alert(
-      'Despawn Test User',
-      'This will set the test user to idle state. Are you sure?',
+      'Delete Test User',
+      'This will permanently delete the test user document. Are you sure?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Despawn',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
@@ -286,10 +294,8 @@ export function TestUserPanel({
 
               await api.testDespawn();
               await checkTestUserStatus();
-
-              Alert.alert('Test User Despawned', 'Test user is now idle');
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to despawn test user');
+              Alert.alert('Error', error.message || 'Failed to delete test user');
             } finally {
               setLoading(false);
             }
@@ -640,7 +646,7 @@ export function TestUserPanel({
                   disabled={loading}
                 >
                   <Ionicons name="trash" size={20} color="#fff" />
-                  <Text style={styles.despawnButtonText}>Despawn Test User</Text>
+                  <Text style={styles.despawnButtonText}>Delete Test User</Text>
                 </TouchableOpacity>
               </>
             )}

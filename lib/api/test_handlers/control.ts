@@ -221,16 +221,14 @@ async function handleDespawn() {
     );
   }
 
-  await updateDocument('users', TEST_USER_ID, {
-    state: 'idle',
-    Destination: null,
-    LastLocation: null,
-  });
+  // Delete the test user document
+  const firestore = admin.firestore();
+  await firestore.collection('users').doc(TEST_USER_ID).delete();
 
-  console.log(`[TestControlAPI] Test user despawned`);
+  console.log(`[TestControlAPI] Test user deleted`);
 
   return Response.json({
     success: true,
-    message: 'Test user despawned (set to idle)',
+    message: 'Test user deleted',
   });
 }
