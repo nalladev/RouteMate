@@ -14,9 +14,28 @@ export default function CommunityInviteJoinScreen() {
   const token = typeof params.token === 'string' ? params.token : '';
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
   const [isJoining, setIsJoining] = useState(false);
+  const [appInstalled, setAppInstalled] = useState<boolean | null>(null);
+
+  const checkAppInstalled = React.useCallback(async () => {
+    if (!token) return;
+    const deepLink = `routemate://community/join/${encodeURIComponent(token)}`;
+    try {
+      const supported = await Linking.canOpenURL(deepLink);
+      if (supported) {
+        setAppInstalled(true);
+        // Auto-open if app is installed
+        await Linking.openURL(deepLink);
+      } else {
+        setAppInstalled(false);
+      }
+    } catch {
+      setAppInstalled(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
+      checkAppInstalled();
       return;
     }
 
@@ -51,7 +70,7 @@ export default function CommunityInviteJoinScreen() {
     }
 
     handleJoin();
-  }, [isAuthenticated, isLoading, token, refreshUser, router]);
+  }, [isAuthenticated, isLoading, token, refreshUser, router, checkAppInstalled]);
 
   async function handleOpenInApp() {
     if (!token) return;
@@ -59,23 +78,64 @@ export default function CommunityInviteJoinScreen() {
     try {
       await Linking.openURL(deepLink);
     } catch {
-      Alert.alert('Open App', 'Please install RouteMate app to accept this invite.');
+      // If opening fails, show download link
+      setAppInstalled(false);
+    }
+  }
+
+  function handleDownloadApp() {
+    const downloadUrl = 'https://github.com/nalladev/RouteMate/releases';
+    if (Platform.OS === 'web') {
+      window.open(downloadUrl, '_blank');
+    } else {
+      Linking.openURL(downloadUrl);
     }
   }
 
   if (Platform.OS === 'web') {
     return (
       <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
-        <Text style={[styles.webTitle, { color: colors.text }]}>Community Invite</Text>
-        <Text style={[styles.text, { color: colors.textSecondary }]}>
-          To join this community, open this link in the RouteMate mobile app.
-        </Text>
-        <TouchableOpacity style={[styles.openAppButton, { backgroundColor: colors.tint }]} onPress={handleOpenInApp}>
-          <Text style={styles.openAppButtonText}>Open in RouteMate App</Text>
-        </TouchableOpacity>
-        <Text style={[styles.text, { color: colors.textSecondary }]}>
-          If RouteMate is not installed, install it first and reopen this invite link.
-        </Text>
+        <View style={styles.webContent}>
+          <Text style={[styles.webTitle, { color: colors.text }]}>Community Invite</Text>
+          <Text style={[styles.text, { color: colors.textSecondary }]}>
+            To join this community, open this link in the RouteMate mobile app.
+          </Text>
+          
+          {appInstalled === null && (
+            <ActivityIndicator size="large" color={colors.tint} style={styles.loader} />
+          )}
+          
+          {appInstalled === true && (
+            <>
+              <Text style={[styles.text, { color: colors.textSecondary }]}>
+                Opening in RouteMate app...
+              </Text>
+              <TouchableOpacity 
+                style={[styles.openAppButton, { backgroundColor: colors.tint }]} 
+                onPress={handleOpenInApp}
+              >
+                <Text style={styles.openAppButtonText}>Open in RouteMate App</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          
+          {appInstalled === false && (
+            <>
+              <Text style={[styles.text, { color: colors.textSecondary, marginTop: 8 }]}>
+                RouteMate app is not installed on your device.
+              </Text>
+              <TouchableOpacity 
+                style={[styles.downloadButton, { backgroundColor: '#10b981' }]} 
+                onPress={handleDownloadApp}
+              >
+                <Text style={styles.downloadButtonText}>Download RouteMate APK</Text>
+              </TouchableOpacity>
+              <Text style={[styles.smallText, { color: colors.textSecondary }]}>
+                After installing, reopen this invite link.
+              </Text>
+            </>
+          )}
+        </View>
       </View>
     );
   }
@@ -101,24 +161,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 14,
   },
+  webContent: {
+    maxWidth: 600,
+    width: '100%',
+    alignItems: 'center',
+    gap: 14,
+  },
   text: {
     fontSize: 16,
     textAlign: 'center',
+    lineHeight: 24,
+  },
+  smallText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   webTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,
     textAlign: 'center',
   },
+  loader: {
+    marginVertical: 12,
+  },
   openAppButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+    minWidth: 200,
+    alignItems: 'center',
   },
   openAppButtonText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  downloadButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 12,
+    minWidth: 200,
+    alignItems: 'center',
+  },
+  downloadButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

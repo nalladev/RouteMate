@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Button, Alert, Platform, StyleSheet } from 'react-native';
+import { View, Text, Button, Alert, Platform, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -68,15 +68,35 @@ function isAllowedWebRoute(segments: string[]) {
 }
 
 function WebAppOnlyScreen() {
+  function handleDownloadApp() {
+    const downloadUrl = 'https://github.com/nalladev/RouteMate/releases';
+    if (Platform.OS === 'web') {
+      window.open(downloadUrl, '_blank');
+    } else {
+      Linking.openURL(downloadUrl);
+    }
+  }
+
   return (
     <View style={styles.webOnlyContainer}>
-      <Text style={styles.webOnlyTitle}>RouteMate App Required</Text>
-      <Text style={styles.webOnlyText}>
-        This page is only available in the RouteMate mobile app.
-      </Text>
-      <Text style={styles.webOnlyText}>
-        Web access is supported only for live ride sharing and community invite links.
-      </Text>
+      <View style={styles.webOnlyContent}>
+        <Text style={styles.webOnlyTitle}>RouteMate App Required</Text>
+        <Text style={styles.webOnlyText}>
+          This page is only available in the RouteMate mobile app.
+        </Text>
+        <Text style={styles.webOnlyText}>
+          Web access is supported only for live ride sharing and community invite links.
+        </Text>
+        <TouchableOpacity 
+          style={styles.downloadButton} 
+          onPress={handleDownloadApp}
+        >
+          <Text style={styles.downloadButtonText}>Download RouteMate APK</Text>
+        </TouchableOpacity>
+        <Text style={styles.webOnlyTextSmall}>
+          Install the app to access all features
+        </Text>
+      </View>
     </View>
   );
 }
@@ -189,17 +209,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: '#f8fafc',
   },
+  webOnlyContent: {
+    maxWidth: 600,
+    width: '100%',
+    alignItems: 'center',
+    gap: 14,
+  },
   webOnlyTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#111827',
     textAlign: 'center',
     marginBottom: 10,
   },
   webOnlyText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#4b5563',
     textAlign: 'center',
     marginBottom: 6,
+    lineHeight: 24,
+  },
+  webOnlyTextSmall: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  downloadButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 16,
+    minWidth: 200,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  downloadButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
