@@ -379,6 +379,13 @@ export const api = {
     });
   },
 
+  // Profile Picture
+  uploadProfilePicture: async (imageBase64: string): Promise<{ success: boolean; profilePictureUrl: string }> => {
+    return request('/api/user/profile-picture', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64 }),
+    });
+  },
 
 };
 

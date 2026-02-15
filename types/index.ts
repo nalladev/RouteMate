@@ -38,6 +38,7 @@ export interface User {
   VehicleName?: string;
   VehicleModel?: string;
   VehicleRegistration?: string;
+  ProfilePictureUrl?: string;
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
@@ -129,6 +130,7 @@ export interface MarkerData {
   vehicleName?: string;
   vehicleModel?: string;
   vehicleRegistration?: string;
+  profilePictureUrl?: string;
   lastLocation: Location;
   destination: Location;
 }
@@ -146,6 +148,7 @@ export interface UserPublic {
   VehicleName?: string;
   VehicleModel?: string;
   VehicleRegistration?: string;
+  ProfilePictureUrl?: string;
   KycStatus?:
     | 'not_started'
     | 'session_created'
