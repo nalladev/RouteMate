@@ -239,7 +239,15 @@ export default function HomeScreen() {
       // Set destination
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
 
-      // Start loading state
+      // Update user state to active mode first (so UI updates)
+      const state = selectedMode === 'driver' ? 'driving' : 'riding';
+      await updateUserState(state, { lat: tempDestination.lat, lng: tempDestination.lng });
+
+      // Clear temporary state to show active mode UI
+      setTempDestination(null);
+      setIsSelectingMode(false);
+
+      // Start loading state (now active mode UI is visible)
       setIsLoadingRoute(true);
 
       // Fetch and draw route using OSRM API (free alternative to Google Directions)
@@ -260,13 +268,7 @@ export default function HomeScreen() {
         }
       }
 
-      // Update user state to active mode
-      const state = selectedMode === 'driver' ? 'driving' : 'riding';
-      await updateUserState(state, { lat: tempDestination.lat, lng: tempDestination.lng });
-
-      // Clear temporary state
-      setTempDestination(null);
-      setIsSelectingMode(false);
+      // Stop loading state
       setIsLoadingRoute(false);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to activate mode');
