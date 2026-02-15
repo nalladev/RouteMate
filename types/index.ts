@@ -35,6 +35,9 @@ export interface User {
   WalletBalance: number;
   UpiId?: string;
   VehicleType?: VehicleType;
+  VehicleName?: string;
+  VehicleModel?: string;
+  VehicleRegistration?: string;
   state: UserState;
   LastLocation?: Location;
   Destination?: Location;
@@ -70,6 +73,9 @@ export interface RideConnection {
   RideTotalTime?: number;
   OtpCode?: string;
   RequestedVehicleType?: VehicleType;
+  RequestedVehicleName?: string;
+  RequestedVehicleModel?: string;
+  RequestedVehicleRegistration?: string;
   PassengerVehicleConfirmation?: 'pending' | 'confirmed' | 'mismatch';
   PassengerVehicleConfirmedAt?: any;
   State: RideConnectionState;
@@ -100,6 +106,9 @@ export interface RideShareDetails {
   driver: {
     name: string;
     vehicleType: string | null;
+    vehicleName: string | null;
+    vehicleModel: string | null;
+    vehicleRegistration: string | null;
     ratingAverage: number | null;
     ratingCount: number;
     lastLocation: Location | null;
@@ -117,6 +126,9 @@ export interface MarkerData {
   name: string;
   rating?: number;
   vehicle?: string;
+  vehicleName?: string;
+  vehicleModel?: string;
+  vehicleRegistration?: string;
   lastLocation: Location;
   destination: Location;
 }
@@ -131,6 +143,9 @@ export interface UserPublic {
   WalletBalance: number;
   UpiId?: string;
   VehicleType?: VehicleType;
+  VehicleName?: string;
+  VehicleModel?: string;
+  VehicleRegistration?: string;
   KycStatus?:
     | 'not_started'
     | 'session_created'

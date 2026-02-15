@@ -13,9 +13,12 @@ import type {
 } from '../types';
 import type { VehicleType } from '../constants/vehicles';
 
-// Use relative URLs for Expo Router API routes
-// This works with tunnel mode, local network, and production
-const API_URL = Constants.expoConfig?.extra?.appUrl || '';
+// Use relative URLs for local dev, production URL for production builds
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || !!process.env.EXPO_PUBLIC_USE_PRODUCTION;
+const PRODUCTION_URL = Constants.expoConfig?.extra?.productionAppUrl || 'https://www.routemate.tech';
+const API_URL = IS_PRODUCTION ? PRODUCTION_URL : '';
+
+console.log('[API] Environment:', { IS_PRODUCTION, API_URL: API_URL || 'relative URLs (local dev)' });
 
 async function getAuthToken(): Promise<string | null> {
   return await AsyncStorage.getItem('authToken');
@@ -120,6 +123,24 @@ export const api = {
     return request('/api/user/vehicle', {
       method: 'POST',
       body: JSON.stringify({ vehicleType }),
+    });
+  },
+
+  updateVehicleDetails: async (data: {
+    vehicleType: VehicleType;
+    vehicleName?: string;
+    vehicleModel?: string;
+    vehicleRegistration?: string;
+  }): Promise<{
+    success: boolean;
+    vehicleType: VehicleType;
+    vehicleName?: string;
+    vehicleModel?: string;
+    vehicleRegistration?: string;
+  }> => {
+    return request('/api/user/vehicle', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 

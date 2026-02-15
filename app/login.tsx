@@ -22,14 +22,15 @@ const COUNTRY_CODES = [
 
 // Helper to get the correct API base URL
 function getApiBaseUrl(): string {
-  // If EXPO_PUBLIC_API_URL is set, use it
-  if (Constants.expoConfig?.extra?.appUrl) {
-    return Constants.expoConfig?.extra?.appUrl;
+  // Check if we should use production URL
+  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.EXPO_PUBLIC_USE_PRODUCTION;
+  const productionUrl = Constants.expoConfig?.extra?.productionAppUrl || 'https://www.routemate.tech';
+  
+  if (isProduction) {
+    return productionUrl;
   }
 
-  // For development with tunnel or local network
-  // Expo Router API routes are served from the same origin
-  // Use relative URLs (empty string) to hit the same server
+  // For local development - use relative URLs (empty string) to hit the local dev server
   return '';
 }
 

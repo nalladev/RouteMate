@@ -128,6 +128,9 @@ async function getFilteredDrivers(
         name: driver.Name || 'Driver',
         rating: driver.DriverRatingAverage || 0,
         vehicle: driver.VehicleType || 'Not specified',
+        vehicleName: driver.VehicleName,
+        vehicleModel: driver.VehicleModel,
+        vehicleRegistration: driver.VehicleRegistration,
         lastLocation: driver.LastLocation,
         destination: driver.Destination,
       });

@@ -22,9 +22,12 @@ function sanitizeBaseUrl(value: string): string {
 }
 
 function resolveBaseUrl(request: Request): string {
-  const configured = Constants.expoConfig?.extra?.appUrl;
-  if (configured) {
-    return sanitizeBaseUrl(configured);
+  // Check if we should use production URL
+  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.EXPO_PUBLIC_USE_PRODUCTION;
+  const productionUrl = Constants.expoConfig?.extra?.productionAppUrl || 'https://www.routemate.tech';
+  
+  if (isProduction) {
+    return sanitizeBaseUrl(productionUrl);
   }
 
   const forwardedHost = request.headers.get('x-forwarded-host');

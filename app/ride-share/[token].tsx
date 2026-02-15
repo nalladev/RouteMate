@@ -121,6 +121,16 @@ export default function RideShareScreen() {
               <Text style={styles.line}>
                 <Text style={styles.label}>Vehicle:</Text> {details.driver.vehicleType || 'N/A'}
               </Text>
+              {details.driver.vehicleName && (
+                <Text style={styles.line}>
+                  <Text style={styles.label}>Model:</Text> {details.driver.vehicleName}{details.driver.vehicleModel ? ` ${details.driver.vehicleModel}` : ''}
+                </Text>
+              )}
+              {details.driver.vehicleRegistration && (
+                <Text style={styles.line}>
+                  <Text style={styles.label}>Registration:</Text> <Text style={styles.registrationNumber}>{details.driver.vehicleRegistration}</Text>
+                </Text>
+              )}
               <Text style={styles.line}>
                 <Text style={styles.label}>Rating:</Text> {details.driver.ratingAverage ? `${details.driver.ratingAverage.toFixed(1)} ⭐` : 'No ratings'}
               </Text>
@@ -324,6 +334,11 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     paddingLeft: 8,
+  },
+  registrationNumber: {
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   routeSection: {
     marginBottom: 8,
