@@ -79,24 +79,7 @@ function extractRawStatus(payload: any): string | null {
   );
 }
 
-async function fetchDiditSession(sessionId: string): Promise<any | null> {
-  const diditApiKey = process.env.DIDIT_API_KEY;
-  if (!diditApiKey) return null;
 
-  const response = await fetch(`https://verification.didit.me/v3/session/${sessionId}`, {
-    method: 'GET',
-    headers: {
-      'x-api-key': diditApiKey,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
-}
 
 export async function POST(request: Request) {
   try {
@@ -110,6 +93,12 @@ export async function POST(request: Request) {
     }
 
     const payload = JSON.parse(rawBody || '{}');
+    
+    // Ignore data.updated events, only process status.updated
+    if (payload.webhook_type === 'data.updated') {
+      return Response.json({ received: true, ignored: 'data.updated event' });
+    }
+
     const sessionId = extractSessionId(payload);
     const vendorData = extractVendorData(payload);
     const normalizedStatus = normalizeDiditStatus(extractRawStatus(payload));
@@ -134,12 +123,14 @@ export async function POST(request: Request) {
     }
 
     const effectiveSessionId = sessionId || user.KycData?.sessionId;
-    const diditSession = effectiveSessionId ? await fetchDiditSession(effectiveSessionId) : null;
-    
-    // Try to extract profile data (may return null if data not available yet)
-    const extractedProfile = extractKycProfile(diditSession || payload);
-    
     const isVerified = isApprovedKycStatus(normalizedStatus);
+    
+    // Only extract profile data if status is approved and decision field exists
+    let extractedProfile = null;
+    if (isVerified && payload.decision) {
+      extractedProfile = extractKycProfile(payload);
+    }
+    
     const kycData: any = {
       ...(user.KycData || {}),
       status: normalizedStatus,
@@ -164,7 +155,7 @@ export async function POST(request: Request) {
       updateData.KycData.reviewedAt = now;
     }
 
-    if (isVerified && extractedProfile) {
+    if (extractedProfile) {
       updateData.KycData.verifiedAt = now;
       updateData.KycData.age = extractedProfile.age;
       updateData.KycData.gender = extractedProfile.gender;
@@ -173,13 +164,6 @@ export async function POST(request: Request) {
       if (extractedProfile.name) {
         updateData.Name = extractedProfile.name;
       }
-    } else if (isVerified && !extractedProfile) {
-      // Verified but profile data not available yet - will be extracted on next webhook
-      console.warn('KYC verified but profile data not available', {
-        userId: user.Id,
-        sessionId: effectiveSessionId,
-        status: normalizedStatus
-      });
     }
 
     await updateDocument('users', user.Id, updateData);
