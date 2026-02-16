@@ -11,8 +11,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../utils/api';
-import { Location, MarkerData } from '../types';
+import { testControlApi, testApi } from '../utils/testApi';
+import { MarkerData } from '../types';
 
 // Predefined test locations
 const TEST_LOCATIONS = {
@@ -54,8 +54,7 @@ export function TestUserPanel({
   const [testUserActive, setTestUserActive] = useState(false);
   const [testUserInfo, setTestUserInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [autoMoving, setAutoMoving] = useState(false);
-  const [updateInterval, setUpdateInterval] = useState<any>(null);
+
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
@@ -86,10 +85,10 @@ export function TestUserPanel({
   const fetchConnectionRequests = useCallback(async () => {
     setLoadingRequests(true);
     try {
-      const requestsResponse = await api.getRequests(true);
+      const requestsResponse = await testApi.getRequests();
       setConnectionRequests(requestsResponse.requests || []);
 
-      const connectionsResponse = await api.getConnections(true);
+      const connectionsResponse = await testApi.getConnections();
       setAcceptedConnections(connectionsResponse.connections || []);
     } catch (error: any) {
       console.error('[TestUserPanel] Failed to fetch requests:', error);
@@ -104,10 +103,10 @@ export function TestUserPanel({
   const fetchPassengerRequests = useCallback(async () => {
     setLoadingRequests(true);
     try {
-      const requestsResponse = await api.getRequests(true);
+      const requestsResponse = await testApi.getRequests();
       setPassengerRequests(requestsResponse.requests || []);
 
-      const connectionsResponse = await api.getConnections(true);
+      const connectionsResponse = await testApi.getConnections();
       setPassengerConnections(connectionsResponse.connections || []);
     } catch (error: any) {
       console.error('[TestUserPanel] Failed to fetch passenger requests:', error);
@@ -120,10 +119,10 @@ export function TestUserPanel({
 
   const fetchAvailableDrivers = useCallback(async () => {
     if (!testUserInfo?.location) return;
-    
+
     setLoadingDrivers(true);
     try {
-      const response = await api.getMarkers(
+      const response = await testApi.getMarkers(
         'passenger',
         testUserInfo.location.lat,
         testUserInfo.location.lng
@@ -146,7 +145,7 @@ export function TestUserPanel({
 
     try {
       setRequestingRide({ ...requestingRide, [driverId]: true });
-      await api.requestRide(driverId, testUserInfo.location, testUserInfo.destination);
+      await testApi.requestRide(driverId, testUserInfo.location, testUserInfo.destination);
       Alert.alert('Success', 'Ride requested! Waiting for driver response.');
       await fetchPassengerRequests();
       await fetchAvailableDrivers();
@@ -159,7 +158,7 @@ export function TestUserPanel({
 
   const checkTestUserStatus = useCallback(async () => {
     try {
-      const response = await api.testGetStatus();
+      const response = await testControlApi.testGetStatus();
       setTestUserActive(response.exists);
       setTestUserInfo(response.user || null);
 
@@ -219,18 +218,12 @@ export function TestUserPanel({
     }
   }, [testUserActive, testUserInfo?.state, visible, fetchAvailableDrivers, fetchPassengerRequests]);
 
-  useEffect(() => {
-    return () => {
-      if (updateInterval) {
-        clearInterval(updateInterval);
-      }
-    };
-  }, [updateInterval]);
+
 
   const handleAcceptRequest = async (requestId: string) => {
     setLoadingRequests(true);
     try {
-      await api.respondToRequest(requestId, 'accepted', true);
+      await testApi.respondToRequest(requestId, 'accepted');
       Alert.alert('Success', 'Request accepted');
       await fetchConnectionRequests();
       await checkTestUserStatus();
@@ -245,7 +238,7 @@ export function TestUserPanel({
   const handleRejectRequest = async (requestId: string) => {
     setLoadingRequests(true);
     try {
-      await api.respondToRequest(requestId, 'rejected', true);
+      await testApi.respondToRequest(requestId, 'rejected');
       Alert.alert('Success', 'Request rejected');
       await fetchConnectionRequests();
     } catch (error: any) {
@@ -264,7 +257,7 @@ export function TestUserPanel({
     }
 
     try {
-      await api.verifyOtp(connectionId, otp, true);
+      await testApi.verifyOtp(connectionId, otp);
       Alert.alert('Success', 'OTP verified! Passenger picked up.');
       setOtpInputs({ ...otpInputs, [connectionId]: '' });
       await fetchConnectionRequests();
@@ -279,7 +272,7 @@ export function TestUserPanel({
   const handleCompleteRide = async (connectionId: string) => {
     setLoadingRequests(true);
     try {
-      const result = await api.completeRide(connectionId, true);
+      const result = await testApi.completeRide(connectionId);
       const pointsLine = result.passengerPointsAwarded ? `\nYou earned ${result.passengerPointsAwarded} passenger points.` : '';
       Alert.alert('Success', `Ride completed! Payment ${result.paymentStatus}. Fare: ₹${result.fare.toFixed(2)}${pointsLine}`);
       await fetchConnectionRequests();
@@ -305,7 +298,7 @@ export function TestUserPanel({
         destination = destLocation;
       }
 
-      await api.testSpawnUser({
+      await testControlApi.createTestUser({
         name: profile.name,
         role: profile.role,
         location: profile.location,
@@ -318,7 +311,7 @@ export function TestUserPanel({
 
       // Set the user to active state
       const state = profile.role === 'driver' ? 'driving' : 'riding';
-      await api.testSetState(state, destination);
+      await testApi.testSetState(state, destination);
 
       await checkTestUserStatus();
     } catch (error: any) {
@@ -337,7 +330,7 @@ export function TestUserPanel({
     try {
       setLoading(true);
       setSelectedLocation(key);
-      await api.testUpdateLocation(location);
+      await testApi.testUpdateLocation(location);
       await checkTestUserStatus();
     } catch (error: any) {
       console.error('[TestUserPanel] Failed to update location:', error);
@@ -346,87 +339,7 @@ export function TestUserPanel({
     }
   };
 
-  const handleMove = async (direction: 'north' | 'south' | 'east' | 'west') => {
-    if (!testUserInfo?.location) return;
 
-    const distanceKm = 0.5;
-    const lat = testUserInfo.location.lat;
-
-    const latDelta = distanceKm / 111;
-    const lngDelta = distanceKm / (111 * Math.cos((lat * Math.PI) / 180));
-
-    let newLocation = { ...testUserInfo.location };
-
-    switch (direction) {
-      case 'north':
-        newLocation.lat += latDelta;
-        break;
-      case 'south':
-        newLocation.lat -= latDelta;
-        break;
-      case 'east':
-        newLocation.lng += lngDelta;
-        break;
-      case 'west':
-        newLocation.lng -= lngDelta;
-        break;
-    }
-
-    await api.testUpdateLocation(newLocation);
-    await checkTestUserStatus();
-  };
-
-  const startAutoMovement = async () => {
-    if (!testUserInfo?.location || !testUserInfo?.destination) {
-      return;
-    }
-
-    setAutoMoving(true);
-
-    // Generate route points
-    const start = testUserInfo.location;
-    const end = testUserInfo.destination;
-    const numPoints = 30;
-    const routePoints: Location[] = [];
-
-    for (let i = 0; i <= numPoints; i++) {
-      const ratio = i / numPoints;
-      routePoints.push({
-        lat: start.lat + (end.lat - start.lat) * ratio,
-        lng: start.lng + (end.lng - start.lng) * ratio,
-      });
-    }
-
-    let currentIndex = 0;
-
-    const interval = setInterval(async () => {
-      currentIndex++;
-
-      if (currentIndex >= routePoints.length) {
-        clearInterval(interval);
-        setAutoMoving(false);
-        setUpdateInterval(null);
-        return;
-      }
-
-      const nextLocation = routePoints[currentIndex];
-      try {
-        await api.testUpdateLocation(nextLocation);
-      } catch {
-        // Silently fail auto-movement updates
-      }
-    }, 3000); // Update every 3 seconds
-
-    setUpdateInterval(interval);
-  };
-
-  const stopAutoMovement = () => {
-    if (updateInterval) {
-      clearInterval(updateInterval);
-      setUpdateInterval(null);
-    }
-    setAutoMoving(false);
-  };
 
   const handleDespawn = async () => {
     Alert.alert(
@@ -440,13 +353,7 @@ export function TestUserPanel({
           onPress: async () => {
             setLoading(true);
             try {
-              if (updateInterval) {
-                clearInterval(updateInterval);
-                setUpdateInterval(null);
-              }
-              setAutoMoving(false);
-
-              await api.testDespawn();
+              await testApi.testDespawn();
               await checkTestUserStatus();
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to delete test user');
@@ -554,23 +461,13 @@ export function TestUserPanel({
                     </Text>
                   </View>
                 )}
-                {autoMoving && (
-                  <View style={styles.statusRow}>
-                    <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>
-                      Auto-Moving:
-                    </Text>
-                    <Text style={[styles.statusValue, { color: colors.success }]}>
-                      Yes
-                    </Text>
-                  </View>
-                )}
               </View>
             )}
 
             {/* Connection Requests & Connections Section */}
             {testUserActive && testUserInfo?.state === 'driving' && (
               <View style={[styles.section, { backgroundColor: colors.card }]}>
-                <View style={styles.autoMoveRow}>
+                <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     Connections
                   </Text>
@@ -736,7 +633,7 @@ export function TestUserPanel({
                             <TextInput
                               style={[
                                 styles.otpInput,
-                                { 
+                                {
                                   borderColor: colors.border,
                                   color: colors.text,
                                   backgroundColor: colors.background,
@@ -799,7 +696,7 @@ export function TestUserPanel({
             {/* Available Drivers Section - For Passenger (riding state) */}
             {testUserActive && testUserInfo?.state === 'riding' && (
               <View style={[styles.section, { backgroundColor: colors.card }]}>
-                <View style={styles.autoMoveRow}>
+                <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     Available Drivers
                   </Text>
@@ -830,7 +727,7 @@ export function TestUserPanel({
                       (req) => req.DriverId === driver.userId && req.State === 'pending'
                     );
                     const hasActiveConnection = passengerConnections.some(
-                      (conn) => conn.DriverId === driver.userId && 
+                      (conn) => conn.DriverId === driver.userId &&
                       ['accepted', 'picked_up'].includes(conn.State)
                     );
                     const hasExistingRequest = hasPendingRequest || hasActiveConnection;
@@ -852,7 +749,7 @@ export function TestUserPanel({
                         </Text>
                       </View>
 
-                      {driver.rating && (
+                      {typeof driver.rating === 'number' && (
                         <View style={styles.requestInfo}>
                           <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
                             Rating
@@ -880,7 +777,7 @@ export function TestUserPanel({
                             Model
                           </Text>
                           <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {driver.vehicleName}{driver.vehicleModel ? ` ${driver.vehicleModel}` : ''}
+                            {`${driver.vehicleName}${driver.vehicleModel ? ` ${driver.vehicleModel}` : ''}`}
                           </Text>
                         </View>
                       )}
@@ -896,23 +793,27 @@ export function TestUserPanel({
                         </View>
                       )}
 
-                      <View style={styles.requestInfo}>
-                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                          Location
-                        </Text>
-                        <Text style={[styles.requestValue, { color: colors.text }]}>
-                          {driver.lastLocation.lat.toFixed(4)}, {driver.lastLocation.lng.toFixed(4)}
-                        </Text>
-                      </View>
+                      {driver.lastLocation && (
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Location
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            {driver.lastLocation.lat.toFixed(4)}, {driver.lastLocation.lng.toFixed(4)}
+                          </Text>
+                        </View>
+                      )}
 
-                      <View style={styles.requestInfo}>
-                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                          Destination
-                        </Text>
-                        <Text style={[styles.requestValue, { color: colors.text }]}>
-                          {driver.destination.lat.toFixed(4)}, {driver.destination.lng.toFixed(4)}
-                        </Text>
-                      </View>
+                      {driver.destination && (
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Destination
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            {driver.destination.lat.toFixed(4)}, {driver.destination.lng.toFixed(4)}
+                          </Text>
+                        </View>
+                      )}
 
                       {!hasExistingRequest ? (
                         <TouchableOpacity
@@ -966,7 +867,7 @@ export function TestUserPanel({
                       onPress={async () => {
                         try {
                           setLoading(true);
-                          await api.testSetState('idle', null);
+                          await testApi.testSetState('idle', null);
                           await checkTestUserStatus();
                         } catch (error: any) {
                           console.error('[TestUserPanel] Failed to set idle:', error);
@@ -993,7 +894,7 @@ export function TestUserPanel({
                       onPress={async () => {
                         try {
                           setLoading(true);
-                          await api.testSetState('driving', testUserInfo.destination);
+                          await testApi.testSetState('driving', testUserInfo.destination);
                           await checkTestUserStatus();
                         } catch (error: any) {
                           console.error('[TestUserPanel] Failed to set driving:', error);
@@ -1020,7 +921,7 @@ export function TestUserPanel({
                       onPress={async () => {
                         try {
                           setLoading(true);
-                          await api.testSetState('riding', testUserInfo.destination);
+                          await testApi.testSetState('riding', testUserInfo.destination);
                           await checkTestUserStatus();
                         } catch (error: any) {
                           console.error('[TestUserPanel] Failed to set riding:', error);
@@ -1082,7 +983,7 @@ export function TestUserPanel({
                         try {
                           setLoading(true);
                           setSelectedDestination(key);
-                          await api.testSetState(testUserInfo.state, location);
+                          await testApi.testSetState(testUserInfo.state, location);
                           await checkTestUserStatus();
                         } catch (error: any) {
                           console.error('[TestUserPanel] Failed to update destination:', error);
@@ -1103,72 +1004,7 @@ export function TestUserPanel({
                   ))}
                 </View>
 
-                {/* Movement Controls */}
-                <View style={[styles.section, { backgroundColor: colors.card }]}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    Movement Controls
-                  </Text>
 
-                  <View style={styles.autoMoveRow}>
-                    <Text style={[styles.label, { color: colors.text }]}>Auto-Movement</Text>
-                    <View style={styles.autoMoveButtons}>
-                      {!autoMoving ? (
-                        <TouchableOpacity
-                          style={[styles.controlButton, { backgroundColor: colors.success }]}
-                          onPress={startAutoMovement}
-                          disabled={loading}
-                        >
-                          <Ionicons name="play" size={16} color="#fff" />
-                          <Text style={styles.controlButtonText}>Start</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          style={[styles.controlButton, { backgroundColor: colors.danger }]}
-                          onPress={stopAutoMovement}
-                        >
-                          <Ionicons name="pause" size={16} color="#fff" />
-                          <Text style={styles.controlButtonText}>Stop</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-
-                  <Text style={[styles.subSectionTitle, { color: colors.textSecondary }]}>
-                    Manual Movement (0.5 km)
-                  </Text>
-                  <View style={styles.directionPad}>
-                    <TouchableOpacity
-                      style={[styles.directionButton, { backgroundColor: colors.primary }]}
-                      onPress={() => handleMove('north')}
-                      disabled={loading}
-                    >
-                      <Ionicons name="arrow-up" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <View style={styles.directionRow}>
-                      <TouchableOpacity
-                        style={[styles.directionButton, { backgroundColor: colors.primary }]}
-                        onPress={() => handleMove('west')}
-                        disabled={loading}
-                      >
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.directionButton, { backgroundColor: colors.primary }]}
-                        onPress={() => handleMove('east')}
-                        disabled={loading}
-                      >
-                        <Ionicons name="arrow-forward" size={24} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.directionButton, { backgroundColor: colors.primary }]}
-                      onPress={() => handleMove('south')}
-                      disabled={loading}
-                    >
-                      <Ionicons name="arrow-down" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
 
 
 
@@ -1291,7 +1127,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins-Regular',
   },
-  autoMoveRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1299,11 +1135,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontFamily: 'Poppins-Medium',
-  },
-  autoMoveButtons: {
-    flexDirection: 'row',
-    gap: 8,
+    fontFamily: 'Poppins-Regular',
   },
   controlButton: {
     flexDirection: 'row',
@@ -1318,22 +1150,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins-Medium',
   },
-  directionPad: {
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  directionRow: {
-    flexDirection: 'row',
-    gap: 80,
-  },
-  directionButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
