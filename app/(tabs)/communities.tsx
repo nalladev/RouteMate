@@ -22,7 +22,7 @@ import { api } from '@/utils/api';
 export default function CommunitiesScreen() {
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
-  const { activeCommunityId } = useAppState();
+  const { activeCommunityId, setActiveCommunityId } = useAppState();
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
@@ -94,7 +94,9 @@ export default function CommunitiesScreen() {
 
   async function handleToggleCommunityMode(communityId: string | null) {
     try {
-      await api.selectCommunityMode(communityId);
+      // Update local state immediately for better UX
+      setActiveCommunityId(communityId);
+      // Also refresh user to ensure consistency
       await Promise.all([loadCommunities(), refreshUser()]);
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'Failed to update community mode');

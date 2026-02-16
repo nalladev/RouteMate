@@ -8,6 +8,7 @@ interface AppStateContextType {
   userState: 'driver' | 'passenger' | 'idle';
   setUserState: (state: 'driver' | 'passenger' | 'idle') => void;
   activeCommunityId: string | null;
+  setActiveCommunityId: (id: string | null) => void;
   userLocation: LocationType | null;
   destination: LocationType | null;
   setDestination: (dest: LocationType | null) => void;
@@ -15,7 +16,7 @@ interface AppStateContextType {
   activeConnections: RideConnection[];
   pendingRequests: RideConnection[];
   isActive: boolean;
-  refreshMarkers: () => Promise<MarkerData[]>;
+  refreshMarkers: (overrideUserState?: 'driver' | 'passenger' | 'idle') => Promise<MarkerData[]>;
   refreshConnections: () => Promise<void>;
   refreshRequests: () => Promise<void>;
 }
@@ -24,14 +25,14 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const [userState, setUserStateInternal] = useState<'driver' | 'passenger' | 'idle'>('idle');
+  const [userState, setUserState] = useState<'driver' | 'passenger' | 'idle'>('idle');
   const [userLocation, setUserLocation] = useState<LocationType | null>(null);
   const [destination, setDestination] = useState<LocationType | null>(null);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [activeConnections, setActiveConnections] = useState<RideConnection[]>([]);
   const [pendingRequests, setPendingRequests] = useState<RideConnection[]>([]);
-  const activeCommunityId = user?.ActiveCommunityId || null;
-  
+  const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
+
   const isActive = userState !== 'idle';
 
   // Load user state from database on mount or user change
@@ -39,47 +40,49 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (user?.state) {
       // Convert DB state to client userState
       if (user.state === 'driving') {
-        setUserStateInternal('driver');
+        setUserState('driver');
       } else if (user.state === 'riding') {
-        setUserStateInternal('passenger');
+        setUserState('passenger');
       } else {
-        setUserStateInternal('idle');
+        setUserState('idle');
       }
     }
     if (user?.Destination) {
       setDestination(user.Destination);
     }
-  }, [user?.Id, user?.state, user?.Destination]);
+    // Sync activeCommunityId from user object
+    setActiveCommunityId(user?.ActiveCommunityId || null);
+  }, [user?.Id, user?.state, user?.Destination, user?.ActiveCommunityId]);
 
-  // Persist userState to database when it changes
-  const setUserState = useCallback(async (newState: 'driver' | 'passenger' | 'idle') => {
-    setUserStateInternal(newState);
-    
-    if (isAuthenticated) {
+  // Auto-sync userState changes to database
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const syncUserState = async () => {
       try {
         // Convert client userState to DB state
         let dbState: UserState;
-        if (newState === 'driver') {
+        if (userState === 'driver') {
           dbState = 'driving';
-        } else if (newState === 'passenger') {
+        } else if (userState === 'passenger') {
           dbState = 'riding';
         } else {
           dbState = 'idle';
         }
-        await api.updateState(dbState, newState !== 'idle' ? destination : null);
+        await api.updateState(dbState, userState !== 'idle' ? destination : null);
       } catch (error) {
-        console.error('Failed to update userState:', error);
+        console.error('Failed to sync userState:', error);
       }
-    }
-  }, [isAuthenticated, destination]);
+    };
+
+    syncUserState();
+  }, [userState, destination, isAuthenticated]);
 
   // Auto-sync destination changes to database when active
   useEffect(() => {
-    if (!isAuthenticated || !user || userState === 'idle') return;
-
     const syncDestination = async () => {
       try {
-        const dbState: UserState = userState === 'driver' ? 'driving' : 'riding';
+        const dbState = userState === 'idle' ? userState : userState === 'driver' ? 'driving' : 'riding';
         await api.updateState(dbState, destination);
       } catch (error) {
         console.error('Failed to sync destination:', error);
@@ -87,7 +90,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
 
     syncDestination();
-  }, [destination, isAuthenticated, user, userState]);
+  }, [destination, userState]);
+
+  // Auto-sync activeCommunityId changes to database
+  useEffect(() => {
+    const syncCommunityId = async () => {
+      try {
+        await api.selectCommunityMode(activeCommunityId);
+      } catch (error) {
+        console.error('Failed to sync activeCommunityId:', error);
+      }
+    };
+
+    syncCommunityId();
+  }, [activeCommunityId]);
 
   // Clear destination when going idle
   useEffect(() => {
@@ -136,12 +152,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]);
 
-  const refreshMarkers = useCallback(async (): Promise<MarkerData[]> => {
-    if (!userLocation || userState === 'idle') return [];
-    
+  const refreshMarkers = useCallback(async (overrideUserState?: 'driver' | 'passenger' | 'idle'): Promise<MarkerData[]> => {
+    const stateToUse = overrideUserState ?? userState;
+    if (!userLocation || stateToUse === 'idle') return [];
+
     try {
       const { markers: newMarkers } = await api.getMarkers(
-        userState,
+        stateToUse,
         userLocation.lat,
         userLocation.lng
       );
@@ -195,6 +212,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       userState,
       setUserState,
       activeCommunityId,
+      setActiveCommunityId,
       userLocation,
       destination,
       setDestination,
@@ -206,7 +224,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       refreshConnections,
       refreshRequests,
     }),
-    [userState, setUserState, activeCommunityId, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests]
+    [userState, setUserState, activeCommunityId, setActiveCommunityId, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests]
   );
 
   return (
