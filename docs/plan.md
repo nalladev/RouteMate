@@ -75,7 +75,17 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 4. App UI (after session available) & State Management
+## 4. UI Theme & Dark Mode
+* App supports light and dark mode (system preference or manual toggle)
+* Consistent theme colors throughout (primary: `#e86713` vibrant orange)
+* Theme persists across app sessions
+* Toggle available in Account section
+* All screens, components, and modals adapt to theme
+* Enhanced bottom navigation with icon animations and proper spacing
+
+---
+
+## 5. App UI (after session available) & State Management
 
 ### Idle Mode (Default State)
 1. Full-screen map (custom markers visible - other users in idle/active states)
@@ -128,7 +138,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 5. Discovery & Interaction Logic (Home Section)
+## 6. Discovery & Interaction Logic (Home Section)
 
 ### Intelligent Discovery (Filtering)
 * **Passenger Discovery:** Shows drivers whose current route (from `LastLocation` to `Destination`) is compatible with the passenger trip. Matching is flexible: pickup/destination can be near the driver's route corridor or near the driver's route endpoints (current location/destination), to avoid missing close parallel trips.
@@ -205,60 +215,109 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 6. Ride Connection & Auto-Expiry
+## 7. Ride Connection & Auto-Expiry
 1. Driver receives request in `user/riderequests`.
 2. **Auto-Cancel:** Requests not accepted within 10 minutes are automatically marked `rejected` or deleted by backend.
 3. Driver accepts; connection record created and passenger request pane switches to accepted state showing OTP and driver arrival tracking.
-4. **Constraints:** Driver can have multiple connections; Passenger limited to one active request or ride at a time.
+4. **Trip Estimate Preview:** Before requesting a ride, passenger sees:
+   - Distance breakdown (pickup distance + ride distance)
+   - Time estimates (pickup ETA + ride duration)
+   - Fare calculation with breakdown
+   - Balance check with warning if insufficient funds
+   - Visual route preview on map
+5. **Constraints:** Driver can have multiple connections; Passenger limited to one active request or ride at a time.
    - Neither driver nor passenger can switch to `idle` while a connection is in `accepted` or `picked_up`.
-5. Connected passengers are hidden from other map users and unavailable for additional requests.
-6. **OTP Handshake:**
+6. **Vehicle Details Capture:** When ride is requested, system captures driver's full vehicle details:
+   - Vehicle type, name, model, and registration number
+   - Displayed to passenger in request confirmation
+   - Shown during ride to help passenger identify correct vehicle
+7. Connected passengers are hidden from other map users and unavailable for additional requests.
+8. **OTP Handshake:**
    - Passenger shown OTP on screen after request acceptance.
-   - Driver cannot verify OTP until passenger confirms vehicle matches expected type.
    - Driver enters OTP in Connection Manager to confirm pickup.
-7. **Location Sharing Link:**
+9. **Location Sharing Link:**
    - Both passenger and driver can generate/share a live ride link while participating in the ride.
    - Link opens browser page (`/ride-share/[token]`) with live ride status, pickup/destination, driver details, and latest driver/passenger coordinates.
    - Public link access is token-based and intended to be shared only with trusted family/friends.
-8. **Completion:** Connection cleared when destination reached and both apps receive ride completion confirmation.
-9. **Payment:** 
+10. **Completion:** 
+   - Driver or passenger marks ride as complete when destination is reached
+   - Backend automatically sets both passenger and driver state to `idle`
+   - Backend automatically clears destination for both users
+   - Connection state updated to `completed`
+11. **Payment:**
    - Fare amount is deducted from passenger's internal wallet balance and added to driver's balance.
    - All payment processing happens on backend with balance validation.
    - Balance cannot go negative - request is blocked if insufficient funds.
    - Backend records transaction in payment history.
-10. **Driver Rating (Post-Ride):**
-   - After completion, passenger is prompted to rate the driver from 1 to 5 stars.
-   - Each ride can be rated only once by the passenger who took the ride.
-   - Backend stores per-ride rating and updates driver's aggregate rating/count.
+12. **Ride Cancellation & Penalty System:**
+   - **Passenger cancellation**: 
+     - Can cancel `requested` rides anytime without penalty
+     - Can cancel `accepted` rides (before pickup) without penalty
+     - **Cannot cancel** `picked_up` rides (ride in progress) - must complete the ride
+   - **Driver cancellation of requested rides**: No penalty
+   - **Driver cancellation of accepted/picked_up rides**: Time-based penalty system
+     - 0-2 minutes after acceptance: ₹0 (grace period)
+     - 2-5 minutes: ₹10 penalty
+     - 5-10 minutes: ₹20 penalty
+     - >10 minutes: ₹50 penalty
+   - Penalty automatically deducted from driver's wallet balance using Firestore transaction
+   - Driver must have sufficient balance to cover penalty (cancellation blocked if insufficient)
+   - Connection marked as `cancelled` with `CancelledAt`, `CancelledBy`, and `CancellationPenalty` fields
+   - Both parties notified of cancellation immediately
+   - Cancelled connections removed from active connections list
+13. **Driver Rating (Post-Ride):**
+   - After completion, system automatically checks for unrated completed rides
+   - Passenger is shown rating prompt modal when returning to home screen
+   - Rating prompt appears for any completed ride that hasn't been rated yet
+   - Passenger rates driver from 1 to 5 stars
+   - Each ride can be rated only once by the passenger who took the ride
+   - Backend stores per-ride rating and updates driver's aggregate rating/count
+   - Rating system uses Firestore transaction to ensure atomicity
 
-11. **Rewards Points & Voucher Redemption:**
-   - Rewards points are separate from wallet balance in rupees.
-   - Passenger earns points on every completed ride.
-   - Driver earns points when a completed ride receives a 5-star rating.
-   - Rewards tab shows points, available vouchers, and recent redemptions.
-   - Dummy vouchers are visible even when points are insufficient.
-   - Redeem action is enabled only when user has enough points.
-   - Voucher catalog is role-specific (passenger examples: free ride/discount; driver examples: free fuel/service perks).
+14. **Rewards Points & Voucher Redemption:**
+   - Rewards points are separate from wallet balance in rupees
+   - **Passenger**: Earns 10 points automatically on every completed ride (awarded during payment processing)
+   - **Driver**: Earns 20 points when a completed ride receives a 5-star rating from passenger
+   - Points are awarded atomically during transaction processing
+   - Rewards tab shows separate point balances for passenger and driver roles
+   - Voucher catalog is role-specific:
+     - Passenger vouchers: Free ride (₹50, 120 points), Priority Support (80 points), ₹20 Discount (60 points)
+     - Driver vouchers: Free Fuel (₹100, 180 points), Service Discount (140 points), Toll Rebate (90 points)
+   - Dummy vouchers visible even when points are insufficient
+   - Redeem action enabled only when user has enough points
+   - Redemption history tracked in separate collection
 
 ---
 
-## 7. History Section
+## 8. History Section
 * Show only completed rides made by user.
 * **For passenger:** Show driver name, fare, ride time, start, destination.
 * **For driver:** Show fare, ride time, start, destination.
 
 ---
 
-## 8. Account/User Section
+## 9. Account/User Section
 * Show user name, phone, KYC verified badge.
-* Allow driver to set/update vehicle type in profile (`Sedan`, `SUV`, `Hatchback`, `Bike`, `Auto`, `Van`, `Other`).
+* **Profile Picture:** Upload and display profile picture (visible on markers and ride details)
+  - Image upload via camera or gallery
+  - Stored in Cloudinary CDN
+  - Displayed as circular avatar in account section and on map markers
+* **Vehicle Details (for drivers):** Set/update complete vehicle information:
+  - Vehicle type (`Sedan`, `SUV`, `Hatchback`, `Bike`, `Auto`, `Van`, `Other`)
+  - Vehicle name (e.g., "Maruti Swift")
+  - Vehicle model (e.g., "2020")
+  - Vehicle registration number (e.g., "KL01AB1234")
+  - All details required before entering driving mode
+  - Registration format validated (Indian format: XX00XX0000)
+  - Details captured and shown to passenger during ride request
 * Show driver rating summary (`average / 5` and total ratings count) for self-view.
+* **Dark Mode Toggle:** Switch between light and dark themes
 * Show wallet balance prominently.
 * **Top Up Balance Button:** ~~Opens Razorpay payment gateway for adding funds.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * **Payout/Withdraw Button:** ~~Allows drivers to withdraw their earnings.~~ **TEMPORARILY DISABLED** - Requires Play Store link for Razorpay compliance.
 * Display recent transaction history (top-ups and payouts).
 
-## 8.2 Community Section
+## 9.2 Community Section
 * Add a dedicated `Community` page/tab.
 * Any authenticated user can create a new community and becomes its admin.
 * Community has exactly one admin and multiple participants.
@@ -271,7 +330,7 @@ Both buttons open the same phone.email verification flow. The system automatical
   - Driver sees only passenger-side records in same community.
   - Ride request creation enforces both users belong to same selected community.
 
-## 8.1 Rewards Section
+## 9.1 Rewards Section
 * Add a dedicated `Rewards` page/tab.
 * Show separate reward point balances for passenger and driver roles.
 * Show role-based dummy voucher catalog for now.
@@ -282,7 +341,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 9. Payment System Architecture
+## 10. Payment System Architecture
 
 ### Internal Wallet System
 * Each user has a `WalletBalance` field in Firestore (type: number, default: 0).
@@ -353,7 +412,34 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 10. Technical Architecture
+## 11. Development & Testing Tools
+
+### Test User Panel (Development Feature)
+* **Purpose:** Simulate multiple users for testing ride flows without multiple devices
+* **Access:** Hidden panel for developers/testers (not in production)
+* **Capabilities:**
+  - Spawn test users (drivers and passengers) at predefined locations
+  - Set test user state (idle, driving, riding)
+  - Update test user location dynamically
+  - View and accept/reject ride requests as test driver
+  - Verify OTP and complete rides as test driver
+  - Request rides as test passenger
+  - View all active connections for test users
+  - Delete test users when done
+* **Predefined Test Locations:**
+  - Technopark Phase 1
+  - Josh Pavilion
+  - Sree Chithra Home
+  - Kazhakootam Junction
+  - Karyavattom
+* **Test Profiles:**
+  - Test Driver: Hatchback with full vehicle details
+  - Test Passenger: Standard passenger profile
+* **Backend Support:** Dedicated test user API endpoints with session isolation
+
+---
+
+## 12. Technical Architecture
 * **Backend:** Vercel API routing.
 * **Matching Engine:** API endpoint to filter markers based on flexible route compatibility and direction.
 * **Database:** Firestore (All operations via backend).
@@ -364,7 +450,7 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 11. Data Models
+## 13. Data Models
 
 ### User Collection
 * `Id`: string
@@ -375,6 +461,10 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `WalletBalance`: number (default: 0, cannot be negative)
 * `UpiId`: string (optional, stored when user requests first payout)
 * `VehicleType`: 'Sedan' | 'SUV' | 'Hatchback' | 'Bike' | 'Auto' | 'Van' | 'Other' (required to enter driving mode)
+* `VehicleName`: string (optional, e.g., "Maruti Swift")
+* `VehicleModel`: string (optional, e.g., "2020")
+* `VehicleRegistration`: string (optional, e.g., "KL01AB1234")
+* `ProfilePictureUrl`: string (optional, Cloudinary CDN URL)
 * `state`: 'driving' | 'riding' | 'idle'
 * `LastLocation`: { `lat`: number, `lng`: number }
 * `Destination`: { `lat`: number, `lng`: number }
@@ -396,6 +486,15 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `DriverRatingAverage`: number (default: 0)
 * `DriverRatingCount`: number (default: 0)
 * `ActiveCommunityId`: string | null (optional community mode selection)
+
+### Ride Request & Trip Estimates
+* Before creating a ride request, frontend calculates and displays:
+  - Pickup distance (driver to passenger)
+  - Ride distance (pickup to destination)
+  - Total time estimate
+  - Fare breakdown
+  - Uses Haversine formula for distance and OSRM API for route details
+* Balance validation happens before allowing request submission
 
 ### Communities Collection
 * `Id`: string
@@ -424,8 +523,9 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `RideTotalTime`: number
 * `OtpCode`: string
 * `RequestedVehicleType`: string (captured from driver profile at request time)
-* `PassengerVehicleConfirmation`: 'pending' | 'confirmed' | 'mismatch'
-* `PassengerVehicleConfirmedAt`: Timestamp (optional)
+* `RequestedVehicleName`: string (optional, captured at request time)
+* `RequestedVehicleModel`: string (optional, captured at request time)
+* `RequestedVehicleRegistration`: string (optional, captured at request time)
 * `State`: 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed'
 * `PaymentStatus`: 'pending' | 'success' | 'failed'
 * `DriverRating`: number (1-5, optional, set by passenger after completion)
@@ -433,6 +533,11 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `ShareToken`: string (optional, public live-tracking token for browser sharing)
 * `ShareCreatedAt`: Timestamp (optional)
 * `CommunityId`: string | null (set when community mode scoped request is created)
+* `AcceptedAt`: Timestamp (optional, when driver accepts request)
+* `CompletedAt`: Timestamp (optional, when ride completes)
+* `CancelledAt`: Timestamp (optional, when ride is cancelled)
+* `CancelledBy`: 'passenger' | 'driver' (optional, who initiated cancellation)
+* `CancellationPenalty`: number (optional, penalty amount if driver cancelled after grace period)
 * `CreatedAt`: Timestamp
 
 ### Transactions Collection
@@ -454,7 +559,19 @@ Both buttons open the same phone.email verification flow. The system automatical
 
 ---
 
-## 12. Environment Variables (Backend Only)
+### Rewards Redemptions Collection
+* `Id`: string
+* `UserId`: string
+* `VoucherId`: string
+* `VoucherTitle`: string
+* `Role`: 'passenger' | 'driver'
+* `PointsCost`: number
+* `Status`: 'redeemed'
+* `CreatedAt`: Timestamp
+
+---
+
+## 14. Environment Variables (Backend Only)
 * `FIREBASE_SERVICE_ACCOUNT_ENCODED`
 * `EXPO_PUBLIC_PHONE_EMAIL_CLIENT_ID`
 * `DIDIT_API_KEY` (Backend - for API verification and session creation)
@@ -466,6 +583,10 @@ Both buttons open the same phone.email verification flow. The system automatical
 * `RAZORPAY_KEY_SECRET` (optional - disabled until Play Store publication)
 * `RAZORPAY_WEBHOOK_SECRET` (optional - disabled until Play Store publication)
 * `EXPO_PUBLIC_APP_URL` (recommended - canonical base URL used to build public live ride share links)
+
+* `CLOUDINARY_CLOUD_NAME` (optional - for profile picture uploads)
+* `CLOUDINARY_API_KEY` (optional - for profile picture uploads)
+* `CLOUDINARY_API_SECRET` (optional - for profile picture uploads)
 
 **Note on Maps & Location Services:**
 - **Map Display:** Uses Google Maps (Android) and Apple Maps (iOS) via React Native Maps - no API key required

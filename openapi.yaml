@@ -1,0 +1,2107 @@
+openapi: 3.0.0
+info:
+  title: RouteMate API
+  description: |
+    API for RouteMate ride-sharing application
+
+    ## Map & Location Services
+
+    RouteMate uses **free and open-source alternatives** instead of Google APIs:
+
+    - **Map Display**: React Native Maps (uses native maps - Google Maps on Android, Apple Maps on iOS)
+      - No API key required for basic map display
+
+    - **Place Search/Geocoding**: Nominatim (OpenStreetMap)
+      - Endpoint: https://nominatim.openstreetmap.org/search
+      - Free to use with proper attribution
+      - Usage limit: Max 1 request per second
+
+    - **Routing/Directions**: OSRM (Open Source Routing Machine)
+      - Endpoint: https://router.project-osrm.org/route/v1/driving
+      - Completely free and open-source
+      - No API key required
+
+    This approach eliminates the need for Google Maps API billing while providing full functionality.
+
+    ## Features
+
+    - Password and OTP-based authentication with multiple session support
+    - Real-time location tracking
+    - Profile picture uploads
+    - Vehicle details management (type, name, model, registration)
+    - Dark mode support
+    - Trip estimate preview with fare breakdown
+    - Intelligent driver-passenger matching
+    - Ride request management with auto-expiry
+    - Ride cancellation with driver penalty system
+    - OTP verification for pickup
+    - Live location sharing links
+    - Driver rating system
+    - Community-based ride sharing
+    - Rewards and voucher redemption
+    - Internal wallet with Razorpay integration
+    - KYC verification with Didit
+    - Test user panel for development
+
+  version: 1.0.6
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+  - url: https://routemate.vercel.app
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          example: 8.5485
+        lng:
+          type: number
+          format: double
+          example: 76.9035
+      required:
+        - lat
+        - lng
+
+    UserState:
+      type: string
+      enum:
+        - driving
+        - riding
+        - idle
+
+    VehicleType:
+      type: string
+      enum:
+        - Sedan
+        - SUV
+        - Hatchback
+        - Bike
+        - Auto
+        - Van
+        - Other
+
+    KycStatus:
+      type: string
+      enum:
+        - not_started
+        - session_created
+        - submitted
+        - under_review
+        - approved
+        - rejected
+        - failed
+
+    RideConnectionState:
+      type: string
+      enum:
+        - requested
+        - accepted
+        - rejected
+        - picked_up
+        - completed
+        - cancelled
+
+    CancellationInitiator:
+      type: string
+      enum:
+        - passenger
+        - driver
+
+    PaymentStatus:
+      type: string
+      enum:
+        - pending
+        - success
+        - failed
+
+    TransactionType:
+      type: string
+      enum:
+        - topup
+        - payout
+        - ride_payment
+        - ride_earning
+
+    TransactionStatus:
+      type: string
+      enum:
+        - pending
+        - success
+        - failed
+
+    RewardRole:
+      type: string
+      enum:
+        - passenger
+        - driver
+
+    KycData:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/KycStatus'
+        createdAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+        age:
+          type: number
+        gender:
+          type: string
+        portraitImage:
+          type: string
+        address:
+          type: string
+
+    User:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        Mobile:
+          type: string
+        WalletBalance:
+          type: number
+        UpiId:
+          type: string
+        VehicleType:
+          $ref: '#/components/schemas/VehicleType'
+        VehicleName:
+          type: string
+          example: "Maruti Swift"
+        VehicleModel:
+          type: string
+          example: "2020"
+        VehicleRegistration:
+          type: string
+          example: "KL01AB1234"
+        ProfilePictureUrl:
+          type: string
+        state:
+          $ref: '#/components/schemas/UserState'
+        LastLocation:
+          $ref: '#/components/schemas/Location'
+        Destination:
+          $ref: '#/components/schemas/Location'
+        KycStatus:
+          $ref: '#/components/schemas/KycStatus'
+        KycData:
+          $ref: '#/components/schemas/KycData'
+        IsKycVerified:
+          type: boolean
+        DriverRatingAverage:
+          type: number
+        DriverRatingCount:
+          type: number
+        PassengerRewardPoints:
+          type: number
+        DriverRewardPoints:
+          type: number
+        ActiveCommunityId:
+          type: string
+          nullable: true
+
+    MarkerData:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        rating:
+          type: number
+        vehicle:
+          type: string
+        vehicleName:
+          type: string
+        vehicleModel:
+          type: string
+        vehicleRegistration:
+          type: string
+        profilePictureUrl:
+          type: string
+        lastLocation:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+
+    RideConnection:
+      type: object
+      properties:
+        Id:
+          type: string
+        PassengerId:
+          type: string
+        DriverId:
+          type: string
+        PickupLocation:
+          $ref: '#/components/schemas/Location'
+        Destination:
+          $ref: '#/components/schemas/Location'
+        Distance:
+          type: number
+        Fare:
+          type: number
+        RideTotalTime:
+          type: number
+        OtpCode:
+          type: string
+        RequestedVehicleType:
+          type: string
+        RequestedVehicleName:
+          type: string
+        RequestedVehicleModel:
+          type: string
+        RequestedVehicleRegistration:
+          type: string
+        State:
+          $ref: '#/components/schemas/RideConnectionState'
+        PaymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        DriverRating:
+          type: number
+          minimum: 1
+          maximum: 5
+        DriverRatedAt:
+          type: string
+          format: date-time
+        ShareToken:
+          type: string
+        ShareCreatedAt:
+          type: string
+          format: date-time
+        CommunityId:
+          type: string
+          nullable: true
+        AcceptedAt:
+          type: string
+          format: date-time
+        CompletedAt:
+          type: string
+          format: date-time
+        CancelledAt:
+          type: string
+          format: date-time
+        CancelledBy:
+          $ref: '#/components/schemas/CancellationInitiator'
+        CancellationPenalty:
+          type: number
+          description: Penalty amount in rupees for driver cancellation
+        CreatedAt:
+          type: string
+          format: date-time
+
+    Community:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        AdminId:
+          type: string
+        participantCount:
+          type: number
+        isAdmin:
+          type: boolean
+        isActive:
+          type: boolean
+        CreatedAt:
+          type: string
+          format: date-time
+
+    CommunityMember:
+      type: object
+      properties:
+        Id:
+          type: string
+        Name:
+          type: string
+        Mobile:
+          type: string
+        isAdmin:
+          type: boolean
+
+    RewardVoucher:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          $ref: '#/components/schemas/RewardRole'
+        title:
+          type: string
+        description:
+          type: string
+        pointsCost:
+          type: number
+
+    RewardRedemption:
+      type: object
+      properties:
+        Id:
+          type: string
+        UserId:
+          type: string
+        VoucherId:
+          type: string
+        VoucherTitle:
+          type: string
+        Role:
+          $ref: '#/components/schemas/RewardRole'
+        PointsCost:
+          type: number
+        Status:
+          type: string
+          enum: [redeemed]
+        CreatedAt:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        Id:
+          type: string
+        UserId:
+          type: string
+        Type:
+          $ref: '#/components/schemas/TransactionType'
+        Amount:
+          type: number
+        BalanceBefore:
+          type: number
+        BalanceAfter:
+          type: number
+        Status:
+          $ref: '#/components/schemas/TransactionStatus'
+        RazorpayOrderId:
+          type: string
+        RazorpayPaymentId:
+          type: string
+        RazorpayPayoutId:
+          type: string
+        UpiId:
+          type: string
+        RideConnectionId:
+          type: string
+        Description:
+          type: string
+        CreatedAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+  /api/auth/login:
+    post:
+      summary: Password Login
+      description: Authenticate user with mobile and password. Supports multiple active sessions per account.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobile:
+                  type: string
+                  example: "9876543210"
+                password:
+                  type: string
+              required:
+                - mobile
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/otp-login:
+    post:
+      summary: OTP Login
+      description: Authenticate user with phone.email JWT token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: JWT token from phone.email
+              required:
+                - token
+      responses:
+        '200':
+          description: Login successful or user needs to set password
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+                  - type: object
+                    properties:
+                      userExists:
+                        type: boolean
+                        example: false
+                      mobile:
+                        type: string
+        '400':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/signup:
+    post:
+      summary: Create Account
+      description: Create new user account with phone.email JWT and password
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: JWT token from phone.email
+                password:
+                  type: string
+                name:
+                  type: string
+              required:
+                - token
+                - password
+                - name
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      summary: Logout
+      description: Logout from current session (removes current device session token only)
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/me:
+    get:
+      summary: Get Current User
+      description: Get authenticated user's profile and state
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/location:
+    post:
+      summary: Update Location
+      description: Update user's current location
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+      responses:
+        '200':
+          description: Location updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/state:
+    post:
+      summary: Update User State
+      description: |
+        Update user state (driving/riding/idle) and optionally destination.
+        Driver mode requires complete vehicle details (type, name, model, registration).
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state:
+                  $ref: '#/components/schemas/UserState'
+                destination:
+                  $ref: '#/components/schemas/Location'
+              required:
+                - state
+      responses:
+        '200':
+          description: State updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Missing vehicle details for driving mode
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/vehicle:
+    post:
+      summary: Update Vehicle Details
+      description: |
+        Update complete vehicle information including type, name, model, and registration.
+        All fields required before entering driving mode.
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleType:
+                  $ref: '#/components/schemas/VehicleType'
+                vehicleName:
+                  type: string
+                  example: "Maruti Swift"
+                vehicleModel:
+                  type: string
+                  example: "2020"
+                vehicleRegistration:
+                  type: string
+                  example: "KL01AB1234"
+                  pattern: '^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$'
+              required:
+                - vehicleType
+                - vehicleName
+                - vehicleModel
+                - vehicleRegistration
+      responses:
+        '200':
+          description: Vehicle details updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid vehicle details or registration format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/profile-picture:
+    post:
+      summary: Upload Profile Picture
+      description: Upload profile picture to Cloudinary CDN
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base64Image:
+                  type: string
+                  description: Base64 encoded image data
+              required:
+                - base64Image
+      responses:
+        '200':
+          description: Profile picture uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  profilePictureUrl:
+                    type: string
+        '400':
+          description: Invalid image data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/match/markers:
+    get:
+      summary: Get Filtered Markers
+      description: |
+        Get filtered drivers or passengers based on route compatibility.
+        Uses intelligent matching based on route corridor and endpoint proximity.
+      tags:
+        - Discovery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Filtered markers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  markers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarkerData'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/request:
+    post:
+      summary: Request Ride
+      description: |
+        Create ride request from passenger to driver.
+        Requires sufficient wallet balance (fare amount).
+        Request auto-expires in 10 minutes if not accepted.
+        Captures driver's vehicle details at request time.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                driverId:
+                  type: string
+                pickupLocation:
+                  $ref: '#/components/schemas/Location'
+                destination:
+                  $ref: '#/components/schemas/Location'
+                distance:
+                  type: number
+                fare:
+                  type: number
+                rideTotalTime:
+                  type: number
+              required:
+                - driverId
+                - pickupLocation
+                - destination
+                - distance
+                - fare
+      responses:
+        '201':
+          description: Ride request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  connectionId:
+                    type: string
+        '400':
+          description: Insufficient balance or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/request/cancel:
+    post:
+      summary: Cancel Ride Request
+      description: Cancel pending ride request (state = requested). No penalty for cancelling requests.
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Request cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid request or already accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/requests:
+    get:
+      summary: Get Ride Requests
+      description: Get pending ride requests for driver
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/request/respond:
+    post:
+      summary: Accept or Reject Request
+      description: Driver accepts or rejects pending ride request
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                accept:
+                  type: boolean
+              required:
+                - connectionId
+                - accept
+      responses:
+        '200':
+          description: Response recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  otpCode:
+                    type: string
+                    description: OTP code for pickup (only if accepted)
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/verify-otp:
+    post:
+      summary: Verify OTP
+      description: Driver verifies passenger OTP at pickup
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                otpCode:
+                  type: string
+              required:
+                - connectionId
+                - otpCode
+      responses:
+        '200':
+          description: OTP verified, ride started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid OTP or connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/cancel:
+    post:
+      summary: Cancel Active Ride
+      description: |
+        Cancel accepted or picked-up ride.
+        Passenger: No penalty
+        Driver: Time-based penalty (0-2min: ₹0, 2-5min: ₹10, 5-10min: ₹20, >10min: ₹50)
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Ride cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  penalty:
+                    type: number
+                    description: Penalty amount charged (driver only)
+        '400':
+          description: Invalid connection or insufficient balance for penalty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/complete:
+    post:
+      summary: Complete Ride
+      description: |
+        Mark ride as completed. Processes payment automatically:
+        - Deducts fare from passenger wallet
+        - Adds fare to driver wallet
+        - Creates transaction records
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Ride completed and payment processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid connection or payment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connection/rate:
+    post:
+      summary: Rate Driver
+      description: Passenger rates driver after ride completion (1-5 stars)
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+              required:
+                - connectionId
+                - rating
+      responses:
+        '200':
+          description: Rating recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Invalid rating or already rated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/connections:
+    get:
+      summary: Get Active Connections
+      description: Get all active ride connections for user (accepted or picked_up)
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/history:
+    get:
+      summary: Get Ride History
+      description: Get completed ride history for user
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Ride history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RideConnection'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/share/create:
+    post:
+      summary: Create Live Ride Share Link
+      description: Generate public tracking link for active ride
+      tags:
+        - Rides
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+              required:
+                - connectionId
+      responses:
+        '200':
+          description: Share link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  shareUrl:
+                    type: string
+                    example: "https://routemate.app/ride-share/abc123"
+        '400':
+          description: Invalid connection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rides/share/details:
+    get:
+      summary: Get Shared Ride Details
+      description: Public endpoint for viewing shared ride details via token
+      tags:
+        - Rides
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ride details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connection:
+                    type: object
+                    properties:
+                      Id:
+                        type: string
+                      State:
+                        $ref: '#/components/schemas/RideConnectionState'
+                      PickupLocation:
+                        $ref: '#/components/schemas/Location'
+                      Destination:
+                        $ref: '#/components/schemas/Location'
+                      Distance:
+                        type: number
+                      Fare:
+                        type: number
+                      CreatedAt:
+                        type: string
+                      RideTotalTime:
+                        type: number
+                  driver:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      vehicleType:
+                        type: string
+                      vehicleName:
+                        type: string
+                      vehicleModel:
+                        type: string
+                      vehicleRegistration:
+                        type: string
+                      ratingAverage:
+                        type: number
+                      ratingCount:
+                        type: number
+                      lastLocation:
+                        $ref: '#/components/schemas/Location'
+                  passenger:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      lastLocation:
+                        $ref: '#/components/schemas/Location'
+                  sharedAt:
+                    type: string
+                  updatedAt:
+                    type: string
+        '404':
+          description: Invalid or expired share token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities:
+    get:
+      summary: List Communities
+      description: Get all communities user belongs to
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User communities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  communities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Community'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/create:
+    post:
+      summary: Create Community
+      description: Create new community (creator becomes admin)
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Community created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  communityId:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/select:
+    post:
+      summary: Select Active Community
+      description: Enable/disable community mode by selecting community
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                communityId:
+                  type: string
+                  nullable: true
+                  description: Community ID to activate, or null to disable
+      responses:
+        '200':
+          description: Community selection updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/invite/create:
+    post:
+      summary: Create Invite Link
+      description: |
+        Generate invite link with expiry (admin only).
+        Expiry options: 1h, 6h, 24h, 72h, 168h
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                communityId:
+                  type: string
+                expiryHours:
+                  type: number
+                  enum: [1, 6, 24, 72, 168]
+              required:
+                - communityId
+                - expiryHours
+      responses:
+        '201':
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inviteUrl:
+                    type: string
+                    example: "https://routemate.app/community/join/abc123"
+        '403':
+          description: Not community admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/invite/accept:
+    post:
+      summary: Accept Invite
+      description: Join community via invite token
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+              required:
+                - token
+      responses:
+        '200':
+          description: Joined community
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  communityId:
+                    type: string
+        '400':
+          description: Invalid or expired invite
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/{communityId}/members:
+    get:
+      summary: List Community Members
+      description: Get all members of a community
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Community members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityMember'
+        '403':
+          description: Not a community member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/communities/{communityId}/members/remove:
+    post:
+      summary: Remove Member
+      description: Remove member from community (admin only)
+      tags:
+        - Community
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+              required:
+                - userId
+      responses:
+        '200':
+          description: Member removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '403':
+          description: Not community admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rewards/list:
+    get:
+      summary: Get Rewards Info
+      description: Get user reward points and available vouchers
+      tags:
+        - Rewards
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Rewards information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passengerPoints:
+                    type: number
+                  driverPoints:
+                    type: number
+                  vouchers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RewardVoucher'
+                  redemptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RewardRedemption'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/rewards/redeem:
+    post:
+      summary: Redeem Voucher
+      description: Redeem voucher with reward points
+      tags:
+        - Rewards
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                voucherId:
+                  type: string
+                role:
+                  $ref: '#/components/schemas/RewardRole'
+              required:
+                - voucherId
+                - role
+      responses:
+        '200':
+          description: Voucher redeemed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  redemptionId:
+                    type: string
+        '400':
+          description: Insufficient points or invalid voucher
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/balance:
+    get:
+      summary: Get Wallet Balance
+      description: Get user's current wallet balance
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: number
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/topup/create-order:
+    post:
+      summary: Create Top-Up Order
+      description: |
+        Create Razorpay order for wallet top-up.
+        **TEMPORARILY DISABLED** - Requires Play Store publication.
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  minimum: 100
+                  maximum: 10000
+              required:
+                - amount
+      responses:
+        '200':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: string
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+        '400':
+          description: Invalid amount
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service temporarily disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/topup/verify:
+    post:
+      summary: Verify Top-Up Payment
+      description: |
+        Verify Razorpay payment and credit wallet.
+        **TEMPORARILY DISABLED** - Requires Play Store publication.
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderId:
+                  type: string
+                paymentId:
+                  type: string
+                signature:
+                  type: string
+              required:
+                - orderId
+                - paymentId
+                - signature
+      responses:
+        '200':
+          description: Payment verified and wallet credited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  balance:
+                    type: number
+        '400':
+          description: Invalid payment or signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/topup/webhook:
+    post:
+      summary: Razorpay Top-Up Webhook
+      description: |
+        Receives payment notifications from Razorpay.
+        **TEMPORARILY DISABLED** - Requires Play Store publication.
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+  /api/wallet/payout/request:
+    post:
+      summary: Request Payout
+      description: |
+        Request withdrawal to UPI ID.
+        **TEMPORARILY DISABLED** - Requires Play Store publication.
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+              required:
+                - amount
+      responses:
+        '200':
+          description: Payout initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  payoutId:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Insufficient balance or missing UPI ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service temporarily disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/upi/update:
+    post:
+      summary: Update UPI ID
+      description: Set or update UPI ID for payouts
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upiId:
+                  type: string
+                  pattern: '^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$'
+                  example: "user@paytm"
+              required:
+                - upiId
+      responses:
+        '200':
+          description: UPI ID updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  upiId:
+                    type: string
+        '400':
+          description: Invalid UPI ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wallet/transactions:
+    get:
+      summary: Get Transaction History
+      description: Get wallet transaction history
+      tags:
+        - Wallet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/kyc/create-session:
+    post:
+      summary: Create KYC Session
+      description: Create Didit KYC verification session
+      tags:
+        - KYC
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: KYC session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  verificationUrl:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: KYC service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/kyc/webhook:
+    post:
+      summary: Didit KYC Webhook
+      description: Receives verification updates from Didit
+      tags:
+        - KYC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Authentication
+    description: User authentication with password and OTP, multiple session support
+  - name: User
+    description: Profile management, location tracking, state updates, vehicle details, profile pictures
+  - name: Discovery
+    description: Intelligent driver-passenger matching with route compatibility
+  - name: Rides
+    description: Complete ride lifecycle - request, accept, OTP verify, cancel, complete, rate, share
+  - name: Community
+    description: Community creation, invite links, member management, scoped discovery
+  - name: Rewards
+    description: Point-based reward system with voucher redemption
+  - name: Wallet
+    description: Internal wallet with Razorpay integration (top-up/payout temporarily disabled)
+  - name: KYC
+    description: KYC verification via Didit with asynchronous webhook updates
