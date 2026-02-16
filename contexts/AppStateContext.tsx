@@ -1,12 +1,12 @@
-import React, { createContext, useState, useContext, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import * as Location from 'expo-location';
 import { Location as LocationType, RideConnection, MarkerData, UserState } from '../types';
 import { api } from '../utils/api';
 import { useAuth } from './AuthContext';
 
 interface AppStateContextType {
-  role: 'driver' | 'passenger';
-  setRole: (role: 'driver' | 'passenger') => void;
+  userState: 'driver' | 'passenger' | 'idle';
+  setUserState: (state: 'driver' | 'passenger' | 'idle') => void;
   activeCommunityId: string | null;
   userLocation: LocationType | null;
   destination: LocationType | null;
@@ -18,21 +18,83 @@ interface AppStateContextType {
   refreshMarkers: () => Promise<MarkerData[]>;
   refreshConnections: () => Promise<void>;
   refreshRequests: () => Promise<void>;
-  updateUserState: (state: UserState, dest?: LocationType | null) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const [role, setRole] = useState<'driver' | 'passenger'>('passenger');
+  const [userState, setUserStateInternal] = useState<'driver' | 'passenger' | 'idle'>('idle');
   const [userLocation, setUserLocation] = useState<LocationType | null>(null);
   const [destination, setDestination] = useState<LocationType | null>(null);
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [activeConnections, setActiveConnections] = useState<RideConnection[]>([]);
   const [pendingRequests, setPendingRequests] = useState<RideConnection[]>([]);
-  const [isActive, setIsActive] = useState(false);
   const activeCommunityId = user?.ActiveCommunityId || null;
+  
+  const isActive = userState !== 'idle';
+
+  // Load user state from database on mount or user change
+  useEffect(() => {
+    if (user?.state) {
+      // Convert DB state to client userState
+      if (user.state === 'driving') {
+        setUserStateInternal('driver');
+      } else if (user.state === 'riding') {
+        setUserStateInternal('passenger');
+      } else {
+        setUserStateInternal('idle');
+      }
+    }
+    if (user?.Destination) {
+      setDestination(user.Destination);
+    }
+  }, [user?.Id, user?.state, user?.Destination]);
+
+  // Persist userState to database when it changes
+  const setUserState = useCallback(async (newState: 'driver' | 'passenger' | 'idle') => {
+    setUserStateInternal(newState);
+    
+    if (isAuthenticated) {
+      try {
+        // Convert client userState to DB state
+        let dbState: UserState;
+        if (newState === 'driver') {
+          dbState = 'driving';
+        } else if (newState === 'passenger') {
+          dbState = 'riding';
+        } else {
+          dbState = 'idle';
+        }
+        await api.updateState(dbState, newState !== 'idle' ? destination : null);
+      } catch (error) {
+        console.error('Failed to update userState:', error);
+      }
+    }
+  }, [isAuthenticated, destination]);
+
+  // Auto-sync destination changes to database when active
+  useEffect(() => {
+    if (!isAuthenticated || !user || userState === 'idle') return;
+
+    const syncDestination = async () => {
+      try {
+        const dbState: UserState = userState === 'driver' ? 'driving' : 'riding';
+        await api.updateState(dbState, destination);
+      } catch (error) {
+        console.error('Failed to sync destination:', error);
+      }
+    };
+
+    syncDestination();
+  }, [destination, isAuthenticated, user, userState]);
+
+  // Clear destination when going idle
+  useEffect(() => {
+    if (userState === 'idle') {
+      setDestination(null);
+    }
+  }, [userState]);
 
   // Location tracking
   useEffect(() => {
@@ -58,7 +120,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             lng: location.coords.longitude,
           };
           setUserLocation(newLocation);
-          
+
           // Update location on server
           api.updateLocation(newLocation.lat, newLocation.lng).catch((error) => {
             console.error('Failed to update location:', error);
@@ -74,31 +136,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]);
 
-  // Polling for updates
-  useEffect(() => {
-    if (!isAuthenticated || !userLocation) return;
-
-    const interval = setInterval(async () => {
-      try {
-        await Promise.all([
-          refreshMarkers(),
-          refreshConnections(),
-          role === 'driver' && refreshRequests(),
-        ].filter(Boolean));
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, userLocation, role, destination, activeCommunityId]);
-
-  async function refreshMarkers(): Promise<MarkerData[]> {
-    if (!userLocation) return [];
+  const refreshMarkers = useCallback(async (): Promise<MarkerData[]> => {
+    if (!userLocation || userState === 'idle') return [];
     
     try {
       const { markers: newMarkers } = await api.getMarkers(
-        role,
+        userState,
         userLocation.lat,
         userLocation.lng
       );
@@ -108,44 +151,49 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       console.error('Failed to refresh markers:', error);
       return [];
     }
-  }
+  }, [userLocation, userState]);
 
-  async function refreshConnections() {
+  const refreshConnections = useCallback(async () => {
     try {
       const { connections } = await api.getConnections();
       setActiveConnections(connections);
     } catch (error) {
       console.error('Failed to refresh connections:', error);
     }
-  }
+  }, []);
 
-  async function refreshRequests() {
+  const refreshRequests = useCallback(async () => {
     try {
       const { requests } = await api.getRequests();
       setPendingRequests(requests);
     } catch (error) {
       console.error('Failed to refresh requests:', error);
     }
-  }
+  }, []);
 
-  async function updateUserState(state: UserState, dest?: LocationType | null) {
-    try {
-      await api.updateState(state, dest);
-      setIsActive(state !== 'idle');
-      if (state === 'idle') {
-        setDestination(null);
+  // Polling for updates - only when user is active (driving or riding)
+  useEffect(() => {
+    if (!isAuthenticated || !userLocation || !isActive) return;
+
+    const interval = setInterval(async () => {
+      try {
+        await Promise.all([
+          refreshMarkers(),
+          refreshConnections(),
+          userState === 'driver' && refreshRequests(),
+        ].filter(Boolean));
+      } catch (error) {
+        console.error('Polling error:', error);
       }
-    } catch (error) {
-      console.error('Failed to update state:', error);
-      throw error;
-    }
-  }
+    }, 5000); // Poll every 5 seconds
 
+    return () => clearInterval(interval);
+  }, [isAuthenticated, userLocation, isActive, userState, refreshMarkers, refreshConnections, refreshRequests]);
 
   const contextValue = useMemo(
     () => ({
-      role,
-      setRole,
+      userState,
+      setUserState,
       activeCommunityId,
       userLocation,
       destination,
@@ -157,9 +205,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       refreshMarkers,
       refreshConnections,
       refreshRequests,
-      updateUserState,
     }),
-    [role, activeCommunityId, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests, updateUserState]
+    [userState, setUserState, activeCommunityId, userLocation, destination, markers, activeConnections, pendingRequests, isActive, refreshMarkers, refreshConnections, refreshRequests]
   );
 
   return (

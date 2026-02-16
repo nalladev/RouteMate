@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -39,8 +39,8 @@ export default function HomeScreen() {
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const {
-    role,
-    setRole,
+    userState,
+    setUserState,
     userLocation,
     destination,
     setDestination,
@@ -48,7 +48,6 @@ export default function HomeScreen() {
     activeConnections,
     pendingRequests,
     isActive,
-    updateUserState,
     refreshMarkers,
     refreshConnections,
     refreshRequests,
@@ -57,11 +56,9 @@ export default function HomeScreen() {
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
-  const [activeRequest, setActiveRequest] = useState<RideConnection | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
-  const [currentRequest, setCurrentRequest] = useState<RideConnection | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
   const [ratingConnection, setRatingConnection] = useState<RideConnection | null>(null);
   const [selectedRating, setSelectedRating] = useState<number>(0);
@@ -89,6 +86,27 @@ export default function HomeScreen() {
 
   // Test User Panel state
   const [showTestPanel, setShowTestPanel] = useState(false);
+  // Derive activeRequest from activeConnections (no duplicate state)
+  const activeRequest = useMemo(() => {
+    if (activeConnections.length === 0) return null;
+
+    const myConnection = activeConnections.find(
+      (c) =>
+        (c.PassengerId === user?.Id || c.DriverId === user?.Id) &&
+        c.State !== 'cancelled' &&
+        c.State !== 'rejected' &&
+        c.State !== 'completed'
+    );
+    return myConnection || null;
+  }, [activeConnections, user?.Id]);
+
+  // Derive currentRequest from pendingRequests (no duplicate state)
+  const currentRequest = useMemo(() => {
+    if (userState === 'driver' && pendingRequests.length > 0) {
+      return pendingRequests[0];
+    }
+    return null;
+  }, [pendingRequests, userState]);
 
   const checkForPendingRating = useCallback(async () => {
     if (!user || ratingConnection) return;
@@ -120,31 +138,16 @@ export default function HomeScreen() {
     }
   }, [isAuthenticated]);
 
+  // Show request popup when currentRequest becomes available
   useEffect(() => {
-    if (role === 'driver' && pendingRequests.length > 0) {
-      setCurrentRequest(pendingRequests[0]);
+    if (currentRequest) {
       setShowRequestPopup(true);
     }
-  }, [pendingRequests, role]);
-
-  useEffect(() => {
-    if (activeConnections.length > 0) {
-      const myConnection = activeConnections.find(
-        (c) => 
-          (c.PassengerId === user?.Id || c.DriverId === user?.Id) &&
-          c.State !== 'cancelled' && 
-          c.State !== 'rejected' && 
-          c.State !== 'completed'
-      );
-      setActiveRequest(myConnection || null);
-    } else {
-      setActiveRequest(null);
-    }
-  }, [activeConnections, user]);
+  }, [currentRequest]);
 
   useEffect(() => {
     async function maybePromptRating() {
-      if (!user || role !== 'passenger') return;
+      if (!user || userState !== 'passenger') return;
       if (previousActiveRequestIdRef.current && !activeRequest) {
         await checkForPendingRating();
       }
@@ -153,7 +156,7 @@ export default function HomeScreen() {
     maybePromptRating();
 
     // Check for rejected requests (passenger only)
-    if (role === 'passenger') {
+    if (userState === 'passenger') {
       const hadRequestBefore = previousActiveRequestIdRef.current !== null;
       const hasRequestNow = activeRequest !== null;
       const wasInRequestedState = previousActiveRequestStateRef.current === 'requested';
@@ -171,25 +174,21 @@ export default function HomeScreen() {
       const wasInActiveRide = previousActiveRequestStateRef.current === 'picked_up';
       if (hadRequestBefore && !hasRequestNow && wasInActiveRide && isActive) {
         // Ride just completed, exit active mode automatically for passenger
-        updateUserState('idle', null).then(() => {
-          setDestination(null);
-          setRouteCoordinates([]);
-          setSearchQuery('');
-          setIsPanicMode(false);
-        }).catch((error) => {
-          console.error('Failed to exit active mode after ride completion:', error);
-        });
+        setUserState('idle');
+        setRouteCoordinates([]);
+        setSearchQuery('');
+        setIsPanicMode(false);
       }
     }
 
     // Update previous state reference
     previousActiveRequestStateRef.current = activeRequest?.State || null;
-  }, [activeRequest, role, user, checkForPendingRating, isActive, updateUserState, setDestination]);
+  }, [activeRequest, userState, user, checkForPendingRating, isActive, setDestination, setUserState]);
 
   useEffect(() => {
-    if (!user || role !== 'passenger') return;
+    if (!user || userState !== 'passenger') return;
     checkForPendingRating();
-  }, [role, user, checkForPendingRating]);
+  }, [userState, user, checkForPendingRating]);
 
   useEffect(() => {
     if (user?.VehicleType) {
@@ -218,7 +217,7 @@ export default function HomeScreen() {
   // Calculate trip estimate when marker is selected (passenger preview)
   useEffect(() => {
     async function calculateEstimate() {
-      if (selectedMarker && role === 'passenger' && userLocation && destination) {
+      if (selectedMarker && userState === 'passenger' && userLocation && destination) {
         setIsCalculatingEstimate(true);
         const estimate = await getTripEstimate(
           userLocation,
@@ -233,7 +232,7 @@ export default function HomeScreen() {
     }
 
     calculateEstimate();
-  }, [selectedMarker, role, userLocation, destination]);
+  }, [selectedMarker, userState, userLocation, destination]);
 
   // Reset trip estimate when marker is deselected
   useEffect(() => {
@@ -299,8 +298,7 @@ export default function HomeScreen() {
       }
     }
 
-    // Set the role first
-    setRole(selectedMode);
+    // Note: We'll set userState after all validations pass
 
     // Check KYC for both modes - now mandatory
     if (!user?.IsKycVerified) {
@@ -380,12 +378,9 @@ export default function HomeScreen() {
     if (!tempDestination || !userLocation) return;
 
     try {
-      // Set destination
+      // Set destination and userState
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
-
-      // Update user state to active mode first (so UI updates)
-      const state = selectedMode === 'driver' ? 'driving' : 'riding';
-      await updateUserState(state, { lat: tempDestination.lat, lng: tempDestination.lng });
+      setUserState(selectedMode);
 
       // Clear temporary state to show active mode UI
       setTempDestination(null);
@@ -480,7 +475,7 @@ export default function HomeScreen() {
     }
 
     // Prevent exiting if passenger has an active request
-    if (role === 'passenger' && activeRequest) {
+    if (userState === 'passenger' && activeRequest) {
       Alert.alert(
         'Cannot Exit Active Mode',
         'You have an active ride request. Please cancel it first or wait for it to complete.'
@@ -498,8 +493,7 @@ export default function HomeScreen() {
             setIsExitingActive(true);
             setIsLoadingRoute(true);
 
-            await updateUserState('idle', null);
-            setDestination(null);
+            setUserState('idle');
             setRouteCoordinates([]);
             setSearchQuery('');
             setIsPanicMode(false);
@@ -551,6 +545,12 @@ export default function HomeScreen() {
   async function handleRequestRide(marker: MarkerData) {
     if (!userLocation || !destination) return;
 
+    // Prevent requesting ride from yourself
+    if (marker.userId === user?.Id) {
+      Alert.alert('Error', 'You cannot request a ride from yourself');
+      return;
+    }
+
     const minBalance = 150; // ₹150 minimum balance
     if (balance < minBalance) {
       Alert.alert(
@@ -582,7 +582,6 @@ export default function HomeScreen() {
         onPress: async () => {
           try {
             await api.cancelRequest(activeRequest.Id);
-            setActiveRequest(null);
             Alert.alert('Success', 'Request cancelled');
             // Refresh connections to remove cancelled request from active list
             await refreshConnections();
@@ -595,10 +594,11 @@ export default function HomeScreen() {
     ]);
   }
 
-  async function handleCancelConnection() {
-    if (!activeRequest) return;
+  async function handleCancelConnection(connection?: RideConnection) {
+    const connToCancel = connection || activeRequest;
+    if (!connToCancel) return;
 
-    const isDriver = role === 'driver';
+    const isDriver = userState === 'driver';
     const warningMessage = isDriver
       ? 'Cancelling may result in a penalty based on time since acceptance:\n\n• 0-2 min: ₹0\n• 2-5 min: ₹10\n• 5-10 min: ₹20\n• >10 min: ₹50\n\nAre you sure?'
       : 'Are you sure you want to cancel this ride?';
@@ -610,8 +610,7 @@ export default function HomeScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const result = await api.cancelConnection(activeRequest.Id);
-            setActiveRequest(null);
+            const result = await api.cancelConnection(connToCancel.Id);
 
             if (result.penalty > 0) {
               Alert.alert(
@@ -623,11 +622,11 @@ export default function HomeScreen() {
               Alert.alert('Success', result.message);
             }
 
-            
+
             // Refresh connections to remove cancelled ride from active list
             await refreshConnections();
             await refreshRequests();
-            
+
             // Refresh user data to update balance if penalty was charged
             if (isDriver) {
               await refreshUser();
@@ -646,7 +645,6 @@ export default function HomeScreen() {
     try {
       await api.respondToRequest(currentRequest.Id, action);
       setShowRequestPopup(false);
-      setCurrentRequest(null);
       Alert.alert('Success', `Request ${action}`);
       // Refresh connections to remove rejected rides from active list
       await refreshConnections();
@@ -672,7 +670,6 @@ export default function HomeScreen() {
       const { fare, paymentStatus, passengerPointsAwarded } = await api.completeRide(connectionId);
       const pointsLine = passengerPointsAwarded ? `\nYou earned ${passengerPointsAwarded} passenger points.` : '';
       Alert.alert('Ride Completed', `Payment ${paymentStatus}! Fare: ₹${fare.toFixed(2)}${pointsLine}`);
-      setActiveRequest(null);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
@@ -785,7 +782,7 @@ export default function HomeScreen() {
         {isActive && markers.map((marker) => {
           // If user is a passenger, markers show drivers (blue)
           // If user is a driver, markers show passengers (green)
-          const markerIsDriver = role === 'passenger';
+          const markerIsDriver = userState === 'passenger';
           const markerTitle = markerIsDriver
             ? `${marker.name} (Driver)`
             : `${marker.name} (Passenger)`;
@@ -862,7 +859,7 @@ export default function HomeScreen() {
           <View style={[styles.destinationDisplay, { backgroundColor: colors.card }]}>
             <View style={styles.destinationTextContainer}>
               <Text style={[styles.destinationPrefix, { color: colors.textSecondary }]}>
-                {role === 'driver' ? 'Driving to' : 'Going to'}
+                {userState === 'driver' ? 'Driving to' : 'Going to'}
               </Text>
               <Text style={[styles.destinationText, { color: colors.text }]} numberOfLines={1}>
                 {searchQuery || 'Destination'}
@@ -956,7 +953,7 @@ export default function HomeScreen() {
       )}
 
       {/* Selected marker detail (passenger view in active mode) */}
-      {selectedMarker && role === 'passenger' && isActive && (
+      {selectedMarker && userState === 'passenger' && isActive && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <View style={styles.bottomSheetTitleContainer}>
@@ -1111,7 +1108,7 @@ export default function HomeScreen() {
       )}
 
       {/* Active request pane */}
-      {activeRequest && role === 'passenger' && !isMinimized && (
+      {activeRequest && userState === 'passenger' && !isMinimized && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
@@ -1207,7 +1204,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
           {activeRequest.State === 'accepted' && (
-            <TouchableOpacity style={[styles.cancelButton, { backgroundColor: colors.error }]} onPress={handleCancelConnection}>
+            <TouchableOpacity style={[styles.cancelButton, { backgroundColor: colors.error }]} onPress={() => handleCancelConnection()}>
               <Text style={styles.cancelButtonText}>Cancel Ride</Text>
             </TouchableOpacity>
           )}
@@ -1476,7 +1473,7 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Connection Manager for drivers */}
-      {role === 'driver' && activeConnections.length > 0 && isActive && (
+      {userState === 'driver' && activeConnections.length > 0 && isActive && (
         <View style={[styles.connectionManager, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <Text style={[styles.connectionTitle, { color: colors.text }]}>Active Connections</Text>
           <ScrollView style={styles.connectionList}>
@@ -1512,10 +1509,7 @@ export default function HomeScreen() {
                 {(conn.State === 'accepted' || conn.State === 'picked_up') && (
                   <TouchableOpacity
                     style={[styles.acceptButton, { backgroundColor: colors.success }]}
-                    onPress={() => {
-                      setActiveRequest(conn);
-                      handleCancelConnection();
-                    }}
+                    onPress={() => handleCancelConnection(conn)}
                   >
                     <Text style={styles.cancelButtonText}>Cancel Ride</Text>
                   </TouchableOpacity>

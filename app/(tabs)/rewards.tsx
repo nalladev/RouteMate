@@ -32,11 +32,13 @@ interface RewardsPayload {
 export default function RewardsScreen() {
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
-  const { role } = useAppState();
+  const { userState } = useAppState();
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
-  const [selectedRole, setSelectedRole] = useState<RewardRole>(role);
+  const [selectedRole, setSelectedRole] = useState<RewardRole>(
+    userState === 'driver' ? 'driver' : 'passenger'
+  );
   const [rewards, setRewards] = useState<RewardsPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRedeemingVoucherId, setIsRedeemingVoucherId] = useState<string | null>(null);
@@ -65,8 +67,9 @@ export default function RewardsScreen() {
   }, []);
 
   useEffect(() => {
-    setSelectedRole(role);
-  }, [role]);
+    // When userState changes, update selected role (idle defaults to passenger)
+    setSelectedRole(userState === 'driver' ? 'driver' : 'passenger');
+  }, [userState]);
 
   useEffect(() => {
     if (!isAuthenticated) {
