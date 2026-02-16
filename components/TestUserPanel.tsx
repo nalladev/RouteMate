@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -78,26 +78,27 @@ export function TestUserPanel({
     warning: '#FF9500',
   };
 
-  useEffect(() => {
-    if (visible) {
-      setInitialLoading(true);
-      checkTestUserStatus().finally(() => setInitialLoading(false));
-    }
-  }, [visible]);
-
-  useEffect(() => {
-    return () => {
-      if (updateInterval) {
-        clearInterval(updateInterval);
-      }
-    };
-  }, [updateInterval]);
-
-  const checkTestUserStatus = async () => {
+  const fetchConnectionRequests = useCallback(async () => {
+    setLoadingRequests(true);
     try {
-      console.log('[BackendTestUserPanel] Checking test user status...');
+      const requestsResponse = await api.getRequests(true);
+      setConnectionRequests(requestsResponse.requests || []);
+
+      const connectionsResponse = await api.getConnections(true);
+      setAcceptedConnections(connectionsResponse.connections || []);
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to fetch requests:', error);
+      Alert.alert('Error', `Failed to fetch requests: ${error.message || 'Unknown error'}`);
+      setConnectionRequests([]);
+      setAcceptedConnections([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }, []);
+
+  const checkTestUserStatus = useCallback(async () => {
+    try {
       const response = await api.testGetStatus();
-      console.log('[BackendTestUserPanel] Status response:', JSON.stringify(response, null, 2));
       setTestUserActive(response.exists);
       setTestUserInfo(response.user || null);
 
@@ -113,7 +114,6 @@ export function TestUserPanel({
         );
         if (matchedLocation) {
           setSelectedLocation(matchedLocation[0]);
-          console.log('[BackendTestUserPanel] Restored location selection:', matchedLocation[0]);
         }
       }
 
@@ -124,13 +124,8 @@ export function TestUserPanel({
         );
         if (matchedDestination) {
           setSelectedDestination(matchedDestination[0]);
-          console.log('[BackendTestUserPanel] Restored destination selection:', matchedDestination[0]);
         }
       }
-
-      console.log('[BackendTestUserPanel] Test user active:', response.exists);
-      console.log('[BackendTestUserPanel] Test user state:', response.user?.state);
-      console.log('[BackendTestUserPanel] Should show connection requests:', response.exists && response.user?.state === 'driving');
 
       // Auto-fetch connection requests if user is a driver (state: 'driving')
       if (response.exists && response.user?.state === 'driving') {
@@ -146,36 +141,26 @@ export function TestUserPanel({
       setConnectionRequests([]);
       setAcceptedConnections([]);
     }
-  };
+  }, [fetchConnectionRequests]);
 
-  const fetchConnectionRequests = async () => {
-    setLoadingRequests(true);
-    try {
-      console.log('[TestUserPanel] Fetching connection requests...');
-      const requestsResponse = await api.getRequests(true);
-      console.log('[TestUserPanel] Requests response:', requestsResponse);
-      console.log('[TestUserPanel] Number of requests:', requestsResponse.requests?.length || 0);
-      setConnectionRequests(requestsResponse.requests || []);
-
-      console.log('[TestUserPanel] Fetching accepted connections...');
-      const connectionsResponse = await api.getConnections(true);
-      console.log('[TestUserPanel] Connections response:', connectionsResponse);
-      console.log('[TestUserPanel] Number of connections:', connectionsResponse.connections?.length || 0);
-      setAcceptedConnections(connectionsResponse.connections || []);
-    } catch (error: any) {
-      console.error('[TestUserPanel] Failed to fetch requests:', error);
-      Alert.alert('Error', `Failed to fetch requests: ${error.message || 'Unknown error'}`);
-      setConnectionRequests([]);
-      setAcceptedConnections([]);
-    } finally {
-      setLoadingRequests(false);
+  useEffect(() => {
+    if (visible) {
+      setInitialLoading(true);
+      checkTestUserStatus().finally(() => setInitialLoading(false));
     }
-  };
+  }, [visible, checkTestUserStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
+  }, [updateInterval]);
 
   const handleAcceptRequest = async (requestId: string) => {
     setLoadingRequests(true);
     try {
-      console.log('[TestUserPanel] Accepting request:', requestId);
       await api.respondToRequest(requestId, 'accepted', true);
       Alert.alert('Success', 'Request accepted');
       await fetchConnectionRequests();
@@ -191,7 +176,6 @@ export function TestUserPanel({
   const handleRejectRequest = async (requestId: string) => {
     setLoadingRequests(true);
     try {
-      console.log('[TestUserPanel] Rejecting request:', requestId);
       await api.respondToRequest(requestId, 'rejected', true);
       Alert.alert('Success', 'Request rejected');
       await fetchConnectionRequests();
@@ -210,9 +194,7 @@ export function TestUserPanel({
       return;
     }
 
-    setVerifyingOtp({ ...verifyingOtp, [connectionId]: true });
     try {
-      console.log('[TestUserPanel] Verifying OTP for connection:', connectionId);
       await api.verifyOtp(connectionId, otp, true);
       Alert.alert('Success', 'OTP verified! Passenger picked up.');
       setOtpInputs({ ...otpInputs, [connectionId]: '' });
@@ -226,9 +208,8 @@ export function TestUserPanel({
   };
 
   const handleCompleteRide = async (connectionId: string) => {
-    setCompletingRide({ ...completingRide, [connectionId]: true });
+    setLoadingRequests(true);
     try {
-      console.log('[TestUserPanel] Completing ride:', connectionId);
       const result = await api.completeRide(connectionId, true);
       const pointsLine = result.passengerPointsAwarded ? `\nYou earned ${result.passengerPointsAwarded} passenger points.` : '';
       Alert.alert('Success', `Ride completed! Payment ${result.paymentStatus}. Fare: ₹${result.fare.toFixed(2)}${pointsLine}`);
@@ -245,7 +226,6 @@ export function TestUserPanel({
   const handleSpawnUser = async (profileKey: string, destinationKey?: string) => {
     setLoading(true);
     try {
-      console.log('[BackendTestUserPanel] Spawning user:', profileKey, destinationKey);
       const profile = TEST_PROFILES[profileKey as keyof typeof TEST_PROFILES];
 
       let destination = 'destination' in profile ? profile.destination : undefined;
@@ -256,22 +236,19 @@ export function TestUserPanel({
         destination = destLocation;
       }
 
-      console.log('[BackendTestUserPanel] Calling testSpawnUser API...');
-      const spawnResponse = await api.testSpawnUser({
+      await api.testSpawnUser({
         name: profile.name,
         role: profile.role,
         location: profile.location,
-        destination: destination,
+        destination,
         vehicleType: 'vehicleType' in profile ? profile.vehicleType : undefined,
         vehicleName: 'vehicleName' in profile ? profile.vehicleName : undefined,
         vehicleModel: 'vehicleModel' in profile ? profile.vehicleModel : undefined,
         vehicleRegistration: 'vehicleRegistration' in profile ? profile.vehicleRegistration : undefined,
       });
-      console.log('[BackendTestUserPanel] Spawn response:', spawnResponse);
 
       // Set the user to active state
       const state = profile.role === 'driver' ? 'driving' : 'riding';
-      console.log('[BackendTestUserPanel] Setting state:', state);
       await api.testSetState(state, destination);
 
       await checkTestUserStatus();
@@ -332,7 +309,6 @@ export function TestUserPanel({
 
   const startAutoMovement = async () => {
     if (!testUserInfo?.location || !testUserInfo?.destination) {
-      console.error('[TestUserPanel] No location or destination for auto-movement');
       return;
     }
 
@@ -367,9 +343,8 @@ export function TestUserPanel({
       const nextLocation = routePoints[currentIndex];
       try {
         await api.testUpdateLocation(nextLocation);
-        await checkTestUserStatus();
-      } catch (error) {
-        console.error('Auto-movement update failed:', error);
+      } catch {
+        // Silently fail auto-movement updates
       }
     }, 3000); // Update every 3 seconds
 
