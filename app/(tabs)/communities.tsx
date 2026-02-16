@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { type CommunityInvitePresetHours } from '@/constants/community';
 import { Colors, Shadow } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppState } from '@/contexts/AppStateContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Community, CommunityMember } from '@/types';
 import { api } from '@/utils/api';
@@ -21,6 +22,7 @@ import { api } from '@/utils/api';
 export default function CommunitiesScreen() {
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
+  const { activeCommunityId } = useAppState();
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
@@ -28,7 +30,7 @@ export default function CommunitiesScreen() {
   const [creating, setCreating] = useState(false);
   const [creatingInviteId, setCreatingInviteId] = useState<string | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
+
   const [newCommunityName, setNewCommunityName] = useState('');
 
   const [inviteByCommunityId, setInviteByCommunityId] = useState<
@@ -55,7 +57,6 @@ export default function CommunitiesScreen() {
       setLoading(true);
       const result = await api.getCommunities();
       setCommunities(result.communities || []);
-      setActiveCommunityId(result.activeCommunityId || null);
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'Failed to load communities');
     } finally {

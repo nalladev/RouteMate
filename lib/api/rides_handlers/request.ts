@@ -49,6 +49,14 @@ export async function handleRequest(request: Request) {
       );
     }
 
+    // Prevent self-referential connections
+    if (driverId === user.Id) {
+      return Response.json(
+        { error: 'You cannot request a ride from yourself' },
+        { status: 400 }
+      );
+    }
+
     // Calculate estimated fare first
     const distance = calculateDistance(
       pickupLocation.lat,

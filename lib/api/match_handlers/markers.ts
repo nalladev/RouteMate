@@ -170,6 +170,11 @@ async function getFilteredPassengers(
   const passengers: MarkerData[] = [];
 
   for (const connection of activeConnections) {
+    // Skip if passenger is the same as driver (prevent self-referential connections)
+    if (connection.PassengerId === driverId) {
+      continue;
+    }
+
     if (memberSet && !memberSet.has(connection.PassengerId)) {
       continue;
     }
@@ -246,7 +251,7 @@ export async function handleMarkers(request: Request) {
       markers = await getFilteredPassengers(user.Id, activeCommunityId, memberSet);
     }
 
-    console.log(`${user.Name} as ${role} requesting ${role === 'passenger' ? 'driver' : 'passenger'} Markers:`, markers);
+    // console.log(`${user.Name} as ${role} requesting ${role === 'passenger' ? 'driver' : 'passenger'} Markers:`, markers);
 
     return Response.json({ markers });
   } catch (error) {
