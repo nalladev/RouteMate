@@ -1,11 +1,4 @@
-export type KycStatus =
-  | 'not_started'
-  | 'session_created'
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'failed';
+export type KycStatus = string;
 
 export interface ExtractedKycProfile {
   name: string;
@@ -21,18 +14,9 @@ export function hasKycProfileData(sessionData: any): boolean {
 }
 
 export function normalizeDiditStatus(status: string | null | undefined): KycStatus {
+  // Just normalize the status string - lowercase and replace spaces with underscores
   const normalized = (status || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
-
-  if (!normalized) return 'submitted';
-
-  if (['approved', 'verified', 'completed'].includes(normalized)) return 'approved';
-  if (['rejected', 'declined', 'failed', 'denied'].includes(normalized)) return 'rejected';
-  if (['under_review', 'manual_review', 'in_review', 'review'].includes(normalized)) return 'under_review';
-  if (['pending', 'processing', 'in_progress', 'created', 'session_created'].includes(normalized)) {
-    return 'submitted';
-  }
-
-  return 'submitted';
+  return normalized || 'not_started';
 }
 
 export function isApprovedKycStatus(status: KycStatus): boolean {

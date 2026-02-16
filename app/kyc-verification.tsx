@@ -24,16 +24,14 @@ export default function KYCVerificationScreen() {
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
   const currentKycStatus = user?.KycStatus || user?.KycData?.status || 'not_started';
-  const hasPendingReview =
-    !user?.IsKycVerified &&
-    ['session_created', 'submitted', 'under_review'].includes(currentKycStatus);
 
   // Create Didit verification session via backend
   async function createVerificationSession() {
-    if (hasPendingReview) {
+    // Only prevent if already approved
+    if (user?.IsKycVerified) {
       Alert.alert(
-        'Verification Already Submitted',
-        'Your verification is already in review. We will update your status automatically once the result is available.'
+        'Already Verified',
+        'Your identity has already been verified.'
       );
       return;
     }
@@ -166,11 +164,11 @@ export default function KYCVerificationScreen() {
           </Text>
         </View>
 
-        {hasPendingReview && (
-          <View style={[styles.pendingNote, { backgroundColor: colors.warning + '22', borderColor: colors.warning }]}>
-            <Text style={[styles.pendingTitle, { color: colors.warning }]}>Verification in progress</Text>
-            <Text style={[styles.pendingText, { color: colors.warning }]}>
-              Your KYC is currently under review. You do not need to submit again.
+        {!user?.IsKycVerified && currentKycStatus !== 'not_started' && currentKycStatus !== 'approved' && (
+          <View style={[styles.pendingNote, { backgroundColor: colors.info + '22', borderColor: colors.info }]}>
+            <Text style={[styles.pendingTitle, { color: colors.info }]}>Current Status: {currentKycStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>
+            <Text style={[styles.pendingText, { color: colors.info }]}>
+              You can start a new verification anytime. Your latest submission will be used.
             </Text>
           </View>
         )}

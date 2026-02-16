@@ -328,15 +328,19 @@ export default function AccountScreen() {
       return { label: '✓ Verified', color: colors.success, bgColor: colors.success + '20' };
     }
 
-    if (status === 'under_review' || status === 'submitted' || status === 'session_created') {
+    if (status === 'in_progress') {
+      return { label: 'In Progress', color: colors.info, bgColor: colors.info + '20' };
+    }
+
+    if (status === 'in_review' || status === 'under_review' || status === 'submitted' || status === 'session_created') {
       return { label: 'Under Review', color: colors.warning, bgColor: colors.warning + '20' };
     }
 
-    if (status === 'rejected' || status === 'failed') {
+    if (status === 'declined' || status === 'rejected' || status === 'failed' || status === 'abandoned') {
       return { label: 'Rejected', color: colors.error, bgColor: colors.error + '20' };
     }
 
-    return { label: 'Not Verified', color: colors.warning, bgColor: colors.warning + '20' };
+    return { label: 'Not Verified', color: colors.textSecondary, bgColor: colors.backgroundSecondary };
   }
 
   if (isLoading) {
@@ -355,7 +359,7 @@ export default function AccountScreen() {
   }
 
   const kycDisplay = getKycDisplayStatus(currentUser);
-  const canShowVerifyButton = !currentUser.IsKycVerified && kycDisplay.label !== 'Under Review';
+  const canShowVerifyButton = !currentUser.IsKycVerified;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
