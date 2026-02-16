@@ -7,7 +7,6 @@ import { handleRequestRespond } from '../../../lib/api/rides_handlers/request-re
 import { handleShareCreate } from '../../../lib/api/rides_handlers/share-create';
 import { handleShareDetails } from '../../../lib/api/rides_handlers/share-details';
 import { handleConnectionComplete } from '../../../lib/api/rides_handlers/connection-complete';
-import { handleConnectionConfirmVehicle } from '../../../lib/api/rides_handlers/connection-confirm-vehicle';
 import { handleConnectionVerifyOtp } from '../../../lib/api/rides_handlers/connection-verify-otp';
 import { handleConnectionRate } from '../../../lib/api/rides_handlers/connection-rate';
 import { handleConnectionCancel } from '../../../lib/api/rides_handlers/connection-cancel';
@@ -55,8 +54,6 @@ export async function POST(request: Request, { path }: { path: string[] }) {
         return await handleShareCreate(request);
       case 'connection/complete':
         return await handleConnectionComplete(request);
-      case 'connection/confirm-vehicle':
-        return await handleConnectionConfirmVehicle(request);
       case 'connection/verify-otp':
         return await handleConnectionVerifyOtp(request);
       case 'connection/rate':

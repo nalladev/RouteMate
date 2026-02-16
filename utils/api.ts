@@ -241,13 +241,6 @@ export const api = {
     });
   },
 
-  confirmVehicle: async (connectionId: string, isSameVehicle: boolean): Promise<{ success: boolean; confirmation: 'confirmed' | 'mismatch' }> => {
-    return request('/api/rides/connection/confirm-vehicle', {
-      method: 'POST',
-      body: JSON.stringify({ connectionId, isSameVehicle }),
-    });
-  },
-
   completeRide: async (connectionId: string): Promise<{
     success: boolean;
     paymentStatus: string;
@@ -386,6 +379,8 @@ export const api = {
       body: JSON.stringify({ imageBase64 }),
     });
   },
+
+
 
 };
 

@@ -30,13 +30,23 @@ export async function handleHistory(request: Request) {
 
   // Sort by completion date (most recent first)
   completedRides.sort((a: any, b: any) => {
-    const dateA = a.CompletedAt ? new Date(a.CompletedAt).getTime() : 0;
-    const dateB = b.CompletedAt ? new Date(b.CompletedAt).getTime() : 0;
+    const dateA = a.CompletedAt?.toDate ? a.CompletedAt.toDate().getTime() : (a.CompletedAt ? new Date(a.CompletedAt).getTime() : 0);
+    const dateB = b.CompletedAt?.toDate ? b.CompletedAt.toDate().getTime() : (b.CompletedAt ? new Date(b.CompletedAt).getTime() : 0);
     return dateB - dateA;
   });
 
+  // Convert Firestore Timestamps to ISO strings for JSON serialization
+  const serializedRides = completedRides.map((ride: any) => ({
+    ...ride,
+    CreatedAt: ride.CreatedAt?.toDate ? ride.CreatedAt.toDate().toISOString() : ride.CreatedAt,
+    CompletedAt: ride.CompletedAt?.toDate ? ride.CompletedAt.toDate().toISOString() : ride.CompletedAt,
+    AcceptedAt: ride.AcceptedAt?.toDate ? ride.AcceptedAt.toDate().toISOString() : ride.AcceptedAt,
+    CancelledAt: ride.CancelledAt?.toDate ? ride.CancelledAt.toDate().toISOString() : ride.CancelledAt,
+    DriverRatedAt: ride.DriverRatedAt?.toDate ? ride.DriverRatedAt.toDate().toISOString() : ride.DriverRatedAt,
+  }));
+
   return Response.json({
-    rides: completedRides,
+    rides: serializedRides,
   });
 }
 export default function Handler() { return null; }

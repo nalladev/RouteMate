@@ -138,7 +138,6 @@ export async function handleRequest(request: Request) {
       RequestedVehicleName: driver.VehicleName,
       RequestedVehicleModel: driver.VehicleModel,
       RequestedVehicleRegistration: driver.VehicleRegistration,
-      PassengerVehicleConfirmation: 'pending',
       CommunityId: communityId,
       State: 'requested',
       PaymentStatus: 'pending',
