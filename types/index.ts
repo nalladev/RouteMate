@@ -59,6 +59,7 @@ export interface User {
   PassengerRewardPoints?: number;
   DriverRewardPoints?: number;
   ActiveCommunityId?: string | null;
+  PushToken?: string;
 }
 
 export type RideConnectionState = 'requested' | 'accepted' | 'rejected' | 'picked_up' | 'completed' | 'cancelled';
