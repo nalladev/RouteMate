@@ -53,17 +53,6 @@ export async function handleConnectionVerifyOtp(request: Request) {
     );
   }
 
-  if (connection.RequestedVehicleType && connection.PassengerVehicleConfirmation !== 'confirmed') {
-    const message =
-      connection.PassengerVehicleConfirmation === 'mismatch'
-        ? 'Passenger reported a vehicle mismatch. Resolve before pickup.'
-        : 'Passenger must confirm the vehicle before pickup.';
-    return Response.json(
-      { error: message },
-      { status: 400 }
-    );
-  }
-
   if (connection.OtpCode !== otp) {
     return Response.json(
       { error: 'Invalid OTP code' },

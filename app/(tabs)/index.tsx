@@ -66,6 +66,7 @@ export default function HomeScreen() {
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [isExitingActive, setIsExitingActive] = useState(false);
   const previousActiveRequestIdRef = useRef<string | null>(null);
+  const previousActiveRequestStateRef = useRef<string | null>(null);
 
   // New state for mode selection flow
   const [tempDestination, setTempDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
@@ -80,6 +81,7 @@ export default function HomeScreen() {
   // Trip estimate state for passenger preview
   const [tripEstimate, setTripEstimate] = useState<TripEstimate | null>(null);
   const [isCalculatingEstimate, setIsCalculatingEstimate] = useState(false);
+  const [isRequestingRide, setIsRequestingRide] = useState(false);
 
   const checkForPendingRating = useCallback(async () => {
     if (!user || ratingConnection) return;
@@ -137,9 +139,41 @@ export default function HomeScreen() {
       }
       previousActiveRequestIdRef.current = activeRequest?.Id || null;
     }
-
     maybePromptRating();
-  }, [activeRequest, role, user, checkForPendingRating]);
+
+    // Check for rejected requests (passenger only)
+    if (role === 'passenger') {
+      const hadRequestBefore = previousActiveRequestIdRef.current !== null;
+      const hasRequestNow = activeRequest !== null;
+      const wasInRequestedState = previousActiveRequestStateRef.current === 'requested';
+
+      // If passenger had a 'requested' state request and now it's gone (likely rejected by driver)
+      if (hadRequestBefore && !hasRequestNow && wasInRequestedState) {
+        Alert.alert(
+          'Request Rejected',
+          'The driver has declined your ride request. You can request another ride.',
+          [{ text: 'OK' }]
+        );
+      }
+
+      // Auto-exit active mode when ride completes (passenger only)
+      const wasInActiveRide = previousActiveRequestStateRef.current === 'picked_up';
+      if (hadRequestBefore && !hasRequestNow && wasInActiveRide && isActive) {
+        // Ride just completed, exit active mode automatically for passenger
+        updateUserState('idle', null).then(() => {
+          setDestination(null);
+          setRouteCoordinates([]);
+          setSearchQuery('');
+          setIsPanicMode(false);
+        }).catch((error) => {
+          console.error('Failed to exit active mode after ride completion:', error);
+        });
+      }
+    }
+
+    // Update previous state reference
+    previousActiveRequestStateRef.current = activeRequest?.State || null;
+  }, [activeRequest, role, user, checkForPendingRating, isActive, updateUserState, setDestination]);
 
   useEffect(() => {
     if (!user || role !== 'passenger') return;
@@ -434,6 +468,15 @@ export default function HomeScreen() {
       return;
     }
 
+    // Prevent exiting if passenger has an active request
+    if (role === 'passenger' && activeRequest) {
+      Alert.alert(
+        'Cannot Exit Active Mode',
+        'You have an active ride request. Please cancel it first or wait for it to complete.'
+      );
+      return;
+    }
+
     Alert.alert('Exit Active Mode', 'Are you sure you want to exit?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -443,13 +486,13 @@ export default function HomeScreen() {
             // Show loader immediately when exiting
             setIsExitingActive(true);
             setIsLoadingRoute(true);
-            
+
             await updateUserState('idle', null);
             setDestination(null);
             setRouteCoordinates([]);
             setSearchQuery('');
             setIsPanicMode(false);
-            
+
             // Clear loaders after everything is done
             setIsLoadingRoute(false);
             setIsExitingActive(false);
@@ -508,11 +551,14 @@ export default function HomeScreen() {
     }
 
     try {
+      setIsRequestingRide(true);
       await api.requestRide(marker.userId, userLocation, destination);
       Alert.alert('Success', 'Ride requested! Waiting for driver response.');
       setSelectedMarker(null);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to request ride');
+    } finally {
+      setIsRequestingRide(false);
     }
   }
 
@@ -598,28 +644,7 @@ export default function HomeScreen() {
     }
   }
 
-  async function handleConfirmVehicle(connectionId: string, isSameVehicle: boolean) {
-    try {
-      await api.confirmVehicle(connectionId, isSameVehicle);
-      setActiveRequest((prev) =>
-        prev && prev.Id === connectionId
-          ? {
-              ...prev,
-              PassengerVehicleConfirmation: isSameVehicle ? 'confirmed' : 'mismatch',
-            }
-          : prev
-      );
 
-      if (!isSameVehicle) {
-        Alert.alert(
-          'Vehicle Mismatch Reported',
-          'Mismatch has been recorded. Please do not share OTP until the correct vehicle arrives.'
-        );
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to confirm vehicle');
-    }
-  }
 
   async function handleCompleteRide(connectionId: string) {
     try {
@@ -1036,14 +1061,18 @@ export default function HomeScreen() {
             style={[
               styles.requestButton,
               { backgroundColor: colors.tint },
-              tripEstimate && balance < tripEstimate.fare && styles.requestButtonDisabled
+              (tripEstimate && balance < tripEstimate.fare || isRequestingRide) && styles.requestButtonDisabled
             ]}
             onPress={() => handleRequestRide(selectedMarker)}
-            disabled={tripEstimate ? balance < tripEstimate.fare : false}
+            disabled={tripEstimate ? balance < tripEstimate.fare || isRequestingRide : isRequestingRide}
           >
-            <Text style={styles.requestButtonText}>
-              {tripEstimate && balance < tripEstimate.fare ? 'Insufficient Balance' : 'Request Ride'}
-            </Text>
+            {isRequestingRide ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.requestButtonText}>
+                {tripEstimate && balance < tripEstimate.fare ? 'Insufficient Balance' : 'Request Ride'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -1052,13 +1081,52 @@ export default function HomeScreen() {
       {activeRequest && role === 'passenger' && !isMinimized && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
-            <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>Active Request</Text>
+            <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
+              {activeRequest.State === 'picked_up' ? 'Active Ride' : 'Active Request'}
+            </Text>
             <TouchableOpacity onPress={() => setIsMinimized(true)}>
               <Text style={[styles.closeButton, { color: colors.textSecondary }]}>−</Text>
             </TouchableOpacity>
           </View>
           <Text style={[styles.detailText, { color: colors.textSecondary }]}>Status: {activeRequest.State}</Text>
-          
+
+          {/* Trip Details */}
+          {activeRequest.Fare && activeRequest.Distance && (
+            <View style={styles.estimateContainer}>
+              <Text style={[styles.estimateTitle, { color: colors.text }]}>Trip Details</Text>
+
+              <View style={styles.estimateRow}>
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="payments" size={20} color={colors.tint} />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Fare</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatFare(activeRequest.Fare)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.estimateItem}>
+                  <MaterialIcons name="straighten" size={20} color={colors.tint} />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Distance</Text>
+                    <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDistanceKm(activeRequest.Distance)}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {activeRequest.RideTotalTime && (
+                <View style={styles.estimateRow}>
+                  <View style={styles.estimateItem}>
+                    <MaterialIcons name="schedule" size={20} color={colors.tint} />
+                    <View style={styles.estimateTextContainer}>
+                      <Text style={[styles.estimateLabel, { color: colors.textSecondary }]}>Duration</Text>
+                      <Text style={[styles.estimateValue, { color: colors.text }]}>{formatDuration(activeRequest.RideTotalTime)}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Vehicle Information */}
           {activeRequest.RequestedVehicleType && (
             <View style={styles.vehicleInfoSection}>
@@ -1087,35 +1155,12 @@ export default function HomeScreen() {
               )}
             </View>
           )}
-          {activeRequest.State === 'accepted' && activeRequest.RequestedVehicleType && (
-            <>
-              {(!activeRequest.PassengerVehicleConfirmation ||
-                activeRequest.PassengerVehicleConfirmation === 'pending') && (
-                <View style={styles.vehicleConfirmRow}>
-                  <TouchableOpacity
-                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmYes, { backgroundColor: colors.success }]}
-                    onPress={() => handleConfirmVehicle(activeRequest.Id, true)}
-                  >
-                    <Text style={styles.vehicleConfirmButtonText}>Vehicle Matches</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.vehicleConfirmButton, styles.vehicleConfirmNo, { backgroundColor: colors.error }]}
-                    onPress={() => handleConfirmVehicle(activeRequest.Id, false)}
-                  >
-                    <Text style={styles.vehicleConfirmButtonText}>Not This Vehicle</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {activeRequest.PassengerVehicleConfirmation === 'confirmed' && (
-                <Text style={[styles.vehicleConfirmedText, { color: colors.success }]}>Vehicle confirmed. Share OTP only after boarding.</Text>
-              )}
-              {activeRequest.PassengerVehicleConfirmation === 'mismatch' && (
-                <Text style={[styles.vehicleMismatchText, { color: colors.error }]}>Vehicle mismatch reported. Wait for correction before OTP.</Text>
-              )}
-            </>
-          )}
+
           {activeRequest.State === 'accepted' && activeRequest.OtpCode && (
-            <Text style={[styles.otpText, { color: colors.tint }]}>OTP: {activeRequest.OtpCode}</Text>
+            <>
+              <Text style={[styles.otpText, { color: colors.tint }]}>OTP: {activeRequest.OtpCode}</Text>
+              <Text style={[styles.otpInstructionText, { color: colors.textSecondary }]}>Share this OTP with your driver to confirm pickup</Text>
+            </>
           )}
           <TouchableOpacity
             style={[styles.shareButton, { backgroundColor: colors.info }]}
@@ -1128,7 +1173,7 @@ export default function HomeScreen() {
               <Text style={styles.cancelButtonText}>Cancel Request</Text>
             </TouchableOpacity>
           )}
-          {(activeRequest.State === 'accepted' || activeRequest.State === 'picked_up') && (
+          {activeRequest.State === 'accepted' && (
             <TouchableOpacity style={[styles.cancelButton, { backgroundColor: colors.error }]} onPress={handleCancelConnection}>
               <Text style={styles.cancelButtonText}>Cancel Ride</Text>
             </TouchableOpacity>
@@ -1142,7 +1187,9 @@ export default function HomeScreen() {
           style={[styles.minimizedBar, { backgroundColor: colors.tint }]}
           onPress={() => setIsMinimized(false)}
         >
-          <Text style={styles.minimizedText}>Active Request - Tap to expand</Text>
+          <Text style={styles.minimizedText}>
+            {activeRequest.State === 'picked_up' ? 'Active Ride' : 'Active Request'} - Tap to expand
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -1413,7 +1460,9 @@ export default function HomeScreen() {
                   <View style={styles.otpEntry}>
                     <TextInput
                       style={styles.otpInput}
-                      placeholder="Enter OTP"
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      keyboardType="numeric"
                       onSubmitEditing={(e) => handleVerifyOtp(conn.Id, e.nativeEvent.text)}
                     />
                   </View>
@@ -1653,50 +1702,24 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   otpText: {
-    fontSize: 18,
+    fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#e86713',
     marginBottom: 10,
+    textAlign: 'center',
   },
-  vehicleConfirmRow: {
-    flexDirection: 'row',
-    marginTop: 8,
-    marginBottom: 6,
-    gap: 8,
-  },
-  vehicleConfirmButton: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  vehicleConfirmYes: {
-  },
-  vehicleConfirmNo: {
-  },
-  vehicleConfirmButtonText: {
-    color: '#fff',
-    fontFamily: 'Inter-Bold',
+  otpInstructionText: {
     fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    marginTop: 4,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   vehicleInfoSection: {
-    marginTop: 8,
-    marginBottom: 8,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
-  },
-  vehicleConfirmedText: {
-    color: '#2e7d32',
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginBottom: 6,
-  },
-  vehicleMismatchText: {
-    color: '#c62828',
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginBottom: 6,
   },
   requestButton: {
     padding: 15,
