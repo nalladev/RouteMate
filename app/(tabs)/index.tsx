@@ -81,6 +81,10 @@ export default function HomeScreen() {
   const [isCalculatingEstimate, setIsCalculatingEstimate] = useState(false);
   const [isRequestingRide, setIsRequestingRide] = useState(false);
 
+  // OTP input state for each connection
+  const [otpInputs, setOtpInputs] = useState<Record<string, string>>({});
+  const [verifyingOtp, setVerifyingOtp] = useState<Record<string, boolean>>({});
+
   // Derive activeRequest from activeConnections (no duplicate state)
   const activeRequest = useMemo(() => {
     if (activeConnections.length === 0) return null;
@@ -625,11 +629,18 @@ export default function HomeScreen() {
   }
 
   async function handleVerifyOtp(connectionId: string, otp: string) {
+    if (verifyingOtp[connectionId]) return;
+
+    setVerifyingOtp(prev => ({ ...prev, [connectionId]: true }));
     try {
       await api.verifyOtp(connectionId, otp);
       Alert.alert('Success', 'Passenger picked up!');
+      // Clear OTP input after successful verification
+      setOtpInputs(prev => ({ ...prev, [connectionId]: '' }));
     } catch (error: any) {
       Alert.alert('Error', error.message);
+    } finally {
+      setVerifyingOtp(prev => ({ ...prev, [connectionId]: false }));
     }
   }
 
@@ -1453,8 +1464,27 @@ export default function HomeScreen() {
                       placeholderTextColor={colors.textSecondary}
                       maxLength={6}
                       keyboardType="numeric"
+                      value={otpInputs[conn.Id] || ''}
+                      onChangeText={(text) => {
+                        setOtpInputs(prev => ({
+                          ...prev,
+                          [conn.Id]: text
+                        }));
+                      }}
                       onSubmitEditing={(e) => handleVerifyOtp(conn.Id, e.nativeEvent.text)}
                     />
+                    <TouchableOpacity
+                      style={[
+                        styles.verifyOtpButton,
+                        { opacity: (otpInputs[conn.Id]?.length === 6 && !verifyingOtp[conn.Id]) ? 1 : 0.5 }
+                      ]}
+                      onPress={() => handleVerifyOtp(conn.Id, otpInputs[conn.Id] || '')}
+                      disabled={otpInputs[conn.Id]?.length !== 6 || verifyingOtp[conn.Id]}
+                    >
+                      <Text style={styles.verifyOtpButtonText}>
+                        {verifyingOtp[conn.Id] ? 'Verifying...' : 'Verify OTP'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
                 {conn.State === 'picked_up' && (
@@ -1467,7 +1497,7 @@ export default function HomeScreen() {
                 )}
                 {(conn.State === 'accepted' || conn.State === 'picked_up') && (
                   <TouchableOpacity
-                    style={[styles.acceptButton, { backgroundColor: colors.success }]}
+                    style={[styles.cancelButton, { backgroundColor: colors.error }]}
                     onPress={() => handleCancelConnection(conn)}
                   >
                     <Text style={styles.cancelButtonText}>Cancel Ride</Text>
@@ -1720,15 +1750,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
   },
   cancelButton: {
-    padding: 15,
-    borderRadius: 8,
+    padding: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     alignItems: 'center',
     marginTop: 10,
+    alignSelf: 'flex-start',
   },
   cancelButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
   },
   shareButton: {
     padding: 15,
@@ -1898,6 +1930,18 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
+    marginBottom: 8,
+  },
+  verifyOtpButton: {
+    backgroundColor: '#2563eb',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  verifyOtpButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
   },
   completeButton: {
     backgroundColor: '#4CAF50',
