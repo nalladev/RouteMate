@@ -77,8 +77,6 @@ export interface RideConnection {
   RequestedVehicleName?: string;
   RequestedVehicleModel?: string;
   RequestedVehicleRegistration?: string;
-  PassengerVehicleConfirmation?: 'pending' | 'confirmed' | 'mismatch';
-  PassengerVehicleConfirmedAt?: any;
   State: RideConnectionState;
   PaymentStatus: PaymentStatus;
   DriverRating?: number;
@@ -87,6 +85,7 @@ export interface RideConnection {
   ShareCreatedAt?: any;
   CommunityId?: string | null;
   AcceptedAt?: any;
+  CompletedAt?: any;
   CancelledAt?: any;
   CancelledBy?: CancellationInitiator;
   CancellationPenalty?: number;

@@ -52,8 +52,27 @@ export default function HistoryScreen() {
 
   function renderRideItem({ item }: { item: RideConnection }) {
     const isDriver = item.DriverId === user?.Id;
-    const date = item.CreatedAt ? new Date(item.CreatedAt).toLocaleDateString() : 'N/A';
-    const time = item.CreatedAt ? new Date(item.CreatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+    
+    // Handle Firestore Timestamp conversion
+    let dateObj: Date | null = null;
+    if (item.CompletedAt) {
+      // Firestore Timestamps have seconds and nanoseconds properties
+      if (typeof item.CompletedAt === 'object' && 'seconds' in item.CompletedAt) {
+        dateObj = new Date((item.CompletedAt as any).seconds * 1000);
+      } else if (typeof item.CompletedAt === 'string' || typeof item.CompletedAt === 'number') {
+        dateObj = new Date(item.CompletedAt);
+      }
+    } else if (item.CreatedAt) {
+      // Fallback to CreatedAt if CompletedAt is not available
+      if (typeof item.CreatedAt === 'object' && 'seconds' in item.CreatedAt) {
+        dateObj = new Date((item.CreatedAt as any).seconds * 1000);
+      } else if (typeof item.CreatedAt === 'string' || typeof item.CreatedAt === 'number') {
+        dateObj = new Date(item.CreatedAt);
+      }
+    }
+    
+    const date = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString() : 'N/A';
+    const time = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
     return (
       <View style={[styles.rideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
