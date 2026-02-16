@@ -38,8 +38,8 @@ export default function HomeScreen() {
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const {
-    role,
-    setRole,
+    userState,
+    setUserState,
     userLocation,
     destination,
     setDestination,
@@ -47,7 +47,6 @@ export default function HomeScreen() {
     activeConnections,
     pendingRequests,
     isActive,
-    updateUserState,
     refreshMarkers,
     refreshConnections,
     refreshRequests,
@@ -117,11 +116,11 @@ export default function HomeScreen() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (role === 'driver' && pendingRequests.length > 0) {
+    if (userState === 'driver' && pendingRequests.length > 0) {
       setCurrentRequest(pendingRequests[0]);
       setShowRequestPopup(true);
     }
-  }, [pendingRequests, role]);
+  }, [pendingRequests, userState]);
 
   useEffect(() => {
     if (activeConnections.length > 0) {
@@ -140,7 +139,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     async function maybePromptRating() {
-      if (!user || role !== 'passenger') return;
+      if (!user || userState !== 'passenger') return;
       if (previousActiveRequestIdRef.current && !activeRequest) {
         await checkForPendingRating();
       }
@@ -149,7 +148,7 @@ export default function HomeScreen() {
     maybePromptRating();
 
     // Check for rejected requests (passenger only)
-    if (role === 'passenger') {
+    if (userState === 'passenger') {
       const hadRequestBefore = previousActiveRequestIdRef.current !== null;
       const hasRequestNow = activeRequest !== null;
       const wasInRequestedState = previousActiveRequestStateRef.current === 'requested';
@@ -167,25 +166,21 @@ export default function HomeScreen() {
       const wasInActiveRide = previousActiveRequestStateRef.current === 'picked_up';
       if (hadRequestBefore && !hasRequestNow && wasInActiveRide && isActive) {
         // Ride just completed, exit active mode automatically for passenger
-        updateUserState('idle', null).then(() => {
-          setDestination(null);
-          setRouteCoordinates([]);
-          setSearchQuery('');
-          setIsPanicMode(false);
-        }).catch((error) => {
-          console.error('Failed to exit active mode after ride completion:', error);
-        });
+        setUserState('idle');
+        setRouteCoordinates([]);
+        setSearchQuery('');
+        setIsPanicMode(false);
       }
     }
 
     // Update previous state reference
     previousActiveRequestStateRef.current = activeRequest?.State || null;
-  }, [activeRequest, role, user, checkForPendingRating, isActive, updateUserState, setDestination]);
+  }, [activeRequest, userState, user, checkForPendingRating, isActive, setDestination, setUserState]);
 
   useEffect(() => {
-    if (!user || role !== 'passenger') return;
+    if (!user || userState !== 'passenger') return;
     checkForPendingRating();
-  }, [role, user, checkForPendingRating]);
+  }, [userState, user, checkForPendingRating]);
 
   useEffect(() => {
     if (user?.VehicleType) {
@@ -214,7 +209,7 @@ export default function HomeScreen() {
   // Calculate trip estimate when marker is selected (passenger preview)
   useEffect(() => {
     async function calculateEstimate() {
-      if (selectedMarker && role === 'passenger' && userLocation && destination) {
+      if (selectedMarker && userState === 'passenger' && userLocation && destination) {
         setIsCalculatingEstimate(true);
         const estimate = await getTripEstimate(
           userLocation,
@@ -229,7 +224,7 @@ export default function HomeScreen() {
     }
 
     calculateEstimate();
-  }, [selectedMarker, role, userLocation, destination]);
+  }, [selectedMarker, userState, userLocation, destination]);
 
   // Reset trip estimate when marker is deselected
   useEffect(() => {
@@ -295,8 +290,7 @@ export default function HomeScreen() {
       }
     }
 
-    // Set the role first
-    setRole(selectedMode);
+    // Note: We'll set userState after all validations pass
 
     // Check KYC for both modes - now mandatory
     if (!user?.IsKycVerified) {
@@ -376,12 +370,9 @@ export default function HomeScreen() {
     if (!tempDestination || !userLocation) return;
 
     try {
-      // Set destination
+      // Set destination and userState
       setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
-
-      // Update user state to active mode first (so UI updates)
-      const state = selectedMode === 'driver' ? 'driving' : 'riding';
-      await updateUserState(state, { lat: tempDestination.lat, lng: tempDestination.lng });
+      setUserState(selectedMode);
 
       // Clear temporary state to show active mode UI
       setTempDestination(null);
@@ -476,7 +467,7 @@ export default function HomeScreen() {
     }
 
     // Prevent exiting if passenger has an active request
-    if (role === 'passenger' && activeRequest) {
+    if (userState === 'passenger' && activeRequest) {
       Alert.alert(
         'Cannot Exit Active Mode',
         'You have an active ride request. Please cancel it first or wait for it to complete.'
@@ -494,8 +485,7 @@ export default function HomeScreen() {
             setIsExitingActive(true);
             setIsLoadingRoute(true);
 
-            await updateUserState('idle', null);
-            setDestination(null);
+            setUserState('idle');
             setRouteCoordinates([]);
             setSearchQuery('');
             setIsPanicMode(false);
@@ -594,7 +584,7 @@ export default function HomeScreen() {
   async function handleCancelConnection() {
     if (!activeRequest) return;
 
-    const isDriver = role === 'driver';
+    const isDriver = userState === 'driver';
     const warningMessage = isDriver
       ? 'Cancelling may result in a penalty based on time since acceptance:\n\n• 0-2 min: ₹0\n• 2-5 min: ₹10\n• 5-10 min: ₹20\n• >10 min: ₹50\n\nAre you sure?'
       : 'Are you sure you want to cancel this ride?';
@@ -780,7 +770,7 @@ export default function HomeScreen() {
         {isActive && markers.map((marker) => {
           // If user is a passenger, markers show drivers (blue)
           // If user is a driver, markers show passengers (green)
-          const markerIsDriver = role === 'passenger';
+          const markerIsDriver = userState === 'passenger';
           const markerTitle = markerIsDriver 
             ? `${marker.name} (Driver)` 
             : `${marker.name} (Passenger)`;
@@ -857,7 +847,7 @@ export default function HomeScreen() {
           <View style={[styles.destinationDisplay, { backgroundColor: colors.card }]}>
             <View style={styles.destinationTextContainer}>
               <Text style={[styles.destinationPrefix, { color: colors.textSecondary }]}>
-                {role === 'driver' ? 'Driving to' : 'Going to'}
+                {userState === 'driver' ? 'Driving to' : 'Going to'}
               </Text>
               <Text style={[styles.destinationText, { color: colors.text }]} numberOfLines={1}>
                 {searchQuery || 'Destination'}
@@ -940,7 +930,7 @@ export default function HomeScreen() {
       )}
 
       {/* Selected marker detail (passenger view in active mode) */}
-      {selectedMarker && role === 'passenger' && isActive && (
+      {selectedMarker && userState === 'passenger' && isActive && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <View style={styles.bottomSheetTitleContainer}>
@@ -1095,7 +1085,7 @@ export default function HomeScreen() {
       )}
 
       {/* Active request pane */}
-      {activeRequest && role === 'passenger' && !isMinimized && (
+      {activeRequest && userState === 'passenger' && !isMinimized && (
         <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
           <View style={styles.bottomSheetHeader}>
             <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
@@ -1460,7 +1450,7 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Connection Manager for drivers */}
-      {role === 'driver' && activeConnections.length > 0 && isActive && (
+      {userState === 'driver' && activeConnections.length > 0 && isActive && (
         <View style={[styles.connectionManager, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
           <Text style={[styles.connectionTitle, { color: colors.text }]}>Active Connections</Text>
           <ScrollView style={styles.connectionList}>
