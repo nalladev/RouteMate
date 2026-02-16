@@ -43,13 +43,8 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile | null 
   // Handle webhook format (decision wrapper) or direct session format
   const decision = sessionData?.decision || sessionData;
   
+  // Silently return null if id_verifications not available
   if (!decision?.id_verifications || decision.id_verifications.length === 0) {
-    console.warn('KYC profile data not available in payload', { 
-      hasDecision: !!decision,
-      hasIdVerifications: !!decision?.id_verifications,
-      idVerificationsLength: decision?.id_verifications?.length,
-      availableKeys: decision ? Object.keys(decision) : []
-    });
     return null;
   }
 
@@ -64,12 +59,6 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile | null 
   } else if (idVerification.first_name) {
     name = idVerification.first_name;
   } else {
-    console.warn('KYC extraction warning: Missing name fields', {
-      hasFull_name: !!idVerification.full_name,
-      hasFirst_name: !!idVerification.first_name,
-      hasLast_name: !!idVerification.last_name,
-      availableFields: Object.keys(idVerification)
-    });
     return null;
   }
 
@@ -85,30 +74,17 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile | null 
   if (typeof idVerification.age === 'number') {
     age = idVerification.age;
   } else {
-    console.warn('KYC extraction warning: Missing or invalid age field', {
-      age: idVerification.age,
-      ageType: typeof idVerification.age,
-      availableFields: Object.keys(idVerification)
-    });
     return null;
   }
 
   // Extract gender
   if (!idVerification.gender) {
-    console.warn('KYC extraction warning: Missing gender field', {
-      gender: idVerification.gender,
-      availableFields: Object.keys(idVerification)
-    });
     return null;
   }
   const gender = idVerification.gender;
 
   // Extract portrait image
   if (!idVerification.portrait_image) {
-    console.warn('KYC extraction warning: Missing portrait_image field', {
-      portrait_image: idVerification.portrait_image,
-      availableFields: Object.keys(idVerification)
-    });
     return null;
   }
   const portraitImage = idVerification.portrait_image;
@@ -120,11 +96,6 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile | null 
   } else if (idVerification.address) {
     address = idVerification.address;
   } else {
-    console.warn('KYC extraction warning: Missing address fields', {
-      hasFormatted_address: !!idVerification.formatted_address,
-      hasAddress: !!idVerification.address,
-      availableFields: Object.keys(idVerification)
-    });
     return null;
   }
 
