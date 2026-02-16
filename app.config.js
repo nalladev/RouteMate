@@ -120,7 +120,6 @@ module.exports = {
         {
           icon: "./assets/icon.png",
           color: "#ffffff",
-          sounds: ["./assets/notification-sound.wav"],
           androidMode: "default",
           androidCollapsedTitle: "#{unread_notifications} new notifications"
         }
