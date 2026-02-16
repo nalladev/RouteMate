@@ -11,7 +11,7 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
@@ -37,7 +37,7 @@ function isPointNearRoute(
   const dot = A * C + B * D;
   const lenSq = C * C + D * D;
   let param = -1;
-  
+
   if (lenSq !== 0) {
     param = dot / lenSq;
   }
@@ -170,6 +170,11 @@ async function getFilteredPassengers(
   const passengers: MarkerData[] = [];
 
   for (const connection of activeConnections) {
+    // Skip if passenger is the same as driver (prevent self-referential connections)
+    if (connection.PassengerId === driverId) {
+      continue;
+    }
+
     if (memberSet && !memberSet.has(connection.PassengerId)) {
       continue;
     }
@@ -245,6 +250,8 @@ export async function handleMarkers(request: Request) {
     } else if (role === 'driver') {
       markers = await getFilteredPassengers(user.Id, activeCommunityId, memberSet);
     }
+
+    // console.log(`${user.Name} as ${role} requesting ${role === 'passenger' ? 'driver' : 'passenger'} Markers:`, markers);
 
     return Response.json({ markers });
   } catch (error) {

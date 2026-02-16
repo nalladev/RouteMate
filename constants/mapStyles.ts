@@ -8,10 +8,10 @@ export const darkMapStyle = [
     "stylers": [{ "color": "#242f3e" }]
   },
   
-  // General text labels - warm tan
+  // General text labels - white
   {
     "elementType": "labels.text.fill",
-    "stylers": [{ "color": "#746855" }]
+    "stylers": [{ "color": "#ffffff" }]
   },
   {
     "elementType": "labels.text.stroke",
@@ -60,7 +60,7 @@ export const darkMapStyle = [
   {
     "featureType": "poi",
     "elementType": "labels.text.fill",
-    "stylers": [{ "color": "#d59563" }]
+    "stylers": [{ "color": "#ffffff" }]
   },
 
   // Explicitly keep all POI types visible
@@ -139,7 +139,7 @@ export const darkMapStyle = [
   {
     "featureType": "transit.station",
     "elementType": "labels.text.fill",
-    "stylers": [{ "color": "#d59563" }]
+    "stylers": [{ "color": "#ffffff" }]
   }
 ];
 

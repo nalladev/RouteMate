@@ -119,6 +119,8 @@ function createApi(getToken: () => Promise<string | null>) {
     });
   },
 
+
+
   updateLocation: async (lat: number, lng: number): Promise<{ success: boolean }> => {
     return request('/api/user/location', {
       method: 'POST',

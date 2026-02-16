@@ -11,6 +11,7 @@ export interface Session {
 }
 
 export type UserState = 'driving' | 'riding' | 'idle';
+export type UserRole = 'driver' | 'passenger';
 
 export interface KycData {
   sessionId: string;
@@ -40,6 +41,7 @@ export interface User {
   VehicleRegistration?: string;
   ProfilePictureUrl?: string;
   state: UserState;
+  PreferredRole?: UserRole;
   LastLocation?: Location;
   Destination?: Location;
   KycData?: KycData;
