@@ -62,10 +62,16 @@ function isPointNearRoute(
 async function getFilteredDrivers(
   passengerPickup: { lat: number; lng: number },
   passengerDestination: { lat: number; lng: number },
+  currentUserId: string,
   memberSet?: Set<string> | null
 ): Promise<MarkerData[]> {
   const allUsers = await getAllDocuments('users');
   const drivers = allUsers.filter((u: User) => {
+    // Exclude current user
+    if (u.Id === currentUserId) {
+      return false;
+    }
+
     if (u.state !== 'driving' || !u.Destination) {
       return false;
     }
@@ -235,7 +241,7 @@ export async function handleMarkers(request: Request) {
       if (!user.Destination) {
         return Response.json({ markers: [] });
       }
-      markers = await getFilteredDrivers({ lat, lng }, user.Destination, memberSet);
+      markers = await getFilteredDrivers({ lat, lng }, user.Destination, user.Id, memberSet);
     } else if (role === 'driver') {
       markers = await getFilteredPassengers(user.Id, activeCommunityId, memberSet);
     }
