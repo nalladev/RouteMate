@@ -71,6 +71,13 @@ function isAllowedWebRoute(segments: string[]) {
 }
 
 function WebAppOnlyScreen() {
+  function handleOpenApp() {
+    const deepLink = 'routemate://';
+    Linking.openURL(deepLink).catch(() => {
+      // If opening fails, app is not installed - do nothing
+    });
+  }
+
   function handleDownloadApp() {
     const downloadUrl = 'https://github.com/nalladev/RouteMate/releases';
     if (Platform.OS === 'web') {
@@ -90,6 +97,12 @@ function WebAppOnlyScreen() {
         <Text style={styles.webOnlyText}>
           Web access is supported only for live ride sharing and community invite links.
         </Text>
+        <TouchableOpacity 
+          style={styles.openAppButton} 
+          onPress={handleOpenApp}
+        >
+          <Text style={styles.openAppButtonText}>Open RouteMate App</Text>
+        </TouchableOpacity>
         <TouchableOpacity 
           style={styles.downloadButton} 
           onPress={handleDownloadApp}
@@ -277,12 +290,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  openAppButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 16,
+    minWidth: 200,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  openAppButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+  },
   downloadButton: {
     backgroundColor: '#10b981',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
-    marginTop: 16,
+    marginTop: 8,
     minWidth: 200,
     alignItems: 'center',
     shadowColor: '#000',
