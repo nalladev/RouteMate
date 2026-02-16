@@ -127,6 +127,12 @@ export default function CommunityInviteJoinScreen() {
                 RouteMate app is not installed on your device.
               </Text>
               <TouchableOpacity 
+                style={[styles.openAppButton, { backgroundColor: colors.tint }]} 
+                onPress={handleOpenInApp}
+              >
+                <Text style={styles.openAppButtonText}>Open RouteMate App</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
                 style={[styles.downloadButton, { backgroundColor: '#10b981' }]} 
                 onPress={handleDownloadApp}
               >
@@ -205,7 +211,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
-    marginTop: 12,
+    marginTop: 8,
     minWidth: 200,
     alignItems: 'center',
   },
