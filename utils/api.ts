@@ -112,6 +112,8 @@ export const api = {
     });
   },
 
+
+
   updateLocation: async (lat: number, lng: number): Promise<{ success: boolean }> => {
     return request('/api/user/location', {
       method: 'POST',
