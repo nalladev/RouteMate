@@ -28,14 +28,6 @@ export default function KYCVerificationScreen() {
     !user?.IsKycVerified &&
     ['session_created', 'submitted', 'under_review'].includes(currentKycStatus);
 
-  function getCallbackStatus(status: string | null): string {
-    const value = (status || '').toLowerCase().replace(/\s+/g, '_');
-    if (['approved', 'verified', 'completed'].includes(value)) return 'approved';
-    if (['rejected', 'declined', 'failed', 'denied'].includes(value)) return 'rejected';
-    if (['under_review', 'review', 'manual_review'].includes(value)) return 'under_review';
-    return 'submitted';
-  }
-
   // Create Didit verification session via backend
   async function createVerificationSession() {
     if (hasPendingReview) {
@@ -63,62 +55,23 @@ export default function KYCVerificationScreen() {
     }
   }
 
-  async function handleVerificationComplete(status: string) {
-    setIsLoading(true);
-    try {
-      const normalizedStatus = getCallbackStatus(status);
-      const isApproved = normalizedStatus === 'approved';
-      const alertTitle = isApproved ? 'Verification Approved' : 'Verification Submitted';
-      const alertMessage = isApproved
-        ? 'Your KYC verification has been approved. Your account status will be updated shortly.'
-        : 'Your verification was submitted and is under review. Your account status will be updated automatically when the review is complete.';
-
-      Alert.alert(
-        alertTitle,
-        alertMessage,
-        [
-          {
-            text: 'Continue',
-            onPress: () => {
-              markKycPromptShown();
-              router.replace('/(tabs)');
-            },
-          },
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to process verification status');
-      setShowDiditWebView(false);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   function handleNavigationStateChange(navState: any) {
     const { url } = navState;
     
     // Check if this is the callback URL
     if (url && url.includes('kyc-callback')) {
-      try {
-        const urlObj = new URL(url);
-        const status = urlObj.searchParams.get('status');
-        
-        if (status) {
-          handleVerificationComplete(status);
-        } else {
-          // Redirect to home, webhook will update status
-          markKycPromptShown();
-          router.replace('/(tabs)');
-          Alert.alert(
-            'Verification Submitted',
-            'Your verification has been submitted. Your account status will be updated automatically when the review is completed.'
-          );
-        }
-      } catch (error) {
-        console.error('Failed to parse callback URL:', error);
-        markKycPromptShown();
-        router.replace('/(tabs)');
-      }
+      // Redirect immediately without alert
+      markKycPromptShown();
+      router.replace('/(tabs)');
+      
+      // Show alert after navigation
+      setTimeout(() => {
+        Alert.alert(
+          'KYC Submitted',
+          'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
+          [{ text: 'OK' }]
+        );
+      }, 500);
     }
   }
 

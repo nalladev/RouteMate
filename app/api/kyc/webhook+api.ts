@@ -136,32 +136,8 @@ export async function POST(request: Request) {
     const effectiveSessionId = sessionId || user.KycData?.sessionId;
     const diditSession = effectiveSessionId ? await fetchDiditSession(effectiveSessionId) : null;
     
-    let extractedProfile;
-    try {
-      extractedProfile = extractKycProfile(diditSession || payload);
-    } catch (error: any) {
-      console.error('KYC profile extraction failed:', {
-        error: error.message,
-        userId: user.Id,
-        sessionId: effectiveSessionId,
-        hasDiditSession: !!diditSession,
-        payloadKeys: Object.keys(payload)
-      });
-      // Still update status but without extracted data
-      const updateData: any = {
-        IsKycVerified: false,
-        KycStatus: normalizedStatus,
-        KycData: {
-          ...(user.KycData || {}),
-          status: normalizedStatus,
-          updatedAt: now,
-          sessionId: effectiveSessionId,
-          extractionError: error.message,
-        },
-      };
-      await updateDocument('users', user.Id, updateData);
-      return Response.json({ received: true, error: 'Failed to extract KYC data' });
-    }
+    // Try to extract profile data (may return null if data not available yet)
+    const extractedProfile = extractKycProfile(diditSession || payload);
     
     const isVerified = isApprovedKycStatus(normalizedStatus);
     const kycData: any = {
@@ -188,7 +164,7 @@ export async function POST(request: Request) {
       updateData.KycData.reviewedAt = now;
     }
 
-    if (isVerified) {
+    if (isVerified && extractedProfile) {
       updateData.KycData.verifiedAt = now;
       updateData.KycData.age = extractedProfile.age;
       updateData.KycData.gender = extractedProfile.gender;
@@ -197,6 +173,13 @@ export async function POST(request: Request) {
       if (extractedProfile.name) {
         updateData.Name = extractedProfile.name;
       }
+    } else if (isVerified && !extractedProfile) {
+      // Verified but profile data not available yet - will be extracted on next webhook
+      console.warn('KYC verified but profile data not available', {
+        userId: user.Id,
+        sessionId: effectiveSessionId,
+        status: normalizedStatus
+      });
     }
 
     await updateDocument('users', user.Id, updateData);

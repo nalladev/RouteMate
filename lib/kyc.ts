@@ -15,6 +15,11 @@ export interface ExtractedKycProfile {
   portraitImage: string;
 }
 
+export function hasKycProfileData(sessionData: any): boolean {
+  const decision = sessionData?.decision || sessionData;
+  return !!(decision?.id_verifications && decision.id_verifications.length > 0);
+}
+
 export function normalizeDiditStatus(status: string | null | undefined): KycStatus {
   const normalized = (status || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
 
@@ -34,18 +39,18 @@ export function isApprovedKycStatus(status: KycStatus): boolean {
   return status === 'approved';
 }
 
-export function extractKycProfile(sessionData: any): ExtractedKycProfile {
+export function extractKycProfile(sessionData: any): ExtractedKycProfile | null {
   // Handle webhook format (decision wrapper) or direct session format
   const decision = sessionData?.decision || sessionData;
   
   if (!decision?.id_verifications || decision.id_verifications.length === 0) {
-    console.error('KYC extraction error: Missing id_verifications array', { 
+    console.warn('KYC profile data not available in payload', { 
       hasDecision: !!decision,
       hasIdVerifications: !!decision?.id_verifications,
       idVerificationsLength: decision?.id_verifications?.length,
       availableKeys: decision ? Object.keys(decision) : []
     });
-    throw new Error('Missing id_verifications in KYC response');
+    return null;
   }
 
   const idVerification = decision.id_verifications[0];
@@ -59,13 +64,13 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile {
   } else if (idVerification.first_name) {
     name = idVerification.first_name;
   } else {
-    console.error('KYC extraction error: Missing name fields', {
+    console.warn('KYC extraction warning: Missing name fields', {
       hasFull_name: !!idVerification.full_name,
       hasFirst_name: !!idVerification.first_name,
       hasLast_name: !!idVerification.last_name,
       availableFields: Object.keys(idVerification)
     });
-    throw new Error('Missing name in id_verification (full_name, first_name, or last_name)');
+    return null;
   }
 
   // Normalize all-caps names
@@ -80,31 +85,31 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile {
   if (typeof idVerification.age === 'number') {
     age = idVerification.age;
   } else {
-    console.error('KYC extraction error: Missing or invalid age field', {
+    console.warn('KYC extraction warning: Missing or invalid age field', {
       age: idVerification.age,
       ageType: typeof idVerification.age,
       availableFields: Object.keys(idVerification)
     });
-    throw new Error('Missing or invalid age in id_verification');
+    return null;
   }
 
   // Extract gender
   if (!idVerification.gender) {
-    console.error('KYC extraction error: Missing gender field', {
+    console.warn('KYC extraction warning: Missing gender field', {
       gender: idVerification.gender,
       availableFields: Object.keys(idVerification)
     });
-    throw new Error('Missing gender in id_verification');
+    return null;
   }
   const gender = idVerification.gender;
 
   // Extract portrait image
   if (!idVerification.portrait_image) {
-    console.error('KYC extraction error: Missing portrait_image field', {
+    console.warn('KYC extraction warning: Missing portrait_image field', {
       portrait_image: idVerification.portrait_image,
       availableFields: Object.keys(idVerification)
     });
-    throw new Error('Missing portrait_image in id_verification');
+    return null;
   }
   const portraitImage = idVerification.portrait_image;
 
@@ -115,12 +120,12 @@ export function extractKycProfile(sessionData: any): ExtractedKycProfile {
   } else if (idVerification.address) {
     address = idVerification.address;
   } else {
-    console.error('KYC extraction error: Missing address fields', {
+    console.warn('KYC extraction warning: Missing address fields', {
       hasFormatted_address: !!idVerification.formatted_address,
       hasAddress: !!idVerification.address,
       availableFields: Object.keys(idVerification)
     });
-    throw new Error('Missing address in id_verification (formatted_address or address)');
+    return null;
   }
 
   return { name, age, gender, address, portraitImage };
