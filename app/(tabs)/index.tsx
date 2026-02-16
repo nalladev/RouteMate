@@ -50,6 +50,8 @@ export default function HomeScreen() {
     isActive,
     updateUserState,
     refreshMarkers,
+    refreshConnections,
+    refreshRequests,
   } = useAppState();
 
   const mapRef = useRef<MapView>(null);
@@ -128,7 +130,11 @@ export default function HomeScreen() {
   useEffect(() => {
     if (activeConnections.length > 0) {
       const myConnection = activeConnections.find(
-        (c) => c.PassengerId === user?.Id || c.DriverId === user?.Id
+        (c) => 
+          (c.PassengerId === user?.Id || c.DriverId === user?.Id) &&
+          c.State !== 'cancelled' && 
+          c.State !== 'rejected' && 
+          c.State !== 'completed'
       );
       setActiveRequest(myConnection || null);
     } else {
@@ -558,7 +564,6 @@ export default function HomeScreen() {
     try {
       setIsRequestingRide(true);
       await api.requestRide(marker.userId, userLocation, destination);
-      Alert.alert('Success', 'Ride requested! Waiting for driver response.');
       setSelectedMarker(null);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to request ride');
@@ -579,6 +584,9 @@ export default function HomeScreen() {
             await api.cancelRequest(activeRequest.Id);
             setActiveRequest(null);
             Alert.alert('Success', 'Request cancelled');
+            // Refresh connections to remove cancelled request from active list
+            await refreshConnections();
+            await refreshRequests();
           } catch (error: any) {
             Alert.alert('Error', error.message);
           }
@@ -615,6 +623,11 @@ export default function HomeScreen() {
               Alert.alert('Success', result.message);
             }
 
+            
+            // Refresh connections to remove cancelled ride from active list
+            await refreshConnections();
+            await refreshRequests();
+            
             // Refresh user data to update balance if penalty was charged
             if (isDriver) {
               await refreshUser();
@@ -635,6 +648,9 @@ export default function HomeScreen() {
       setShowRequestPopup(false);
       setCurrentRequest(null);
       Alert.alert('Success', `Request ${action}`);
+      // Refresh connections to remove rejected rides from active list
+      await refreshConnections();
+      await refreshRequests();
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
@@ -1268,8 +1284,8 @@ export default function HomeScreen() {
                   <View style={styles.requestDetailRow}>
                     <MaterialIcons name="star" size={24} color={colors.warning} />
                     <View style={styles.requestDetailTextContainer}>
-                      <Text style={styles.requestDetailLabel}>Est. Completion</Text>
-                      <Text style={styles.requestDetailValue}>
+                      <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Est. Completion</Text>
+                      <Text style={[styles.requestDetailValue, { color: colors.text }]}>
                         {formatETA(new Date(Date.now() + (currentRequest.Distance / 30) * 3600 * 1000))}
                       </Text>
                     </View>
@@ -1461,12 +1477,12 @@ export default function HomeScreen() {
 
       {/* Connection Manager for drivers */}
       {role === 'driver' && activeConnections.length > 0 && isActive && (
-        <View style={styles.connectionManager}>
-          <Text style={styles.connectionTitle}>Active Connections</Text>
+        <View style={[styles.connectionManager, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+          <Text style={[styles.connectionTitle, { color: colors.text }]}>Active Connections</Text>
           <ScrollView style={styles.connectionList}>
-            {Array.from(new Map(activeConnections.map(conn => [conn.Id, conn])).values()).map((conn) => (
-              <View key={conn.Id} style={styles.connectionItem}>
-                <Text style={styles.connectionText}>Status: {conn.State}</Text>
+            {activeConnections.map((conn) => (
+              <View key={conn.Id} style={[styles.connectionItem, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.connectionText, { color: colors.text }]}>Status: {conn.State}</Text>
                 <TouchableOpacity
                   style={styles.driverShareButton}
                   onPress={() => handleShareRide(conn.Id)}
@@ -1476,8 +1492,9 @@ export default function HomeScreen() {
                 {conn.State === 'accepted' && (
                   <View style={styles.otpEntry}>
                     <TextInput
-                      style={styles.otpInput}
+                      style={[styles.otpInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       placeholder="Enter 6-digit OTP"
+                      placeholderTextColor={colors.textSecondary}
                       maxLength={6}
                       keyboardType="numeric"
                       onSubmitEditing={(e) => handleVerifyOtp(conn.Id, e.nativeEvent.text)}
@@ -1902,11 +1919,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    borderTopWidth: 1,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: 250,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -1919,13 +1935,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   connectionList: {
-    maxHeight: 150,
+    flexShrink: 1,
   },
   connectionItem: {
     padding: 15,
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     marginBottom: 10,
+    borderWidth: 1,
   },
   connectionText: {
     fontSize: 14,
@@ -1948,11 +1964,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   otpInput: {
-    backgroundColor: '#fff',
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   completeButton: {
     backgroundColor: '#4CAF50',
