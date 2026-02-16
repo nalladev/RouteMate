@@ -24,6 +24,7 @@ module.exports = {
         NSLocationAlwaysUsageDescription: "RouteMate needs your location in the background to track active rides.",
         NSPhotoLibraryUsageDescription: "Allow RouteMate to access your photo library to upload profile pictures.",
         NSCameraUsageDescription: "Allow RouteMate to take photos for your profile picture.",
+        NSUserNotificationsUsageDescription: "Allow RouteMate to send you notifications about ride requests, KYC verification status, and important updates.",
         NSAppTransportSecurity: {
           NSAllowsArbitraryLoads: true
         }
@@ -48,7 +49,8 @@ module.exports = {
         "ACCESS_BACKGROUND_LOCATION",
         "CAMERA",
         "RECORD_AUDIO",
-        "INTERNET"
+        "INTERNET",
+        "POST_NOTIFICATIONS"
       ],
       config: {
         googleMaps: {
@@ -111,6 +113,16 @@ module.exports = {
             image: "./assets/icon.png",
             backgroundColor: "#151718"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#ffffff",
+          sounds: ["./assets/notification-sound.wav"],
+          androidMode: "default",
+          androidCollapsedTitle: "#{unread_notifications} new notifications"
         }
       ]
     ],

@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useMemo, ReactNo
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { api, setAuthToken, clearAuthToken } from '../utils/api';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shouldShowKycPrompt, setShouldShowKycPrompt] = useState(false);
+
+  // Register for push notifications when user is logged in
+  usePushNotifications(user?.Id || null);
 
   useEffect(() => {
     loadUser();

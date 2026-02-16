@@ -367,6 +367,13 @@ export const api = {
     });
   },
 
+  updatePushToken: async (pushToken: string): Promise<{ success: boolean }> => {
+    return request('/api/user/push-token', {
+      method: 'POST',
+      body: JSON.stringify({ pushToken }),
+    });
+  },
+
   // KYC
   createKycSession: async (): Promise<{ sessionId: string; verificationUrl: string }> => {
     return request('/api/kyc/create-session', {
