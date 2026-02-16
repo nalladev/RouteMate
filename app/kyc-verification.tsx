@@ -17,7 +17,7 @@ import { Colors } from '@/constants/theme';
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
-  const { user, markKycPromptShown } = useAuth();
+  const { user, markKycPromptShown, refreshUser } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +53,7 @@ export default function KYCVerificationScreen() {
     }
   }
 
-  function handleNavigationStateChange(navState: any) {
+  async function handleNavigationStateChange(navState: any) {
     const { url } = navState;
     
     // Check if this is the callback URL
@@ -62,13 +62,33 @@ export default function KYCVerificationScreen() {
       markKycPromptShown();
       router.replace('/(tabs)');
       
-      // Show alert after navigation
-      setTimeout(() => {
-        Alert.alert(
-          'KYC Submitted',
-          'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
-          [{ text: 'OK' }]
-        );
+      // Refresh user data and show appropriate alert
+      setTimeout(async () => {
+        try {
+          await refreshUser();
+          const latestStatus = user?.KycStatus || user?.KycData?.status;
+          
+          if (latestStatus === 'approved') {
+            Alert.alert(
+              'Verification Approved! 🎉',
+              'Your identity has been verified successfully. You can now use all app features including payouts.',
+              [{ text: 'OK' }]
+            );
+          } else {
+            Alert.alert(
+              'KYC Submitted',
+              'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
+              [{ text: 'OK' }]
+            );
+          }
+        } catch {
+          // Still show generic message if refresh fails
+          Alert.alert(
+            'KYC Submitted',
+            'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
+            [{ text: 'OK' }]
+          );
+        }
       }, 500);
     }
   }
