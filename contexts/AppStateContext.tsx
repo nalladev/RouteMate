@@ -80,6 +80,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   // Auto-sync destination changes to database when active
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const syncDestination = async () => {
       try {
         const dbState = userState === 'idle' ? userState : userState === 'driver' ? 'driving' : 'riding';
@@ -90,10 +92,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
 
     syncDestination();
-  }, [destination, userState]);
+  }, [destination, userState, isAuthenticated]);
 
   // Auto-sync activeCommunityId changes to database
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const syncCommunityId = async () => {
       try {
         await api.selectCommunityMode(activeCommunityId);
@@ -103,7 +107,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     };
 
     syncCommunityId();
-  }, [activeCommunityId]);
+  }, [activeCommunityId, isAuthenticated]);
 
   // Clear destination when going idle
   useEffect(() => {
