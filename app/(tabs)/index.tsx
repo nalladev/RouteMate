@@ -69,9 +69,7 @@ export default function HomeScreen() {
   const previousActiveRequestIdRef = useRef<string | null>(null);
   const previousActiveRequestStateRef = useRef<string | null>(null);
 
-  // New state for mode selection flow
-  const [tempDestination, setTempDestination] = useState<{ lat: number; lng: number; name: string } | null>(null);
-  const [isSelectingMode, setIsSelectingMode] = useState(false);
+  // Vehicle modal state
   const [showVehicleTypeModal, setShowVehicleTypeModal] = useState(false);
   const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType>(VEHICLE_TYPES[0]);
   const [isSavingVehicleType, setIsSavingVehicleType] = useState(false);
@@ -253,13 +251,8 @@ export default function HomeScreen() {
   }
 
   async function handlePlaceSelected(place: { lat: number; lng: number; name: string }) {
-    // Prevent place selection when in active mode
-    if (isActive) {
-      return;
-    }
-
-    // Store temporarily and show mode selection buttons
-    setTempDestination(place);
+    // Set destination directly
+    setDestination({ lat: place.lat, lng: place.lng });
     setSearchQuery(place.name);
 
     // Focus map on selected destination
@@ -277,11 +270,10 @@ export default function HomeScreen() {
   }
 
   async function handleModeSelection(selectedMode: 'driver' | 'passenger', skipVehicleCheck = false) {
-    if (!tempDestination || isSelectingMode) return;
+    if (!destination) return;
 
     // Show loader immediately
     setIsLoadingRoute(true);
-    setIsSelectingMode(true);
 
     if (selectedMode === 'driver' && !skipVehicleCheck) {
       // Check if vehicle details are complete
@@ -293,12 +285,9 @@ export default function HomeScreen() {
       if (!hasCompleteVehicleInfo) {
         setShowVehicleTypeModal(true);
         setIsLoadingRoute(false);
-        setIsSelectingMode(false);
         return;
       }
     }
-
-    // Note: We'll set userState after all validations pass
 
     // Check KYC for both modes - now mandatory
     if (!user?.IsKycVerified) {
@@ -308,16 +297,10 @@ export default function HomeScreen() {
         `You must complete KYC verification before ${modeText}. This ensures the safety and security of all users.`,
         [
           { text: 'Cancel', style: 'cancel', onPress: () => {
-            setTempDestination(null);
-            setSearchQuery('');
-            setIsSelectingMode(false);
             setIsLoadingRoute(false);
           }},
           { text: 'Verify Now', onPress: () => {
             router.push('/kyc-verification' as any);
-            setTempDestination(null);
-            setSearchQuery('');
-            setIsSelectingMode(false);
             setIsLoadingRoute(false);
           }}
         ]
@@ -375,28 +358,22 @@ export default function HomeScreen() {
   }
 
   async function proceedWithModeActivation(selectedMode: 'driver' | 'passenger') {
-    if (!tempDestination || !userLocation) return;
+    if (!destination || !userLocation) return;
 
     try {
-      // Set destination and userState
-      setDestination({ lat: tempDestination.lat, lng: tempDestination.lng });
+      // Set userState
       setUserState(selectedMode);
-
-      // Clear temporary state to show active mode UI
-      setTempDestination(null);
-      setIsSelectingMode(false);
-      // Keep isLoadingRoute true (already set when button was clicked)
 
       // If passenger mode, refresh markers to get available drivers
       let freshMarkers: MarkerData[] = [];
       if (selectedMode === 'passenger') {
-        freshMarkers = await refreshMarkers();
+        freshMarkers = await refreshMarkers(selectedMode);
       }
 
       // Fetch and draw route using OSRM API (free alternative to Google Directions)
       const routeResult = await getRoute(
         { lat: userLocation.lat, lng: userLocation.lng },
-        { lat: tempDestination.lat, lng: tempDestination.lng }
+        { lat: destination.lat, lng: destination.lng }
       );
 
       if (routeResult && routeResult.coordinates.length > 0) {
@@ -405,11 +382,11 @@ export default function HomeScreen() {
         // Fit map to show entire route and nearest driver (for passengers)
         if (mapRef.current) {
           let coordinatesToFit = [...routeResult.coordinates];
+          let nearestDriver: MarkerData | null = null;
 
           // If passenger mode, include nearest driver in map bounds
           if (selectedMode === 'passenger' && freshMarkers.length > 0) {
             // Find nearest driver
-            let nearestDriver: MarkerData | null = null;
             let minDistance = Infinity;
 
             freshMarkers.forEach((marker) => {
@@ -446,15 +423,12 @@ export default function HomeScreen() {
       setIsLoadingRoute(false);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to activate mode');
-      setTempDestination(null);
-      setSearchQuery('');
-      setIsSelectingMode(false);
       setIsLoadingRoute(false);
     }
   }
 
   function handleClearSearch() {
-    setTempDestination(null);
+    setDestination(null);
     setSearchQuery('');
     Keyboard.dismiss();
   }
@@ -522,8 +496,8 @@ export default function HomeScreen() {
       const { latitude, longitude } = poi.coordinate;
       const destinationName = poi.name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
-      // Store temporarily and show mode selection buttons
-      setTempDestination({ lat: latitude, lng: longitude, name: destinationName });
+      // Set destination directly
+      setDestination({ lat: latitude, lng: longitude });
       setSearchQuery(destinationName);
       Keyboard.dismiss();
 
@@ -531,8 +505,8 @@ export default function HomeScreen() {
       if (mapRef.current) {
         mapRef.current.animateToRegion(
           {
-            latitude: latitude,
-            longitude: longitude,
+            latitude,
+            longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           },
@@ -819,11 +793,11 @@ export default function HomeScreen() {
         })}
 
         {/* Destination marker (red pin like Google Maps) - show when destination selected or in active mode */}
-        {(destination && isActive) || tempDestination ? (
+        {destination ? (
           <Marker
             coordinate={{
-              latitude: tempDestination ? tempDestination.lat : destination!.lat,
-              longitude: tempDestination ? tempDestination.lng : destination!.lng
+              latitude: destination.lat,
+              longitude: destination.lng
             }}
             title="Destination"
             pinColor="red"
@@ -851,7 +825,7 @@ export default function HomeScreen() {
               onClear={handleClearSearch}
               containerStyle={[styles.placesSearchContainer, { backgroundColor: colors.card }]}
               initialValue={searchQuery}
-              showExternalLoader={isSelectingMode || isLoadingRoute}
+              showExternalLoader={isLoadingRoute}
             />
           </View>
         ) : (
@@ -912,7 +886,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* Mode Selection Buttons - show when destination is selected but not active */}
-      {tempDestination && !isActive && (
+      {destination && !isActive && (
         <View style={[styles.modeSelectionButtons, { backgroundColor: 'transparent', borderColor: colors.border }]}>
           <TouchableOpacity
             style={[
@@ -923,31 +897,31 @@ export default function HomeScreen() {
                 borderWidth: 2,
                 borderColor: colors.success,
                 marginRight: 6,
-              }
+              },
             ]}
             onPress={() => handleModeSelection('passenger')}
-            disabled={isSelectingMode}
+            disabled={isLoadingRoute}
           >
             <MaterialIcons name="person" size={24} color="#fff" />
-            <Text style={styles.modeButtonBottomText}>Find a Ride</Text>
+            <Text style={styles.modeButtonTextBottom}>Passenger</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              styles.modeButtonBottom,
+              styles.modeButtonBottom, 
               styles.modeButtonRight,
-              {
+              { 
                 backgroundColor: colors.info,
                 borderWidth: 2,
                 borderColor: colors.info,
                 marginLeft: 6,
-              }
+              },
             ]}
             onPress={() => handleModeSelection('driver')}
-            disabled={isSelectingMode}
+            disabled={isLoadingRoute}
           >
             <MaterialIcons name="drive-eta" size={24} color="#fff" />
-            <Text style={styles.modeButtonBottomText}>Start Driving</Text>
+            <Text style={styles.modeButtonTextBottom}>Driver</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1682,7 +1656,7 @@ const styles = StyleSheet.create({
   modeButtonRight: {
   },
 
-  modeButtonBottomText: {
+  modeButtonTextBottom: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#fff',
