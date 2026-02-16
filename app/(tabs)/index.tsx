@@ -1464,7 +1464,7 @@ export default function HomeScreen() {
         <View style={styles.connectionManager}>
           <Text style={styles.connectionTitle}>Active Connections</Text>
           <ScrollView style={styles.connectionList}>
-            {activeConnections.map((conn) => (
+            {Array.from(new Map(activeConnections.map(conn => [conn.Id, conn])).values()).map((conn) => (
               <View key={conn.Id} style={styles.connectionItem}>
                 <Text style={styles.connectionText}>Status: {conn.State}</Text>
                 <TouchableOpacity
