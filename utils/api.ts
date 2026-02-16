@@ -253,13 +253,6 @@ export const api = {
     }, useTestUser);
   },
 
-  confirmVehicle: async (connectionId: string, isSameVehicle: boolean): Promise<{ success: boolean; confirmation: 'confirmed' | 'mismatch' }> => {
-    return request('/api/rides/connection/confirm-vehicle', {
-      method: 'POST',
-      body: JSON.stringify({ connectionId, isSameVehicle }),
-    });
-  },
-
   completeRide: async (connectionId: string, useTestUser: boolean = false): Promise<{
     success: boolean;
     paymentStatus: string;

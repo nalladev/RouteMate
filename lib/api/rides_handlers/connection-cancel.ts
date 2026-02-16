@@ -75,6 +75,14 @@ export async function handleConnectionCancel(request: Request) {
     );
   }
 
+  // Passengers cannot cancel after pickup (ride in progress)
+  if (isPassenger && connection.State === 'picked_up') {
+    return Response.json(
+      { error: 'Cannot cancel ride after pickup. Please complete the ride.' },
+      { status: 400 }
+    );
+  }
+
   const cancelledAt = new Date();
   let penalty = 0;
   const cancelledBy = isDriver ? 'driver' : 'passenger';
