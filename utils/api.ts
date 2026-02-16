@@ -24,8 +24,20 @@ async function getAuthToken(): Promise<string | null> {
   return await AsyncStorage.getItem('authToken');
 }
 
-async function request(endpoint: string, options: RequestInit = {}): Promise<any> {
-  const token = await getAuthToken();
+async function getTestUserToken(): Promise<string | null> {
+  return await AsyncStorage.getItem('testUserToken');
+}
+
+async function setTestUserToken(token: string | null): Promise<void> {
+  if (token) {
+    await AsyncStorage.setItem('testUserToken', token);
+  } else {
+    await AsyncStorage.removeItem('testUserToken');
+  }
+}
+
+async function request(endpoint: string, options: RequestInit = {}, useTestUserToken: boolean = false): Promise<any> {
+  const token = useTestUserToken ? await getTestUserToken() : await getAuthToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -223,22 +235,22 @@ export const api = {
     });
   },
 
-  getRequests: async (): Promise<{ requests: RideConnection[] }> => {
-    return request('/api/rides/requests');
+  getRequests: async (useTestUser: boolean = false): Promise<{ requests: RideConnection[] }> => {
+    return request('/api/rides/requests', {}, useTestUser);
   },
 
-  respondToRequest: async (requestId: string, action: 'accepted' | 'rejected'): Promise<{ connection: RideConnection }> => {
+  respondToRequest: async (requestId: string, action: 'accepted' | 'rejected', useTestUser: boolean = false): Promise<{ connection: RideConnection }> => {
     return request('/api/rides/request/respond', {
       method: 'POST',
       body: JSON.stringify({ requestId, action }),
-    });
+    }, useTestUser);
   },
 
-  verifyOtp: async (connectionId: string, otp: string): Promise<{ success: boolean }> => {
+  verifyOtp: async (connectionId: string, otp: string, useTestUser: boolean = false): Promise<{ success: boolean }> => {
     return request('/api/rides/connection/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ connectionId, otp }),
-    });
+    }, useTestUser);
   },
 
   confirmVehicle: async (connectionId: string, isSameVehicle: boolean): Promise<{ success: boolean; confirmation: 'confirmed' | 'mismatch' }> => {
@@ -248,7 +260,7 @@ export const api = {
     });
   },
 
-  completeRide: async (connectionId: string): Promise<{
+  completeRide: async (connectionId: string, useTestUser: boolean = false): Promise<{
     success: boolean;
     paymentStatus: string;
     fare: number;
@@ -258,7 +270,7 @@ export const api = {
     return request('/api/rides/connection/complete', {
       method: 'POST',
       body: JSON.stringify({ connectionId }),
-    });
+    }, useTestUser);
   },
 
   rateDriver: async (connectionId: string, rating: number): Promise<{
@@ -289,8 +301,8 @@ export const api = {
     });
   },
 
-  getConnections: async (): Promise<{ connections: RideConnection[] }> => {
-    return request('/api/rides/connections');
+  getConnections: async (useTestUser: boolean = false): Promise<{ connections: RideConnection[] }> => {
+    return request('/api/rides/connections', {}, useTestUser);
   },
 
   getHistory: async (): Promise<{ rides: RideConnection[] }> => {
@@ -397,14 +409,19 @@ export const api = {
     vehicleName?: string;
     vehicleModel?: string;
     vehicleRegistration?: string;
-  }): Promise<{ success: boolean; userId: string; name: string; role: string; location: Location }> => {
-    return request('/api/test/control', {
+  }): Promise<{ success: boolean; userId: string; token: string; name: string; role: string; location: Location }> => {
+    const response = await request('/api/test/control', {
       method: 'POST',
       body: JSON.stringify({
         action: 'spawn',
         ...params,
       }),
     });
+    // Store the test user token
+    if (response.token) {
+      await setTestUserToken(response.token);
+    }
+    return response;
   },
 
   testUpdateLocation: async (location: Location): Promise<{ success: boolean; location: Location }> => {
@@ -429,18 +446,28 @@ export const api = {
   },
 
   testDespawn: async (): Promise<{ success: boolean; message: string }> => {
-    return request('/api/test/control', {
+    const response = await request('/api/test/control', {
       method: 'POST',
       body: JSON.stringify({
         action: 'despawn',
       }),
     });
+    // Clear the test user token
+    await setTestUserToken(null);
+    return response;
   },
 
-  testGetStatus: async (): Promise<{ exists: boolean; user?: any }> => {
-    return request('/api/test/control', {
+  testGetStatus: async (): Promise<{ exists: boolean; user?: any; token?: string }> => {
+    const response = await request('/api/test/control', {
       method: 'GET',
     });
+    // Store or clear the test user token based on existence
+    if (response.exists && response.token) {
+      await setTestUserToken(response.token);
+    } else if (!response.exists) {
+      await setTestUserToken(null);
+    }
+    return response;
   },
 
 };
