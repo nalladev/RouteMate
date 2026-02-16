@@ -1,5 +1,6 @@
 import { getDocumentById, updateDocument } from '../../firestore';
 import { getAuthToken, validateSession } from '../../middleware';
+import { generateSessionToken } from '../../auth';
 import * as admin from 'firebase-admin';
 
 const TEST_USER_ID = 'TESTUSER';
@@ -87,6 +88,7 @@ export async function handleTestStatus(request: Request) {
         vehicleModel: testUser.VehicleModel,
         vehicleRegistration: testUser.VehicleRegistration,
       },
+      token: testUser.Session?.token,
     });
   } catch (error: any) {
     console.error('[TestControlAPI] Error:', error);
@@ -109,11 +111,15 @@ async function handleSpawn(body: ControlTestUserRequest) {
     vehicleRegistration = 'KL01AB1234',
   } = body;
 
+  const token = generateSessionToken();
+  
   const testUserData = {
     Id: TEST_USER_ID,
     Mobile: '9999999999',
     Name: name,
     Email: 'testuser@routemate.test',
+    PasswordHash: 'test:hash:not:used',
+    Session: { token, tokens: [token] },
     state: 'idle',
     LastLocation: location,
     Destination: destination,
@@ -148,6 +154,7 @@ async function handleSpawn(body: ControlTestUserRequest) {
     success: true,
     message: 'Test user spawned',
     userId: TEST_USER_ID,
+    token,
     name,
     role,
     location,

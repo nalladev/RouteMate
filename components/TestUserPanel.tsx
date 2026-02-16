@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
@@ -58,6 +59,12 @@ export function TestUserPanel({
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+  const [connectionRequests, setConnectionRequests] = useState<any[]>([]);
+  const [acceptedConnections, setAcceptedConnections] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [otpInputs, setOtpInputs] = useState<{ [key: string]: string }>({});
+  const [verifyingOtp, setVerifyingOtp] = useState<{ [key: string]: boolean }>({});
+  const [completingRide, setCompletingRide] = useState<{ [key: string]: boolean }>({});
 
   const colors = {
     background: isDarkMode ? '#1a1a1a' : '#ffffff',
@@ -122,6 +129,13 @@ export function TestUserPanel({
       }
 
       console.log('[BackendTestUserPanel] Test user active:', response.exists);
+      console.log('[BackendTestUserPanel] Test user state:', response.user?.state);
+      console.log('[BackendTestUserPanel] Should show connection requests:', response.exists && response.user?.state === 'driving');
+
+      // Auto-fetch connection requests if user is a driver (state: 'driving')
+      if (response.exists && response.user?.state === 'driving') {
+        fetchConnectionRequests();
+      }
     } catch (error: any) {
       console.error('[BackendTestUserPanel] Failed to check test user status:', error);
       console.error('[BackendTestUserPanel] Error details:', error.message || error);
@@ -129,6 +143,102 @@ export function TestUserPanel({
       setTestUserInfo(null);
       setSelectedLocation(null);
       setSelectedDestination(null);
+      setConnectionRequests([]);
+      setAcceptedConnections([]);
+    }
+  };
+
+  const fetchConnectionRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      console.log('[TestUserPanel] Fetching connection requests...');
+      const requestsResponse = await api.getRequests(true);
+      console.log('[TestUserPanel] Requests response:', requestsResponse);
+      console.log('[TestUserPanel] Number of requests:', requestsResponse.requests?.length || 0);
+      setConnectionRequests(requestsResponse.requests || []);
+
+      console.log('[TestUserPanel] Fetching accepted connections...');
+      const connectionsResponse = await api.getConnections(true);
+      console.log('[TestUserPanel] Connections response:', connectionsResponse);
+      console.log('[TestUserPanel] Number of connections:', connectionsResponse.connections?.length || 0);
+      setAcceptedConnections(connectionsResponse.connections || []);
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to fetch requests:', error);
+      Alert.alert('Error', `Failed to fetch requests: ${error.message || 'Unknown error'}`);
+      setConnectionRequests([]);
+      setAcceptedConnections([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    setLoadingRequests(true);
+    try {
+      console.log('[TestUserPanel] Accepting request:', requestId);
+      await api.respondToRequest(requestId, 'accepted', true);
+      Alert.alert('Success', 'Request accepted');
+      await fetchConnectionRequests();
+      await checkTestUserStatus();
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to accept request:', error);
+      Alert.alert('Error', `Failed to accept request: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    setLoadingRequests(true);
+    try {
+      console.log('[TestUserPanel] Rejecting request:', requestId);
+      await api.respondToRequest(requestId, 'rejected', true);
+      Alert.alert('Success', 'Request rejected');
+      await fetchConnectionRequests();
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to reject request:', error);
+      Alert.alert('Error', `Failed to reject request: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleVerifyOtp = async (connectionId: string) => {
+    const otp = otpInputs[connectionId];
+    if (!otp || otp.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setVerifyingOtp({ ...verifyingOtp, [connectionId]: true });
+    try {
+      console.log('[TestUserPanel] Verifying OTP for connection:', connectionId);
+      await api.verifyOtp(connectionId, otp, true);
+      Alert.alert('Success', 'OTP verified! Passenger picked up.');
+      setOtpInputs({ ...otpInputs, [connectionId]: '' });
+      await fetchConnectionRequests();
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to verify OTP:', error);
+      Alert.alert('Error', `Failed to verify OTP: ${error.message || 'Invalid OTP'}`);
+    } finally {
+      setVerifyingOtp({ ...verifyingOtp, [connectionId]: false });
+    }
+  };
+
+  const handleCompleteRide = async (connectionId: string) => {
+    setCompletingRide({ ...completingRide, [connectionId]: true });
+    try {
+      console.log('[TestUserPanel] Completing ride:', connectionId);
+      const result = await api.completeRide(connectionId, true);
+      const pointsLine = result.passengerPointsAwarded ? `\nYou earned ${result.passengerPointsAwarded} passenger points.` : '';
+      Alert.alert('Success', `Ride completed! Payment ${result.paymentStatus}. Fare: ₹${result.fare.toFixed(2)}${pointsLine}`);
+      await fetchConnectionRequests();
+      await checkTestUserStatus();
+    } catch (error: any) {
+      console.error('[TestUserPanel] Failed to complete ride:', error);
+      Alert.alert('Error', `Failed to complete ride: ${error.message || 'Unknown error'}`);
+    } finally {
+      setCompletingRide({ ...completingRide, [connectionId]: false });
     }
   };
 
@@ -409,6 +519,235 @@ export function TestUserPanel({
                       Yes
                     </Text>
                   </View>
+                )}
+              </View>
+            )}
+
+            {/* Connection Requests & Connections Section */}
+            {testUserActive && testUserInfo?.state === 'driving' && (
+              <View style={[styles.section, { backgroundColor: colors.card }]}>
+                <View style={styles.autoMoveRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Connections
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.controlButton, { backgroundColor: colors.primary }]}
+                    onPress={fetchConnectionRequests}
+                    disabled={loadingRequests}
+                  >
+                    {loadingRequests ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="refresh" size={16} color="#fff" />
+                        <Text style={styles.controlButtonText}>Reload</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Pending Requests */}
+                <Text style={[styles.subSectionTitle, { color: colors.text }]}>
+                  Pending Requests ({connectionRequests.length})
+                </Text>
+                {connectionRequests.length === 0 ? (
+                  <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 12 }]}>
+                    No pending requests
+                  </Text>
+                ) : (
+                  connectionRequests.map((request) => (
+                    <View
+                      key={request.Id}
+                      style={[
+                        styles.requestCard,
+                        { backgroundColor: colors.background, borderColor: colors.border }
+                      ]}
+                    >
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Passenger
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {request.PassengerId?.substring(0, 8)}...
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Pickup
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {request.PickupLocation?.lat?.toFixed(4)}, {request.PickupLocation?.lng?.toFixed(4)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Destination
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {request.Destination?.lat?.toFixed(4)}, {request.Destination?.lng?.toFixed(4)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Fare
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          ₹{request.Fare?.toFixed(2) || '0.00'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestActions}>
+                        <TouchableOpacity
+                          style={[styles.requestButton, { backgroundColor: colors.danger }]}
+                          onPress={() => handleRejectRequest(request.Id)}
+                          disabled={loadingRequests}
+                        >
+                          <Ionicons name="close-circle" size={18} color="#fff" />
+                          <Text style={styles.requestButtonText}>Reject</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.requestButton, { backgroundColor: colors.success }]}
+                          onPress={() => handleAcceptRequest(request.Id)}
+                          disabled={loadingRequests}
+                        >
+                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                          <Text style={styles.requestButtonText}>Accept</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
+
+                {/* Accepted Connections */}
+                <Text style={[styles.subSectionTitle, { color: colors.text, marginTop: 16 }]}>
+                  Accepted Connections ({acceptedConnections.length})
+                </Text>
+                {acceptedConnections.length === 0 ? (
+                  <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 4 }]}>
+                    No accepted connections
+                  </Text>
+                ) : (
+                  acceptedConnections.map((connection) => (
+                    <View
+                      key={connection.Id}
+                      style={[
+                        styles.requestCard,
+                        { backgroundColor: colors.background, borderColor: colors.success }
+                      ]}
+                    >
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          State
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.success, fontFamily: 'Poppins-SemiBold' }]}>
+                          {connection.State?.toUpperCase()}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Passenger
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {connection.PassengerId?.substring(0, 8)}...
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Pickup
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {connection.PickupLocation?.lat?.toFixed(4)}, {connection.PickupLocation?.lng?.toFixed(4)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Destination
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          {connection.Destination?.lat?.toFixed(4)}, {connection.Destination?.lng?.toFixed(4)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.requestInfo}>
+                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                          Fare
+                        </Text>
+                        <Text style={[styles.requestValue, { color: colors.text }]}>
+                          ₹{connection.Fare?.toFixed(2) || '0.00'}
+                        </Text>
+                      </View>
+
+                      {connection.State === 'accepted' && (
+                        <View style={[styles.otpVerificationContainer, { borderTopColor: colors.border }]}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary, marginBottom: 8 }]}>
+                            Enter OTP from Passenger
+                          </Text>
+                          <View style={styles.otpInputRow}>
+                            <TextInput
+                              style={[
+                                styles.otpInput,
+                                { 
+                                  borderColor: colors.border,
+                                  color: colors.text,
+                                  backgroundColor: colors.background,
+                                }
+                              ]}
+                              placeholder="6-digit OTP"
+                              placeholderTextColor={colors.textSecondary}
+                              value={otpInputs[connection.Id] || ''}
+                              onChangeText={(text) => setOtpInputs({ ...otpInputs, [connection.Id]: text })}
+                              maxLength={6}
+                              keyboardType="numeric"
+                            />
+                            <TouchableOpacity
+                              style={[
+                                styles.verifyButton,
+                                { backgroundColor: colors.primary },
+                                verifyingOtp[connection.Id] && { opacity: 0.6 }
+                              ]}
+                              onPress={() => handleVerifyOtp(connection.Id)}
+                              disabled={verifyingOtp[connection.Id]}
+                            >
+                              {verifyingOtp[connection.Id] ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                              ) : (
+                                <Ionicons name="checkmark" size={20} color="#fff" />
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+
+                      {connection.State === 'picked_up' && (
+                        <View style={[styles.otpVerificationContainer, { borderTopColor: colors.border }]}>
+                          <TouchableOpacity
+                            style={[
+                              styles.completeRideButton,
+                              { backgroundColor: colors.success },
+                              completingRide[connection.Id] && { opacity: 0.6 }
+                            ]}
+                            onPress={() => handleCompleteRide(connection.Id)}
+                            disabled={completingRide[connection.Id]}
+                          >
+                            {completingRide[connection.Id] ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="checkmark-done" size={20} color="#fff" />
+                                <Text style={styles.completeRideButtonText}>Complete Ride</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  ))
                 )}
               </View>
             )}
@@ -880,6 +1219,86 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  requestCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  requestInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  requestLabel: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Regular',
+  },
+  requestValue: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Medium',
+    flex: 1,
+    textAlign: 'right',
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  requestButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  requestButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  otpVerificationContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  otpInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  otpInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    textAlign: 'center',
+  },
+  verifyButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeRideButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  completeRideButtonText: {
+    color: '#fff',
+    fontSize: 15,
     fontFamily: 'Poppins-SemiBold',
   },
 });
