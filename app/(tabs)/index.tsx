@@ -28,6 +28,7 @@ import { getRoute } from '@/utils/routing';
 import { VEHICLE_TYPES } from '@/constants/vehicles';
 import type { VehicleType } from '@/constants/vehicles';
 import { getTripEstimate, formatFare, formatDistanceKm, formatDuration, formatETA, calculateDistance, type TripEstimate } from '@/utils/tripEstimates';
+import { darkMapStyle, lightMapStyle } from '@/constants/mapStyles';
 
 const INDIA_EMERGENCY_NUMBER = '112';
 
@@ -744,6 +745,7 @@ export default function HomeScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
+        customMapStyle={isDarkMode ? darkMapStyle : lightMapStyle}
         initialRegion={{
           latitude: userLocation.lat,
           longitude: userLocation.lng,
@@ -979,12 +981,12 @@ export default function HomeScreen() {
 
           {/* Trip Estimate Section */}
           {isCalculatingEstimate ? (
-            <View style={styles.estimateContainer}>
+            <View style={[styles.estimateContainer, { backgroundColor: colors.background }]}>
               <ActivityIndicator size="small" color={colors.tint} />
               <Text style={[styles.estimateCalculatingText, { color: colors.textSecondary }]}>Calculating trip details...</Text>
             </View>
           ) : tripEstimate ? (
-            <View style={styles.estimateContainer}>
+            <View style={[styles.estimateContainer, { backgroundColor: colors.background }]}>
               <Text style={[styles.estimateTitle, { color: colors.text }]}>Trip Estimate</Text>
               
               <View style={styles.estimateRow}>
@@ -1092,7 +1094,7 @@ export default function HomeScreen() {
 
           {/* Trip Details */}
           {activeRequest.Fare && activeRequest.Distance && (
-            <View style={styles.estimateContainer}>
+            <View style={[styles.estimateContainer, { backgroundColor: colors.background }]}>
               <Text style={[styles.estimateTitle, { color: colors.text }]}>Trip Details</Text>
 
               <View style={styles.estimateRow}>
@@ -1200,7 +1202,7 @@ export default function HomeScreen() {
             <Text style={[styles.modalTitle, { color: colors.text }]}>New Ride Request</Text>
             {currentRequest && (
               <>
-                <View style={styles.requestDetailCard}>
+                <View style={[styles.requestDetailCard, { backgroundColor: colors.background }]}>
                   <View style={styles.requestDetailRow}>
                     <MaterialIcons name="attach-money" size={24} color={colors.success} />
                     <View style={styles.requestDetailTextContainer}>
@@ -1231,8 +1233,8 @@ export default function HomeScreen() {
                     <View style={styles.requestDetailRow}>
                       <MaterialIcons name="person" size={24} color={colors.tint} />
                       <View style={styles.requestDetailTextContainer}>
-                        <Text style={styles.requestDetailLabel}>Pickup ETA</Text>
-                        <Text style={styles.requestDetailValue}>
+                        <Text style={[styles.requestDetailLabel, { color: colors.textSecondary }]}>Pickup ETA</Text>
+                        <Text style={[styles.requestDetailValue, { color: colors.text }]}>
                           {(() => {
                             const pickupDistanceKm = calculateDistance(
                               userLocation.lat,
@@ -1259,7 +1261,7 @@ export default function HomeScreen() {
                   </View>
 
                   {currentRequest.PickupLocation && (
-                    <View style={styles.requestLocationInfo}>
+                    <View style={[styles.requestLocationInfo, { borderTopColor: colors.border }]}>
                       <MaterialIcons name="place" size={20} color={colors.textSecondary} />
                       <Text style={[styles.requestLocationText, { color: colors.textSecondary }]}>
                         Pickup: {currentRequest.PickupLocation.lat.toFixed(4)}, {currentRequest.PickupLocation.lng.toFixed(4)}
@@ -1268,7 +1270,7 @@ export default function HomeScreen() {
                   )}
 
                   {currentRequest.Destination && (
-                    <View style={styles.requestLocationInfo}>
+                    <View style={[styles.requestLocationInfo, { borderTopColor: colors.border }]}>
                       <MaterialIcons name="flag" size={20} color={colors.textSecondary} />
                       <Text style={[styles.requestLocationText, { color: colors.textSecondary }]}>
                         Destination: {currentRequest.Destination.lat.toFixed(4)}, {currentRequest.Destination.lng.toFixed(4)}
@@ -1958,7 +1960,6 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   estimateContainer: {
-    backgroundColor: '#f8f9fa',
     padding: 12,
     borderRadius: 8,
     marginTop: 12,
@@ -1967,7 +1968,6 @@ const styles = StyleSheet.create({
   estimateTitle: {
     fontSize: 16,
     fontFamily: 'Inter-Bold',
-    color: '#333',
     marginBottom: 12,
   },
   estimateRow: {
@@ -1987,22 +1987,18 @@ const styles = StyleSheet.create({
   estimateLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#666',
     marginBottom: 2,
   },
   estimateValue: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#333',
   },
   estimateCalculatingText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#666',
     marginLeft: 8,
   },
   requestDetailCard: {
-    backgroundColor: '#f8f9fa',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -2019,13 +2015,11 @@ const styles = StyleSheet.create({
   requestDetailLabel: {
     fontSize: 13,
     fontFamily: 'Inter-Regular',
-    color: '#666',
     marginBottom: 2,
   },
   requestDetailValue: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
-    color: '#333',
   },
   requestLocationInfo: {
     flexDirection: 'row',
@@ -2034,12 +2028,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
   requestLocationText: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#666',
     flex: 1,
   },
   balanceCheckContainer: {
