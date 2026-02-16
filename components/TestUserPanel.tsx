@@ -620,7 +620,7 @@ export function TestUserPanel({
                           Fare
                         </Text>
                         <Text style={[styles.requestValue, { color: colors.text }]}>
-                          ₹{connection.Fare?.toFixed(2) || '0.00'}
+                          ₹{connection.Fare?.toFixed(2) || '0.00'}hello
                         </Text>
                       </View>
 
@@ -693,160 +693,321 @@ export function TestUserPanel({
               </View>
             )}
 
-            {/* Available Drivers Section - For Passenger (riding state) */}
+            {/* Passenger Connections Section - For Passenger (riding state) */}
             {testUserActive && testUserInfo?.state === 'riding' && (
-              <View style={[styles.section, { backgroundColor: colors.card }]}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    Available Drivers
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.controlButton, { backgroundColor: colors.primary }]}
-                    onPress={fetchAvailableDrivers}
-                    disabled={loadingDrivers}
-                  >
-                    {loadingDrivers ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="refresh" size={16} color="#fff" />
-                        <Text style={styles.controlButtonText}>Reload</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {availableDrivers.length === 0 ? (
-                  <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-                    No available drivers found
-                  </Text>
-                ) : (
-                  availableDrivers.map((driver) => {
-                    // Check if there's already a pending request or active connection with this driver
-                    const hasPendingRequest = passengerRequests.some(
-                      (req) => req.DriverId === driver.userId && req.State === 'pending'
-                    );
-                    const hasActiveConnection = passengerConnections.some(
-                      (conn) => conn.DriverId === driver.userId &&
-                      ['accepted', 'picked_up'].includes(conn.State)
-                    );
-                    const hasExistingRequest = hasPendingRequest || hasActiveConnection;
-
-                    return (
-                    <View
-                      key={driver.userId}
-                      style={[
-                        styles.requestCard,
-                        { backgroundColor: colors.background, borderColor: colors.border }
-                      ]}
+              <>
+                {/* Active Connections */}
+                <View style={[styles.section, { backgroundColor: colors.card }]}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      My Ride Connections
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.controlButton, { backgroundColor: colors.primary }]}
+                      onPress={fetchPassengerRequests}
+                      disabled={loadingRequests}
                     >
-                      <View style={styles.requestInfo}>
-                        <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                          Driver
-                        </Text>
-                        <Text style={[styles.requestValue, { color: colors.text }]}>
-                          {driver.name}
-                        </Text>
+                      {loadingRequests ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="refresh" size={16} color="#fff" />
+                          <Text style={styles.controlButtonText}>Reload</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Pending Requests */}
+                  <Text style={[styles.subSectionTitle, { color: colors.text }]}>
+                    Pending Requests ({passengerRequests.length})
+                  </Text>
+                  {passengerRequests.length === 0 ? (
+                    <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: 12 }]}>
+                      No pending requests
+                    </Text>
+                  ) : (
+                    passengerRequests.map((request) => (
+                      <View
+                        key={request.Id}
+                        style={[
+                          styles.requestCard,
+                          { backgroundColor: colors.background, borderColor: colors.border }
+                        ]}
+                      >
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Driver
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            {request.DriverId?.substring(0, 8)}...
+                          </Text>
+                        </View>
+
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            State
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.warning }]}>
+                            {request.State?.toUpperCase()}
+                          </Text>
+                        </View>
+
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Fare
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            ₹{request.Fare?.toFixed(2) || '0.00'}
+                          </Text>
+                        </View>
                       </View>
+                    ))
+                  )}
 
-                      {typeof driver.rating === 'number' && (
+                  {/* Active Connections */}
+                  <Text style={[styles.subSectionTitle, { color: colors.text, marginTop: 16 }]}>
+                    Active Connections ({passengerConnections.length})
+                  </Text>
+                  {passengerConnections.length === 0 ? (
+                    <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 4 }]}>
+                      No active connections
+                    </Text>
+                  ) : (
+                    passengerConnections.map((connection) => (
+                      <View
+                        key={connection.Id}
+                        style={[
+                          styles.requestCard,
+                          { backgroundColor: colors.background, borderColor: colors.success }
+                        ]}
+                      >
                         <View style={styles.requestInfo}>
                           <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                            Rating
+                            State
                           </Text>
-                          <Text style={[styles.requestValue, { color: colors.text }]}>
-                            ⭐ {driver.rating.toFixed(1)}
+                          <Text style={[styles.requestValue, { color: colors.success, fontFamily: 'Poppins-SemiBold' }]}>
+                            {connection.State?.toUpperCase()}
                           </Text>
                         </View>
-                      )}
 
-                      {driver.vehicle && (
                         <View style={styles.requestInfo}>
                           <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                            Vehicle
+                            Driver
                           </Text>
                           <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {driver.vehicle}
+                            {connection.DriverId?.substring(0, 8)}...
                           </Text>
                         </View>
-                      )}
 
-                      {driver.vehicleName && (
                         <View style={styles.requestInfo}>
                           <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                            Model
+                            Pickup
                           </Text>
                           <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {`${driver.vehicleName}${driver.vehicleModel ? ` ${driver.vehicleModel}` : ''}`}
+                            {connection.PickupLocation?.lat?.toFixed(4)}, {connection.PickupLocation?.lng?.toFixed(4)}
                           </Text>
                         </View>
-                      )}
 
-                      {driver.vehicleRegistration && (
-                        <View style={styles.requestInfo}>
-                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                            Registration
-                          </Text>
-                          <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {driver.vehicleRegistration}
-                          </Text>
-                        </View>
-                      )}
-
-                      {driver.lastLocation && (
-                        <View style={styles.requestInfo}>
-                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
-                            Location
-                          </Text>
-                          <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {driver.lastLocation.lat.toFixed(4)}, {driver.lastLocation.lng.toFixed(4)}
-                          </Text>
-                        </View>
-                      )}
-
-                      {driver.destination && (
                         <View style={styles.requestInfo}>
                           <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
                             Destination
                           </Text>
                           <Text style={[styles.requestValue, { color: colors.text }]}>
-                            {driver.destination.lat.toFixed(4)}, {driver.destination.lng.toFixed(4)}
+                            {connection.Destination?.lat?.toFixed(4)}, {connection.Destination?.lng?.toFixed(4)}
                           </Text>
                         </View>
-                      )}
 
-                      {!hasExistingRequest ? (
-                        <TouchableOpacity
-                          style={[
-                            styles.requestButton,
-                            { backgroundColor: colors.primary, marginTop: 8 },
-                            requestingRide[driver.userId] && { opacity: 0.6 }
-                          ]}
-                          onPress={() => handleRequestRide(driver.userId)}
-                          disabled={requestingRide[driver.userId]}
-                        >
-                          {requestingRide[driver.userId] ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                          ) : (
-                            <>
-                              <Ionicons name="car" size={18} color="#fff" />
-                              <Text style={styles.requestButtonText}>Request Ride</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={[styles.requestButton, { backgroundColor: colors.textSecondary, marginTop: 8 }]}>
-                          <Ionicons name="time" size={18} color="#fff" />
-                          <Text style={styles.requestButtonText}>
-                            {hasActiveConnection ? 'Ride In Progress' : 'Request Pending'}
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Fare
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            ₹{connection.Fare?.toFixed(2) || '0.00'}
                           </Text>
                         </View>
-                      )}
+
+                        {connection.State === 'accepted' && (
+                          <View style={[styles.otpVerificationContainer, { borderTopColor: colors.border }]}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary, marginBottom: 8 }]}>
+                              Your OTP (Share with Driver)
+                            </Text>
+                            <View style={[styles.requestCard, { backgroundColor: colors.primary, borderColor: colors.primary, padding: 16 }]}>
+                              <Text style={[styles.requestValue, { color: '#fff', fontSize: 32, fontFamily: 'Poppins-Bold', textAlign: 'center' }]}>
+                                {connection.OtpCode}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+
+                        {connection.State === 'picked_up' && (
+                          <View style={[styles.otpVerificationContainer, { borderTopColor: colors.border }]}>
+                            <Text style={[styles.requestLabel, { color: colors.success, marginBottom: 8 }]}>
+                              ✓ Ride in progress
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    ))
+                  )}
+                </View>
+
+                {/* Available Drivers Section - Only show if no active connections */}
+                {passengerConnections.length === 0 && (
+                  <View style={[styles.section, { backgroundColor: colors.card }]}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                        Available Drivers
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.controlButton, { backgroundColor: colors.primary }]}
+                        onPress={fetchAvailableDrivers}
+                        disabled={loadingDrivers}
+                      >
+                        {loadingDrivers ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <Ionicons name="refresh" size={16} color="#fff" />
+                            <Text style={styles.controlButtonText}>Reload</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
                     </View>
-                    );
-                  })
+
+                  {availableDrivers.length === 0 ? (
+                    <Text style={[styles.description, { color: colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
+                      No available drivers found
+                    </Text>
+                  ) : (
+                    availableDrivers.map((driver) => {
+                      // Check if there's already a pending request or active connection with this driver
+                      const hasPendingRequest = passengerRequests.some(
+                        (req) => req.DriverId === driver.userId && req.State === 'pending'
+                      );
+                      const hasActiveConnection = passengerConnections.some(
+                        (conn) => conn.DriverId === driver.userId &&
+                        ['accepted', 'picked_up'].includes(conn.State)
+                      );
+                      const hasExistingRequest = hasPendingRequest || hasActiveConnection;
+
+                      return (
+                      <View
+                        key={driver.userId}
+                        style={[
+                          styles.requestCard,
+                          { backgroundColor: colors.background, borderColor: colors.border }
+                        ]}
+                      >
+                        <View style={styles.requestInfo}>
+                          <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                            Driver
+                          </Text>
+                          <Text style={[styles.requestValue, { color: colors.text }]}>
+                            {driver.name}
+                          </Text>
+                        </View>
+
+                        {typeof driver.rating === 'number' && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Rating
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              ⭐ {driver.rating.toFixed(1)}
+                            </Text>
+                          </View>
+                        )}
+
+                        {driver.vehicle && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Vehicle
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              {driver.vehicle}
+                            </Text>
+                          </View>
+                        )}
+
+                        {driver.vehicleName && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Model
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              {`${driver.vehicleName}${driver.vehicleModel ? ` ${driver.vehicleModel}` : ''}`}
+                            </Text>
+                          </View>
+                        )}
+
+                        {driver.vehicleRegistration && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Registration
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              {driver.vehicleRegistration}
+                            </Text>
+                          </View>
+                        )}
+
+                        {driver.lastLocation && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Location
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              {driver.lastLocation.lat.toFixed(4)}, {driver.lastLocation.lng.toFixed(4)}
+                            </Text>
+                          </View>
+                        )}
+
+                        {driver.destination && (
+                          <View style={styles.requestInfo}>
+                            <Text style={[styles.requestLabel, { color: colors.textSecondary }]}>
+                              Destination
+                            </Text>
+                            <Text style={[styles.requestValue, { color: colors.text }]}>
+                              {driver.destination.lat.toFixed(4)}, {driver.destination.lng.toFixed(4)}
+                            </Text>
+                          </View>
+                        )}
+
+                        {!hasExistingRequest ? (
+                          <TouchableOpacity
+                            style={[
+                              styles.requestButton,
+                              { backgroundColor: colors.primary, marginTop: 8 },
+                              requestingRide[driver.userId] && { opacity: 0.6 }
+                            ]}
+                            onPress={() => handleRequestRide(driver.userId)}
+                            disabled={requestingRide[driver.userId]}
+                          >
+                            {requestingRide[driver.userId] ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <>
+                                <Ionicons name="car" size={18} color="#fff" />
+                                <Text style={styles.requestButtonText}>Request Ride</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={[styles.requestButton, { backgroundColor: colors.textSecondary, marginTop: 8 }]}>
+                            <Ionicons name="time" size={18} color="#fff" />
+                            <Text style={styles.requestButtonText}>
+                              {hasActiveConnection ? 'Ride In Progress' : 'Request Pending'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      );
+                    })
+                  )}
+                </View>
                 )}
-              </View>
+              </>
             )}
 
             {/* Controls */}
