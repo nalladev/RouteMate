@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { getDocument, getDocumentById, updateDocument } from '../../../lib/firestore';
 import { extractKycProfile, isApprovedKycStatus, normalizeDiditStatus } from '../../../lib/kyc';
+import { sendKycApprovalNotification, sendKycRejectionNotification } from '../../../lib/notifications';
 
 function safeCompare(a: string, b: string): boolean {
   const aBuffer = Buffer.from(a);
@@ -183,6 +184,13 @@ export async function POST(request: Request) {
     }
 
     await updateDocument('users', user.Id, updateData);
+
+    // Send push notification for KYC approval or rejection
+    if (normalizedStatus === 'approved') {
+      await sendKycApprovalNotification(user.Id);
+    } else if (normalizedStatus === 'rejected') {
+      await sendKycRejectionNotification(user.Id);
+    }
 
     return Response.json({ received: true });
   } catch (error) {
