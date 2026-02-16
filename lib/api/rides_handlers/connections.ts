@@ -27,7 +27,7 @@ export async function handleConnections(request: Request) {
   // Combine and filter for active connections
   const allConnections = [...driverConnections, ...passengerConnections];
   const activeConnections = allConnections.filter((c: any) => 
-    c.State !== 'completed' && c.State !== 'rejected'
+    c.State !== 'completed' && c.State !== 'rejected' && c.State !== 'cancelled'
   );
 
   return Response.json({
