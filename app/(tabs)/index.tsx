@@ -290,7 +290,13 @@ export default function HomeScreen() {
       }
     }
 
-    // Check KYC for both modes - now mandatory
+    // Check KYC for both modes - refresh data first to ensure status is up-to-date
+    try {
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+
     if (!user?.IsKycVerified) {
       const modeText = selectedMode === 'driver' ? 'becoming a driver' : 'finding rides';
       Alert.alert(

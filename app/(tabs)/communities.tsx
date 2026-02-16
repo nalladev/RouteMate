@@ -95,9 +95,8 @@ export default function CommunitiesScreen() {
   async function handleToggleCommunityMode(communityId: string | null) {
     try {
       // Update local state immediately for better UX
+      // AppStateContext will auto-sync this to the server via useEffect
       setActiveCommunityId(communityId);
-      // Also refresh user to ensure consistency
-      await Promise.all([loadCommunities(), refreshUser()]);
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'Failed to update community mode');
     }
@@ -321,14 +320,14 @@ export default function CommunitiesScreen() {
                     style={[
                       styles.modeButton,
                       {
-                        backgroundColor: community.isActive ? `${colors.success}22` : `${colors.tint}22`,
-                        borderColor: community.isActive ? colors.success : colors.tint,
+                        backgroundColor: community.Id === activeCommunityId ? `${colors.success}22` : `${colors.tint}22`,
+                        borderColor: community.Id === activeCommunityId ? colors.success : colors.tint,
                       },
                     ]}
                     onPress={() => handleToggleCommunityMode(community.Id)}
                   >
-                    <Text style={{ color: community.isActive ? colors.success : colors.tint }}>
-                      {community.isActive ? 'Active' : 'Use This'}
+                    <Text style={{ color: community.Id === activeCommunityId ? colors.success : colors.tint }}>
+                      {community.Id === activeCommunityId ? 'Active' : 'Use This'}
                     </Text>
                   </TouchableOpacity>
 

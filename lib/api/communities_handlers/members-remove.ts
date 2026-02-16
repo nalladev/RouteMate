@@ -44,11 +44,14 @@ export async function handleMembersRemove(request: Request, communityId: string)
     const communityRef = db.collection('communities').doc(communityId);
     const memberRef = db.collection('users').doc(memberId);
 
+    // All reads must happen before writes in Firestore transactions
+    const memberDoc = await transaction.get(memberRef);
+
+    // Now perform all writes
     transaction.update(communityRef, {
       MemberIds: admin.firestore.FieldValue.arrayRemove(memberId),
     });
 
-    const memberDoc = await transaction.get(memberRef);
     if (memberDoc.exists) {
       const memberData = memberDoc.data() || {};
       if (memberData.ActiveCommunityId === communityId) {

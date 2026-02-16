@@ -17,23 +17,21 @@ import { Colors } from '@/constants/theme';
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
-  const { user, markKycPromptShown } = useAuth();
+  const { user, markKycPromptShown, refreshUser } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
   const [isLoading, setIsLoading] = useState(false);
   const [showDiditWebView, setShowDiditWebView] = useState(false);
   const [verificationUrl, setVerificationUrl] = useState<string>('');
   const currentKycStatus = user?.KycStatus || user?.KycData?.status || 'not_started';
-  const hasPendingReview =
-    !user?.IsKycVerified &&
-    ['session_created', 'submitted', 'under_review'].includes(currentKycStatus);
 
   // Create Didit verification session via backend
   async function createVerificationSession() {
-    if (hasPendingReview) {
+    // Only prevent if already approved
+    if (user?.IsKycVerified) {
       Alert.alert(
-        'Verification Already Submitted',
-        'Your verification is already in review. We will update your status automatically once the result is available.'
+        'Already Verified',
+        'Your identity has already been verified.'
       );
       return;
     }
@@ -55,7 +53,7 @@ export default function KYCVerificationScreen() {
     }
   }
 
-  function handleNavigationStateChange(navState: any) {
+  async function handleNavigationStateChange(navState: any) {
     const { url } = navState;
     
     // Check if this is the callback URL
@@ -64,13 +62,33 @@ export default function KYCVerificationScreen() {
       markKycPromptShown();
       router.replace('/(tabs)');
       
-      // Show alert after navigation
-      setTimeout(() => {
-        Alert.alert(
-          'KYC Submitted',
-          'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
-          [{ text: 'OK' }]
-        );
+      // Refresh user data and show appropriate alert
+      setTimeout(async () => {
+        try {
+          await refreshUser();
+          const latestStatus = user?.KycStatus || user?.KycData?.status;
+          
+          if (latestStatus === 'approved') {
+            Alert.alert(
+              'Verification Approved! 🎉',
+              'Your identity has been verified successfully. You can now use all app features including payouts.',
+              [{ text: 'OK' }]
+            );
+          } else {
+            Alert.alert(
+              'KYC Submitted',
+              'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
+              [{ text: 'OK' }]
+            );
+          }
+        } catch {
+          // Still show generic message if refresh fails
+          Alert.alert(
+            'KYC Submitted',
+            'Your verification has been submitted successfully. Once verified, you can use all app features. Check your account for verification status.',
+            [{ text: 'OK' }]
+          );
+        }
       }, 500);
     }
   }
@@ -166,11 +184,11 @@ export default function KYCVerificationScreen() {
           </Text>
         </View>
 
-        {hasPendingReview && (
-          <View style={[styles.pendingNote, { backgroundColor: colors.warning + '22', borderColor: colors.warning }]}>
-            <Text style={[styles.pendingTitle, { color: colors.warning }]}>Verification in progress</Text>
-            <Text style={[styles.pendingText, { color: colors.warning }]}>
-              Your KYC is currently under review. You do not need to submit again.
+        {!user?.IsKycVerified && currentKycStatus !== 'not_started' && currentKycStatus !== 'approved' && (
+          <View style={[styles.pendingNote, { backgroundColor: colors.info + '22', borderColor: colors.info }]}>
+            <Text style={[styles.pendingTitle, { color: colors.info }]}>Current Status: {currentKycStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>
+            <Text style={[styles.pendingText, { color: colors.info }]}>
+              You can start a new verification anytime. Your latest submission will be used.
             </Text>
           </View>
         )}
