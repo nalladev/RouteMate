@@ -4,7 +4,7 @@
 #show: ieee.with(
   title: [ROUTEMATE: An Innovative Ride-Sharing System for Sustainable Urban Mobility],
   abstract: [
-    This paper presents RouteMate, a next-generation ride-sharing platform designed to address urban traffic congestion and excessive fuel consumption through optimized vehicle usage. The system enables private vehicle owners to share rides with passengers whose destinations align with their intended routes using real-time, route-based matching. Unlike traditional ride-sharing platforms that rely on fixed schedules or commercial fleets, RouteMate facilitates spontaneous and flexible ride coordination for daily commuters. The platform integrates Aadhaar-based user verification to ensure security, trust, and accountability among users. Additionally, advanced location tracking and dynamic route optimization algorithms are employed to minimize detours, reduce travel time, and improve ride efficiency. To encourage long-term participation, RouteMate incorporates an incentive-driven reward mechanism that provides fuel vouchers, carbon credit points, and user discounts. By maximizing vehicle occupancy and reducing single-passenger travel, the system contributes to sustainable transportation, reduced emissions, and a smarter urban mobility ecosystem.
+    This paper presents RouteMate, a next-generation ride-sharing platform designed to address urban traffic congestion and excessive fuel consumption through optimized vehicle usage. The system enables private vehicle owners to share rides with passengers whose destinations align with their intended routes using real-time, route-based matching. Unlike traditional ride-sharing platforms that rely on fixed schedules or commercial fleets, RouteMate facilitates spontaneous and flexible ride coordination for daily commuters. The platform integrates KYC (Know Your Customer) verification to ensure security, trust, and accountability among users. Additionally, advanced location tracking and dynamic route optimization algorithms using OSRM (Open Source Routing Machine) are employed to minimize detours, reduce travel time, and improve ride efficiency. To encourage long-term participation, RouteMate incorporates an incentive-driven reward mechanism with points-based system. By maximizing vehicle occupancy and reducing single-passenger travel, the system contributes to sustainable transportation, reduced emissions, and a smarter urban mobility ecosystem.
   ],
   authors: (
     (
@@ -43,7 +43,7 @@
       location: [],
     )
   ),
-  keywords: ("RouteMate", "Ride-Sharing", "Urban Mobility", "Dynamic Route Optimization", "Aadhaar Verification", "Sustainable Transportation", "Smart Mobility"),
+  keywords: ("RouteMate", "Ride-Sharing", "Urban Mobility", "Dynamic Route Optimization", "KYC Verification", "Sustainable Transportation", "Smart Mobility"),
   bibliography: bibliography("refs.bib"),
   figure-supplement: [Fig.],
 )
@@ -158,7 +158,7 @@ In contrast, the proposed RouteMate system extends real-time traffic analysis by
 
 Based on the detailed analysis of existing ride-sharing systems and the research gaps identified in the literature survey, this paper proposes RouteMate, a real-time route-based ride-sharing platform designed to optimize private vehicle utilization and promote sustainable urban mobility. The framework aims to overcome key limitations of previous systems such as dependence on commercial fleets, lack of dynamic route deviation analysis, and absence of sustainability-driven incentives.
 
-RouteMate follows a layered modular architecture consisting of five layers: a Presentation Layer built using a React Native-based mobile application for user registration, ride requests, live tracking, and reward visualization; an Application Logic Layer implementing the route-matching engine, deviation threshold calculation, and travel time estimation algorithms; a Location Monitoring Layer responsible for real-time GPS tracking and route alignment using map APIs; a Communication Layer enabling secure API interactions between the mobile application and backend server using HTTPS protocols; and a Data Persistence Layer utilizing a cloud-based database such as MongoDB or MySQL for storing user profiles, ride history, route logs, and reward records. This structured architecture ensures scalability, secure communication, efficient ride matching, and seamless integration of sustainability incentives within the RouteMate ecosystem.
+RouteMate follows a layered modular architecture consisting of five layers: a Presentation Layer built using a React Native-based mobile application for user registration, ride requests, live tracking, and reward visualization; an Application Logic Layer implementing the route-matching engine, deviation threshold calculation, and travel time estimation algorithms; a Location Monitoring Layer responsible for real-time GPS tracking and route alignment using OSRM (Open Source Routing Machine) and Nominatim APIs; a Communication Layer enabling secure API interactions between the mobile application and backend server using HTTPS protocols; and a Data Persistence Layer utilizing Firebase Firestore for storing user profiles, ride history, route logs, and reward records. This structured architecture ensures scalability, secure communication, efficient ride matching, and seamless integration of sustainability incentives within the RouteMate ecosystem.
 
 #figure(
   kind: image,
@@ -200,7 +200,7 @@ RouteMate follows a layered modular architecture consisting of five layers: a Pr
       edge((1.5, 3), (0.5, 4), "->"),
       
       // Database Layer
-      node((0.5, 5), [Data Persistence Layer\ (MongoDB/MySQL)], width: 50mm, height: 10mm, fill: gray.lighten(80%)),
+      node((0.5, 5), [Data Persistence Layer\ (Firebase Firestore)], width: 50mm, height: 10mm, fill: gray.lighten(80%)),
       
       edge((0.5, 4), (0.5, 5), "->", [Store/\ Retrieve], label-pos: 0.5),
       
@@ -213,7 +213,7 @@ RouteMate follows a layered modular architecture consisting of five layers: a Pr
 
 === Key Components of the Framework
 
-*Real-Time Route Monitor (Layer 1 – Live Location Tracking):* The Route Monitor module utilizes GPS services and map APIs to continuously track the driver's live location and predefined travel route. A dynamic route-alignment algorithm evaluates nearby ride requests and triggers a Feasible Match Alert when a rider's pickup and drop locations fall within a predefined deviation threshold (e.g., 2 km detour or 5 minutes additional travel time). This ensures that ride matching does not significantly alter the driver's intended path.
+*Real-Time Route Monitor (Layer 1 – Live Location Tracking):* The Route Monitor module utilizes GPS services and OSRM routing API to continuously track the driver's live location and predefined travel route. A dynamic route-alignment algorithm evaluates nearby ride requests and triggers a Feasible Match Alert when a rider's pickup and drop locations fall within a predefined deviation threshold (3.5 km route corridor, 5 km pickup proximity, and 5 km destination proximity). This ensures that ride matching does not significantly alter the driver's intended path.
 
 *Route Deviation Engine (Layer 2 – Mathematical Optimization):* The system applies shortest-path algorithms such as Dijkstra's or A\* to compute optimal routes and estimate additional travel distance and time. The deviation cost function is calculated as:
 
@@ -223,7 +223,7 @@ If the deviation remains within the acceptable threshold, the ride request is ma
 
 *User Identity Trust Verification (Layer 3 – Secure Authentication):* All users undergo secure authentication using OTP verification and profile validation. Driver and passenger details are cross-verified, and ratings are maintained to ensure safety and trust. Suspicious accounts or inconsistent ride behaviors trigger administrative review mechanisms, enhancing platform reliability.
 
-*Sustainability Incentive Engine (Layer 4 – Eco-Scoring Mechanism):* A weighted eco-score model assigns reward points based on shared distance, number of co-passengers, and estimated carbon emission savings. For example: Shared Distance (4 pts), Number of Riders (3 pts), and Reduced CO Emission Estimate (3 pts). When cumulative eco-points exceed a defined threshold, users become eligible for fuel vouchers or carbon credit incentives. This multi-factor scoring approach encourages sustainable ride-sharing participation.
+*Sustainability Incentive Engine (Layer 4 – Reward Points Mechanism):* A points-based reward system incentivizes user participation and quality service. Passengers earn 10 points per completed ride, while drivers earn 20 points for each five-star rated ride. Accumulated points can be redeemed for various vouchers including free rides (up to ₹50 for 120 points), fuel vouchers (₹100 for 180 points), vehicle service discounts, toll rebates, and priority support. This gamified approach encourages consistent participation and high-quality service delivery while promoting sustainable ride-sharing behavior.
 
 === Advantages of the Proposed Framework
 
@@ -330,7 +330,7 @@ The proposed RouteMate system was evaluated through functional testing, simulate
 
 == Experimental Setup
 
-The system was tested using 500 simulated ride requests across different urban scenarios in a metropolitan area covering approximately 50 square kilometers. The test environment included peak hours (8:00-10:00 AM and 5:00-7:00 PM) and off-peak hours to evaluate system performance under varying traffic conditions. The implementation was deployed on a cloud-based infrastructure with React Native mobile applications for both drivers and passengers, integrated with Google Maps API for routing and Firebase for real-time database operations.
+The system was tested using 500 simulated ride requests across different urban scenarios in a metropolitan area covering approximately 50 square kilometers. The test environment included peak hours (8:00-10:00 AM and 5:00-7:00 PM) and off-peak hours to evaluate system performance under varying traffic conditions. The implementation was deployed using React Native mobile applications with Expo framework for both drivers and passengers, integrated with OSRM API for routing (free open-source alternative), Nominatim API for geocoding (OpenStreetMap-based), and Firebase Firestore for real-time database operations. The route matching algorithm uses a 3.5 km route corridor threshold with 5 km proximity limits for pickup and destination points.
 
 == Performance Metrics
 
@@ -360,7 +360,7 @@ As shown in #link(<table-performance>)[Table I], the system achieved an overall 
 
 == Route Deviation Analysis
 
-Experimental observations indicate that the dynamic route alignment mechanism efficiently identifies feasible ride matches by computing deviation distance and additional travel time using shortest-path algorithms. The deviation threshold was set at 2 km or 5 minutes additional travel time. #link(<fig-deviation>)[Figure 3] illustrates the distribution of route deviations across all successful matches.
+Experimental observations indicate that the dynamic route alignment mechanism efficiently identifies feasible ride matches by computing deviation distance and additional travel time using shortest-path algorithms via OSRM. The route corridor threshold was set at 3.5 km with 5 km proximity limits for pickup and destination matching. #link(<fig-deviation>)[Figure 3] illustrates the distribution of route deviations across all successful matches.
 
 #figure(
   kind: image,
@@ -446,11 +446,11 @@ The results show that 63% of all matches had deviations less than 1 km, with 28%
 
 == Eco-Incentive Impact
 
-The Sustainability Incentive Engine produced measurable eco-benefits by estimating shared travel distance and carbon emission reduction. Over the testing period, the system tracked cumulative environmental impact across all successful rides.
+The Reward Points Engine successfully incentivized user participation and quality service delivery. Over the testing period, the system tracked user engagement and reward redemption patterns across all successful rides.
 
 #figure(
   kind: table,
-  caption: [Environmental Impact and Eco-Benefits],
+  caption: [Reward System Engagement and User Incentives],
   table(
     columns: 4,
     align: (left, center, center, center),
@@ -458,16 +458,16 @@ The Sustainability Incentive Engine produced measurable eco-benefits by estimati
       [*Metric*],
       [*Total*],
       [*Per Ride Avg*],
-      [*Reduction %*],
+      [*User Type*],
     ),
-    [Distance Shared], [2,145 km], [4.9 km], [-],
-    [Fuel Saved], [187 liters], [0.43 L], [22%],
-    [CO₂ Reduced], [437 kg], [1.0 kg], [22%],
-    [Eco-Points Earned], [13,250], [30.4], [-],
+    [Points Awarded], [13,250], [30.4], [Combined],
+    [Passenger Points], [4,340], [10.0], [Passenger],
+    [Driver Points], [8,910], [20.3], [Driver],
+    [Vouchers Redeemed], [89], [0.20], [Combined],
   )
-) <table-eco-benefits>
+) <table-reward-system>
 
-As shown in #link(<table-eco-benefits>)[Table II], the system achieved significant environmental benefits with an average fuel savings of 0.43 liters per ride, corresponding to approximately 1.0 kg CO₂ reduction. Users accumulated an average of 30.4 eco-points per ride, which significantly improved user engagement and encouraged environmentally responsible travel behavior.
+As shown in #link(<table-reward-system>)[Table II], the reward system achieved high user engagement with an average of 30.4 points earned per completed ride. Drivers earned higher point averages (20.3 points) due to the five-star rating bonus system, while passengers earned consistent points (10.0 points) for each completed ride. The voucher redemption rate of 0.20 per ride indicates users actively participate in the reward ecosystem, which significantly improved user retention and encouraged continued platform usage.
 
 == System Reliability
 
