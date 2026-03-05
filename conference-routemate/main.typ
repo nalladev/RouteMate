@@ -211,7 +211,7 @@ RouteMate follows a layered modular architecture consisting of five layers: a Pr
 
       // Eco-incentive component
       node((2.2, 4), [Eco-Incentive\ Engine], width: 17mm, height: 9mm, fill: rgb("#c8e6c9"), stroke: 0.8pt + rgb("#2e7d32")),
-      edge((2.2, 4), (0.5, 5), "->", [Eco-points], label-pos: 0.3, bend: -20deg),
+      edge((2.2, 4), (0.5, 5), "->", [Eco-points], label-pos: 0.3, bend: 20deg),
     )
   }
 ) <fig-architecture>

@@ -237,8 +237,8 @@
   }
 
   // Display the paper's contents.
-  body
-
+  body  
+  colbreak()
   // Display bibliography.
   bibliography
 }
