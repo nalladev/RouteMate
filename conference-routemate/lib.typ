@@ -205,7 +205,7 @@
             ]
             if "email" in author {
               if type(author.email) == str [
-                \ #link("mailto:" + author.email)
+                \ #link("mailto:" + author.email)[#author.email]
               ] else [
                 \ #author.email
               ]
