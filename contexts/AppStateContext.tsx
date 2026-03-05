@@ -1,8 +1,12 @@
-import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import * as Location from 'expo-location';
-import { Location as LocationType, RideConnection, MarkerData, UserState } from '../types';
+import { Location as LocationType, MarkerData, RideConnection, UserState } from '../types';
 import { api } from '../utils/api';
 import { useAuth } from './AuthContext';
+
+// Debouncing constants to reduce Firebase writes
+const LOCATION_UPDATE_INTERVAL_MS = 30000; // 30 seconds
+const LOCATION_UPDATE_MIN_DISTANCE_M = 100; // 100 meters
 
 interface AppStateContextType {
   userState: 'driver' | 'passenger' | 'idle';
@@ -32,8 +36,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [activeConnections, setActiveConnections] = useState<RideConnection[]>([]);
   const [pendingRequests, setPendingRequests] = useState<RideConnection[]>([]);
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
+  
+  // Refs for debounced location updates
+  const lastLocationUpdateRef = useRef<{ location: LocationType; timestamp: number } | null>(null);
 
   const isActive = userState !== 'idle';
+  
+  // Helper function to calculate distance between two points in meters
+  const calculateDistance = useCallback((loc1: LocationType, loc2: LocationType): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (loc2.lat - loc1.lat) * Math.PI / 180;
+    const dLng = (loc2.lng - loc1.lng) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(loc1.lat * Math.PI / 180) * Math.cos(loc2.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
 
   // Load user state from database on mount or user change
   useEffect(() => {
@@ -141,10 +161,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           };
           setUserLocation(newLocation);
 
-          // Update location on server
-          api.updateLocation(newLocation.lat, newLocation.lng).catch((error) => {
-            console.error('Failed to update location:', error);
-          });
+          // Debounced update location on server (handled by useEffect below)
         }
       );
     })();
@@ -155,6 +172,38 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [isAuthenticated]);
+  
+  // Debounced location updates to Firebase (reduces writes by 90%+)
+  useEffect(() => {
+    if (!isAuthenticated || !userLocation) return;
+    
+    const now = Date.now();
+    const lastUpdate = lastLocationUpdateRef.current;
+    
+    // Determine if we should update
+    let shouldUpdate = false;
+    
+    if (!lastUpdate) {
+      // First location update
+      shouldUpdate = true;
+    } else {
+      const timeSinceLastUpdate = now - lastUpdate.timestamp;
+      const distanceMoved = calculateDistance(lastUpdate.location, userLocation);
+      
+      // Update if enough time has passed OR moved significant distance
+      if (timeSinceLastUpdate >= LOCATION_UPDATE_INTERVAL_MS || distanceMoved >= LOCATION_UPDATE_MIN_DISTANCE_M) {
+        shouldUpdate = true;
+      }
+    }
+    
+    if (shouldUpdate) {
+      lastLocationUpdateRef.current = { location: userLocation, timestamp: now };
+      
+      api.updateLocation(userLocation.lat, userLocation.lng).catch((error) => {
+        console.error('Failed to update location:', error);
+      });
+    }
+  }, [userLocation, isAuthenticated, calculateDistance]);
 
   const refreshMarkers = useCallback(async (overrideUserState?: 'driver' | 'passenger' | 'idle'): Promise<MarkerData[]> => {
     const stateToUse = overrideUserState ?? userState;
@@ -206,7 +255,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Polling error:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 10000); // Poll every 10 seconds (reduced from 5s to save Firebase quota)
 
     return () => clearInterval(interval);
   }, [isAuthenticated, userLocation, isActive, userState, refreshMarkers, refreshConnections, refreshRequests]);

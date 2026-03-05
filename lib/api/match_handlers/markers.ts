@@ -1,5 +1,5 @@
 import { getAuthToken, validateSession } from '../../middleware';
-import { getAllDocuments, getDocument, getDocumentById } from '../../firestore';
+import { getDocumentById, initializeFirestore } from '../../firestore';
 import { User, MarkerData } from '../../../types';
 import { getCommunityMemberSet } from '../../community';
 
@@ -65,28 +65,50 @@ async function getFilteredDrivers(
   currentUserId: string,
   memberSet?: Set<string> | null
 ): Promise<MarkerData[]> {
-  const allUsers = await getAllDocuments('users');
-  const drivers = allUsers.filter((u: User) => {
-    // Exclude current user
-    if (u.Id === currentUserId) {
-      return false;
-    }
+  const firestore = initializeFirestore();
+  
+  // Use indexed query for active drivers only
+  // This replaces getAllDocuments which was fetching ALL users
+  const driversSnapshot = await firestore
+    .collection('users')
+    .where('state', '==', 'driving')
+    .where('Destination', '!=', null)
+    .limit(50) // Limit to prevent excessive reads
+    .get();
 
-    if (u.state !== 'driving' || !u.Destination) {
-      return false;
-    }
+  const drivers = driversSnapshot.docs
+    .map((doc: any) => ({ Id: doc.id, ...doc.data() }))
+    .filter((u: User) => {
+      // Exclude current user
+      if (u.Id === currentUserId) {
+        return false;
+      }
 
-    if (memberSet && !memberSet.has(u.Id)) {
-      return false;
-    }
+      // Filter by community membership if required
+      if (memberSet && !memberSet.has(u.Id)) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
 
   const filteredDrivers: MarkerData[] = [];
 
   for (const driver of drivers) {
     if (!driver.LastLocation || !driver.Destination) continue;
+
+    // Quick distance check first (cheaper than route corridor check)
+    const pickupDistanceToDriver = calculateDistance(
+      passengerPickup.lat,
+      passengerPickup.lng,
+      driver.LastLocation.lat,
+      driver.LastLocation.lng
+    );
+
+    // Skip if pickup is too far from driver's current location
+    if (pickupDistanceToDriver > PICKUP_PROXIMITY_KM * 2) {
+      continue;
+    }
 
     // Flexible matching:
     // 1) near the route corridor OR
@@ -111,12 +133,7 @@ async function getFilteredDrivers(
       ROUTE_CORRIDOR_KM
     );
 
-    const pickupNearDriver = calculateDistance(
-      passengerPickup.lat,
-      passengerPickup.lng,
-      driver.LastLocation.lat,
-      driver.LastLocation.lng
-    ) <= PICKUP_PROXIMITY_KM;
+    const pickupNearDriver = pickupDistanceToDriver <= PICKUP_PROXIMITY_KM;
 
     const destinationNearDriverDestination = calculateDistance(
       passengerDestination.lat,
@@ -152,24 +169,24 @@ async function getFilteredPassengers(
   activeCommunityId: string | null,
   memberSet?: Set<string> | null
 ): Promise<MarkerData[]> {
-  const connections = await getDocument('rideconnections', { DriverId: driverId });
-  const activeConnections = connections.filter(
-    (c: any) => {
-      if (c.State === 'completed' || c.State === 'rejected') {
-        return false;
-      }
+  // Use indexed query instead of fetching all connections
+  const firestore = initializeFirestore();
+  
+  let query: any = firestore
+    .collection('rideconnections')
+    .where('DriverId', '==', driverId)
+    .where('State', 'in', ['requested', 'accepted', 'picked_up']);
 
-      if (activeCommunityId && c.CommunityId !== activeCommunityId) {
-        return false;
-      }
+  if (activeCommunityId) {
+    query = query.where('CommunityId', '==', activeCommunityId);
+  }
 
-      return true;
-    }
-  );
+  const snapshot = await query.get();
+  const connections = snapshot.docs.map((doc: any) => ({ Id: doc.id, ...doc.data() }));
 
   const passengers: MarkerData[] = [];
 
-  for (const connection of activeConnections) {
+  for (const connection of connections) {
     // Skip if passenger is the same as driver (prevent self-referential connections)
     if (connection.PassengerId === driverId) {
       continue;
@@ -250,8 +267,6 @@ export async function handleMarkers(request: Request) {
     } else if (role === 'driver') {
       markers = await getFilteredPassengers(user.Id, activeCommunityId, memberSet);
     }
-
-    // console.log(`${user.Name} as ${role} requesting ${role === 'passenger' ? 'driver' : 'passenger'} Markers:`, markers);
 
     return Response.json({ markers });
   } catch (error) {
