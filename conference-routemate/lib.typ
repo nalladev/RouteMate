@@ -182,41 +182,32 @@
 
       // Display the authors list.
       set par(leading: 0.6em)
-      for i in range(calc.ceil(authors.len() / 3)) {
-        let end = calc.min((i + 1) * 3, authors.len())
-        let is-last = authors.len() == end
-        let slice = authors.slice(i * 3, end)
-        grid(
-          columns: slice.len() * (1fr,),
-          gutter: 12pt,
-          ..slice.map(author => align(center, {
-            text(size: 11pt, emph(author.name))
-            if "designation" in author [
-              \ #emph(author.designation)
+      grid(
+        columns: authors.len() * (1fr,),
+        gutter: 12pt,
+        ..authors.map(author => align(center, {
+          text(size: 11pt, emph(author.name))
+          if "designation" in author [
+            \ #emph(author.designation)
+          ]
+          if "department" in author [
+            \ #emph(author.department)
+          ]
+          if "organization" in author [
+            \ #emph(author.organization)
+          ]
+          if "location" in author [
+            \ #author.location
+          ]
+          if "email" in author {
+            if type(author.email) == str [
+              \ #text(size: 9pt)[#link("mailto:" + author.email, author.email)]
+            ] else [
+              \ #text(size: 9pt, author.email)
             ]
-            if "department" in author [
-              \ #emph(author.department)
-            ]
-            if "organization" in author [
-              \ #emph(author.organization)
-            ]
-            if "location" in author [
-              \ #author.location
-            ]
-            if "email" in author {
-              if type(author.email) == str [
-                \ #link("mailto:" + author.email)[#author.email]
-              ] else [
-                \ #author.email
-              ]
-            }
-          }))
-        )
-
-        if not is-last {
-          v(16pt, weak: true)
-        }
-      }
+          }
+        }))
+      )
     }
   )
 
@@ -237,7 +228,7 @@
   }
 
   // Display the paper's contents.
-  body  
+  body
   colbreak()
   // Display bibliography.
   bibliography
