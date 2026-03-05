@@ -54,6 +54,8 @@
     y-axis-value-suffix: "",
     value-label-suffix: "",
     y-axis-max: none,
+    group-padding-ratio: 0.2,
+    bar-gap: 2pt,
   )
 
   if user-theme == none {
@@ -181,18 +183,20 @@
 
       // Draw bars
       #let group-width = chart-width / n-groups
-      #let bw = (group-width * 0.8) / n-series
+      #let group-padding = group-width * t.group-padding-ratio
+      #let usable-group-width = group-width - group-padding
+      #let bw = (usable-group-width - (n-series - 1) * t.bar-gap) / n-series
 
       #for (gi, _) in labels.enumerate() {
         for (si, s) in series.enumerate() {
           let val = s.values.at(gi)
           let bar-h = (val / max-val) * (chart-height - 10pt)
-          let x-pos = axis-left + 5pt + gi * group-width + si * bw + (group-width * 0.1)
+          let x-pos = axis-left + gi * group-width + group-padding / 2 + si * (bw + t.bar-gap)
           place(
             left + bottom,
             dx: x-pos,
             rect(
-              width: bw - 2pt,
+              width: bw,
               height: bar-h,
               fill: get-chart-color(t, si),
               stroke: none,
@@ -206,7 +210,7 @@
                     left + top,
                     dx: x-pos,
                     dy: label-y,
-                    box(width: bw - 2pt)[
+                    box(width: bw)[
                       #align(center)[
                         #text(size: t.value-label-size, fill: t.text-color)[#val#t.value-label-suffix]
                       ]
@@ -216,7 +220,7 @@
         }
 
         // X-axis labels
-        let x-center = axis-left + 5pt + gi * group-width + group-width / 2 - 15pt
+        let x-center = axis-left + gi * group-width + group-width / 2 - 15pt
         place(
           left + bottom,
           dx: x-center,

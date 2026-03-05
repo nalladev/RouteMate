@@ -395,6 +395,8 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
       y-axis-value-suffix: "%",
       value-label-suffix: "%",
       y-axis-max: 40,
+      group-padding-ratio: 0,
+      bar-gap: 0pt,
       tick-count: 5,
       legend-top-spacing: 3pt,
       axis-label-size: 6.5pt,
