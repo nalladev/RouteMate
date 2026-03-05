@@ -391,6 +391,7 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
     theme: (
       palette: (rgb("#4caf50"),),
       y-axis-label-offset: 26pt,
+      y-axis-title-offset: -4pt,
       y-axis-value-suffix: "%",
       value-label-suffix: "%",
       y-axis-max: 40,

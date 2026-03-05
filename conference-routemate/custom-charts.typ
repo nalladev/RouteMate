@@ -49,6 +49,7 @@
     border: none,
     // Custom spacing parameters
     y-axis-label-offset: 5pt,
+    y-axis-title-offset: 7pt,
     legend-top-spacing: 5pt,
     y-axis-value-suffix: "",
     value-label-suffix: "",
@@ -156,7 +157,7 @@
   }
 
   // Calculate dimensions
-  let extra-height = 50pt
+  let extra-height = 60pt
   let chart-height = height - 20pt
   let chart-width = width - 50pt
   let axis-left = t.axis-padding-left
@@ -237,6 +238,31 @@
           dx: t.y-axis-label-offset,
           dy: y-pos - 5pt,
           text(size: t.axis-label-size, fill: t.text-color)[#y-val#t.y-axis-value-suffix]
+        )
+      }
+
+      // Axis titles
+      #if x-label != none {
+        place(
+          left + bottom,
+          dx: axis-left,
+          dy: 28pt,
+          box(width: chart-width)[
+            #align(center)[
+              #text(size: t.axis-title-size, fill: t.text-color)[#x-label]
+            ]
+          ]
+        )
+      }
+
+      #if y-label != none {
+        place(
+          left + top,
+          dx: t.y-axis-title-offset,
+          dy: chart-height / 2,
+          rotate(-90deg)[
+            #text(size: t.axis-title-size, fill: t.text-color)[#y-label]
+          ]
         )
       }
     ]
