@@ -389,7 +389,7 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
     x-label: "Deviation Range",
     y-label: "Percentage (%)",
     theme: (
-      palette: (rgb("#4caf50"),),
+      palette: (rgb("#2e7d32"), rgb("#66bb6a"), rgb("#f9a825"), rgb("#42a5f5")),
       y-axis-label-offset: 26pt,
       y-axis-title-offset: -4pt,
       y-axis-value-suffix: "%",
@@ -397,6 +397,8 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
       y-axis-max: 40,
       group-padding-ratio: 0,
       bar-gap: 0pt,
+      color-by-group: true,
+      bar-stroke: 0.3pt + white,
       tick-count: 5,
       legend-top-spacing: 3pt,
       axis-label-size: 6.5pt,

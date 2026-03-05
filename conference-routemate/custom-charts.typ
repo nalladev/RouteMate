@@ -56,6 +56,8 @@
     y-axis-max: none,
     group-padding-ratio: 0.2,
     bar-gap: 2pt,
+    color-by-group: false,
+    bar-stroke: none,
   )
 
   if user-theme == none {
@@ -131,6 +133,7 @@
 /// - y-label (none, content): Y-axis title
 /// - theme (none, dictionary): Theme overrides (supports y-axis-label-offset and legend-top-spacing)
 /// - show-value-labels (bool): Show values on top of bars
+///   Theme extras include `color-by-group` and `bar-stroke` for clearer bar separation.
 /// -> content
 #let custom-grouped-bar-chart(
   data,
@@ -192,14 +195,19 @@
           let val = s.values.at(gi)
           let bar-h = (val / max-val) * (chart-height - 10pt)
           let x-pos = axis-left + gi * group-width + group-padding / 2 + si * (bw + t.bar-gap)
+          let bar-fill = if t.color-by-group and n-series == 1 {
+            get-chart-color(t, gi)
+          } else {
+            get-chart-color(t, si)
+          }
           place(
             left + bottom,
             dx: x-pos,
             rect(
               width: bw,
               height: bar-h,
-              fill: get-chart-color(t, si),
-              stroke: none,
+              fill: bar-fill,
+              stroke: t.bar-stroke,
             )
           )
 
