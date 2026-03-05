@@ -12,7 +12,8 @@
       designation: "Assistant Professor",
       department: [IT],
       organization: [VJCET],
-      location: [],
+      location: [Kerala, India],
+      email: "anitta@vjcet.org",
     ),
     (
       name: "Anupam Prakash",
@@ -119,22 +120,22 @@ In contrast, the proposed RouteMate system extends real-time traffic analysis by
     [Route-Based Ride Sharing in Uber Technologies Inc.],
     [Uses real-time GPS tracking and dynamic clustering of passengers based on route alignment; reduces congestion and travel cost.],
     [Designed mainly for commercial fleet operations; lacks minimal deviation logic for private vehicles and sustainability incentives.],
-    
+
     [2],
     [Long-Distance Carpooling Platforms: A Survey],
     [Improves vehicle occupancy, trust models, rating systems, and cost sharing; effective for scheduled and intercity travel.],
     [Relies on pre-scheduled trips; lacks real-time intra-city matching and dynamic deviation analysis.],
-    
+
     [3],
     [AI-Driven Ride Matching and Optimization in Ola Cabs],
     [Uses machine learning for ride clustering, route optimization, and travel time estimation; improves fleet utilization.],
     [Depends on large-scale data and centralized fleet models; not suitable for peer-to-peer private ride sharing.],
-    
+
     [4],
     [Route Optimization and Traffic-Aware Navigation in Google Maps Platform],
     [Accurate shortest-path computation using Dijkstra's and A\* with real-time traffic-aware navigation.],
     [Focused on individual navigation; lacks ride-matching feasibility and deviation threshold evaluation.],
-    
+
     [5],
     [Real-Time Traffic Data Integration in Google Maps and Shared Mobility Platforms],
     [Analyzes traffic density and live GPS patterns to improve route efficiency and travel time accuracy.],
@@ -168,48 +169,48 @@ RouteMate follows a layered modular architecture consisting of five layers: a Pr
   kind: image,
   caption: [RouteMate System Architecture - Layered Framework and Data Flow],
   {
-    set text(6.5pt)
+    set text(6pt)
     diagram(
-      spacing: (8mm, 8mm),
+      spacing: (6mm, 8mm),
       node-stroke: 0.8pt,
-      
+
       // Top layer - User interfaces
-      node((0, 0), [Driver\ Mobile App], width: 22mm, height: 9mm, fill: rgb("#e3f2fd"), stroke: 0.8pt + rgb("#1976d2")),
-      node((1, 0), [Passenger\ Mobile App], width: 22mm, height: 9mm, fill: rgb("#e3f2fd"), stroke: 0.8pt + rgb("#1976d2")),
-      
+      node((0, 0), [Driver\ Mobile App], width: 18mm, height: 9mm, fill: rgb("#e3f2fd"), stroke: 0.8pt + rgb("#1976d2")),
+      node((1, 0), [Passenger\ Mobile App], width: 18mm, height: 9mm, fill: rgb("#e3f2fd"), stroke: 0.8pt + rgb("#1976d2")),
+
       // Presentation Layer
-      node((0.5, 1), [Presentation Layer\ (React Native)], width: 50mm, height: 10mm, fill: rgb("#fff3e0"), stroke: 1pt + rgb("#f57c00")),
-      
+      node((0.5, 1), [Presentation Layer\ (React Native)], width: 40mm, height: 10mm, fill: rgb("#fff3e0"), stroke: 1pt + rgb("#f57c00")),
+
       edge((0, 0), (0.5, 1), "->"),
       edge((1, 0), (0.5, 1), "->"),
-      
+
       // Application Logic Layer
-      node((0.5, 2), [Application Logic Layer], width: 50mm, height: 10mm, fill: rgb("#fff9c4"), stroke: 1pt + rgb("#f57f17")),
+      node((0.5, 2), [Application Logic Layer], width: 40mm, height: 10mm, fill: rgb("#fff9c4"), stroke: 1pt + rgb("#f57f17")),
       edge((0.5, 1), (0.5, 2), "->", [HTTPS\ API], label-pos: 0.5),
-      
+
       // Core components row
-      node((-0.5, 3), [Route\ Matching\ Engine], width: 22mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
-      node((0.5, 3), [Deviation\ Calculator], width: 22mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
-      node((1.5, 3), [Trust\ Verification], width: 22mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
-      
+      node((-0.5, 3), [Route\ Matching\ Engine], width: 18mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
+      node((0.5, 3), [Deviation\ Calculator], width: 18mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
+      node((1.5, 3), [Trust\ Verification], width: 18mm, height: 10mm, fill: rgb("#e8f5e9"), stroke: 0.8pt + rgb("#388e3c")),
+
       edge((0.5, 2), (-0.5, 3), "->"),
       edge((0.5, 2), (0.5, 3), "->"),
       edge((0.5, 2), (1.5, 3), "->"),
-      
+
       // Location Monitoring Layer
-      node((0.5, 4), [Location Monitoring\ (GPS + Map API)], width: 50mm, height: 10mm, fill: rgb("#fce4ec"), stroke: 1pt + rgb("#c2185b")),
-      
+      node((0.5, 4), [Location Monitoring\ (GPS + Map API)], width: 40mm, height: 10mm, fill: rgb("#fce4ec"), stroke: 1pt + rgb("#c2185b")),
+
       edge((-0.5, 3), (0.5, 4), "->"),
       edge((0.5, 3), (0.5, 4), "->"),
       edge((1.5, 3), (0.5, 4), "->"),
-      
+
       // Database Layer
-      node((0.5, 5), [Data Persistence Layer\ (Firebase Firestore)], width: 50mm, height: 10mm, fill: gray.lighten(80%)),
-      
+      node((0.5, 5), [Data Persistence Layer\ (Firebase Firestore)], width: 40mm, height: 10mm, fill: gray.lighten(80%)),
+
       edge((0.5, 4), (0.5, 5), "->", [Store/\ Retrieve], label-pos: 0.5),
-      
+
       // Eco-incentive component
-      node((2.2, 4), [Eco-Incentive\ Engine], width: 20mm, height: 9mm, fill: rgb("#c8e6c9"), stroke: 0.8pt + rgb("#2e7d32")),
+      node((2.2, 4), [Eco-Incentive\ Engine], width: 17mm, height: 9mm, fill: rgb("#c8e6c9"), stroke: 0.8pt + rgb("#2e7d32")),
       edge((2.2, 4), (0.5, 5), "->", [Eco-points], label-pos: 0.3, bend: -20deg),
     )
   }
@@ -286,47 +287,47 @@ $ "Deviation" = ("NewRouteDistance" - "OriginalRouteDistance") $
       spacing: 10pt,
       node-stroke: 0.8pt,
       edge-stroke: 0.8pt,
-      
+
       node((0, 0), [Start\ Authenticate User], shape: fletcher.shapes.pill, fill: gray.lighten(80%), width: 30mm, height: 7mm),
       edge((0, 0), (0, 1), "->"),
-      
+
       node((0, 1), [Driver Enters\ Destination], shape: rect, width: 28mm, height: 9mm, fill: rgb("#e3f2fd")),
       edge((0, 1), (0, 2), "->"),
-      
+
       node((0, 2), [Generate Original\ Route (Dijkstra/A\*)], shape: rect, width: 28mm, height: 9mm, fill: rgb("#fff3e0")),
       edge((0, 2), (0, 3), "->"),
-      
+
       node((0, 3), [Enable GPS\ Tracking], shape: rect, width: 28mm, height: 9mm, fill: rgb("#e8f5e9")),
       edge((0, 3), (0, 4), "->"),
-      
+
       node((0, 4), [Passenger Submits\ Ride Request], shape: rect, width: 28mm, height: 9mm, fill: rgb("#fce4ec")),
       edge((0, 4), (0, 5), "->"),
-      
+
       node((0, 5), [Calculate Route\ Deviation], shape: rect, width: 28mm, height: 9mm, fill: rgb("#fff9c4")),
       edge((0, 5), (0, 6), "->"),
-      
+
       node((0, 6), [Within\ Threshold?], shape: fletcher.shapes.diamond, width: 30mm, height: 14mm, fill: rgb("#ffecb3")),
-      
+
       edge((0, 6), (-1, 7), "->", [No], label-side: left),
       node((-1, 7), [Mark Not\ Feasible], shape: rect, width: 24mm, height: 9mm, fill: rgb("#ffcdd2")),
       edge((-1, 7), (-1, 8), "->"),
       node((-1, 8), [Notify\ Rejection], shape: rect, width: 24mm, height: 9mm),
       edge((-1, 8), (-1, 9), "->"),
       node((-1, 9), [End], shape: fletcher.shapes.pill, fill: gray.lighten(70%), width: 18mm, height: 6mm),
-      
+
       edge((0, 6), (1, 7), "->", [Yes], label-side: right),
       node((1, 7), [Verify Trust\ & Authentication], shape: rect, width: 24mm, height: 9mm, fill: rgb("#e1bee7")),
       edge((1, 7), (1, 8), "->"),
-      
+
       node((1, 8), [Calculate\ Eco-Points], shape: rect, width: 24mm, height: 9mm, fill: rgb("#c8e6c9")),
       edge((1, 8), (1, 9), "->"),
-      
+
       node((1, 9), [Send Confirmation\ to Both Users], shape: rect, width: 24mm, height: 9mm, fill: rgb("#b3e5fc")),
       edge((1, 9), (1, 10), "->"),
-      
+
       node((1, 10), [Update Database\ & Dashboard], shape: rect, width: 24mm, height: 9mm, fill: rgb("#dcedc8")),
       edge((1, 10), (1, 11), "->"),
-      
+
       node((1, 11), [End], shape: fletcher.shapes.pill, fill: rgb("#4caf50"), width: 18mm, height: 6mm),
     )
   }
@@ -378,21 +379,21 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
     let deviation_ranges = ("0-0.5 km", "0.5-1 km", "1-1.5 km", "1.5-2 km")
     let percentages = (28, 35, 25, 12)
     let max_value = 40
-    
+
     stack(
       dir: ttb,
       spacing: 8pt,
-      
+
       align(center, text(9pt, weight: "bold")[Route Deviation Distribution]),
-      
+
       grid(
         columns: (auto, 1fr),
         column-gutter: 3pt,
-        
+
         box(
           width: 20pt,
           height: 120pt,
-          align(right + horizon, 
+          align(right + horizon,
             stack(
               dir: ttb,
               spacing: 20pt,
@@ -404,7 +405,7 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
             )
           )
         ),
-        
+
         box(
           width: 100%,
           height: 120pt,
@@ -413,17 +414,17 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
           grid(
             columns: deviation_ranges.map(_ => 1fr),
             column-gutter: 8pt,
-            
+
             ..deviation_ranges.enumerate().map(((i, label)) => {
               let bar_height = (percentages.at(i) / max_value) * 110.0
-              
+
               align(bottom + center,
                 box(
                   width: 85%,
                   height: bar_height * 1pt,
                   fill: rgb("#4caf50"),
                   radius: 2pt,
-                  align(center + horizon, 
+                  align(center + horizon,
                     text(size: 7pt, fill: white, weight: "bold")[#percentages.at(i)%]
                   )
                 )
@@ -432,7 +433,7 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
           )
         ),
       ),
-      
+
       align(center,
         box(
           width: 100%,
@@ -444,7 +445,7 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
           )
         )
       ),
-      
+
       align(center, text(7pt, weight: "bold")[Deviation Range]),
     )
   }

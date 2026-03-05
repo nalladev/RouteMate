@@ -11,7 +11,7 @@
 
   // The paper's abstract. Can be omitted if you don't have one.
   abstract: none,
- 
+
   // A list of index terms to display after the abstract.
   keywords: (),
 
@@ -231,7 +231,7 @@
 
     if keywords != () {
       parbreak()
-      [_Keywords_---#h(weak: true, 0pt)#keywords.join[, ]]
+      [_Keywords---#h(weak: true, 0pt)#keywords.join[, ]_]
     }
     v(2pt)
   }
