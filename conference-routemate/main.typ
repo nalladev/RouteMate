@@ -1,5 +1,6 @@
 #import "lib.typ": ieee
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import "custom-charts.typ": custom-grouped-bar-chart
 
 #show: ieee.with(
   title: [ROUTEMATE: An Innovative Ride-Sharing System for Sustainable Urban Mobility],
@@ -373,81 +374,28 @@ Experimental observations indicate that the dynamic route alignment mechanism ef
 #figure(
   kind: image,
   caption: [Route Deviation Distribution Analysis],
-  {
-    set text(7pt)
-    let deviation_ranges = ("0-0.5 km", "0.5-1 km", "1-1.5 km", "1.5-2 km")
-    let percentages = (28, 35, 25, 12)
-    let max_value = 40
-
-    stack(
-      dir: ttb,
-      spacing: 8pt,
-
-      align(center, text(9pt, weight: "bold")[Route Deviation Distribution]),
-
-      grid(
-        columns: (auto, 1fr),
-        column-gutter: 3pt,
-
-        box(
-          width: 20pt,
-          height: 120pt,
-          align(right + horizon,
-            stack(
-              dir: ttb,
-              spacing: 20pt,
-              text(6pt)[40%],
-              text(6pt)[30%],
-              text(6pt)[20%],
-              text(6pt)[10%],
-              text(6pt)[0%],
-            )
-          )
-        ),
-
-        box(
-          width: 100%,
-          height: 120pt,
-          stroke: (left: 0.5pt, bottom: 0.5pt),
-          inset: (left: 3pt, bottom: 3pt, top: 3pt, right: 3pt),
-          grid(
-            columns: deviation_ranges.map(_ => 1fr),
-            column-gutter: 8pt,
-
-            ..deviation_ranges.enumerate().map(((i, label)) => {
-              let bar_height = (percentages.at(i) / max_value) * 110.0
-
-              align(bottom + center,
-                box(
-                  width: 85%,
-                  height: bar_height * 1pt,
-                  fill: rgb("#4caf50"),
-                  radius: 2pt,
-                  align(center + horizon,
-                    text(size: 7pt, fill: white, weight: "bold")[#percentages.at(i)%]
-                  )
-                )
-              )
-            })
-          )
-        ),
+  custom-grouped-bar-chart(
+    (
+      labels: ("0-0.5 km", "0.5-1 km", "1-1.5 km", "1.5-2 km"),
+      series: (
+        (name: "Matches (%)", values: (28, 35, 25, 12)),
       ),
-
-      align(center,
-        box(
-          width: 100%,
-          inset: (left: 23pt),
-          grid(
-            columns: deviation_ranges.map(_ => 1fr),
-            column-gutter: 8pt,
-            ..deviation_ranges.map(label => align(center, text(size: 6.5pt, weight: "bold")[#label]))
-          )
-        )
-      ),
-
-      align(center, text(7pt, weight: "bold")[Deviation Range]),
-    )
-  }
+    ),
+    width: 250pt,
+    height: 180pt,
+    title: "Route Deviation Distribution",
+    show-legend: false,
+    x-label: "Deviation Range",
+    y-label: "Percentage (%)",
+    theme: (
+      palette: (rgb("#4caf50"),),
+      y-axis-label-offset: 26pt,
+      legend-top-spacing: 3pt,
+      axis-label-size: 6.5pt,
+      axis-title-size: 7pt,
+      title-size: 9pt,
+    ),
+  )
 ) <fig-deviation>
 
 The results show that 63% of all matches had deviations less than 1 km, with 28% achieving minimal deviation (0-0.5 km). Only 12% of matches approached the 2 km threshold limit, demonstrating the effectiveness of the deviation-aware matching algorithm in preserving driver route integrity.
