@@ -50,6 +50,9 @@
     // Custom spacing parameters
     y-axis-label-offset: 5pt,
     legend-top-spacing: 5pt,
+    y-axis-value-suffix: "",
+    value-label-suffix: "",
+    y-axis-max: none,
   )
 
   if user-theme == none {
@@ -124,6 +127,7 @@
 /// - x-label (none, content): X-axis title
 /// - y-label (none, content): Y-axis title
 /// - theme (none, dictionary): Theme overrides (supports y-axis-label-offset and legend-top-spacing)
+/// - show-value-labels (bool): Show values on top of bars
 /// -> content
 #let custom-grouped-bar-chart(
   data,
@@ -134,6 +138,7 @@
   x-label: none,
   y-label: none,
   theme: none,
+  show-value-labels: false,
 ) = {
   let t = resolve-chart-theme(theme)
   let labels = data.labels
@@ -142,8 +147,13 @@
   let n-series = series.len()
 
   let all-values = series.map(s => s.values).flatten()
-  let max-val = calc.max(..all-values)
-  if max-val == 0 { max-val = 1 }
+  let data-max = calc.max(..all-values)
+  if data-max == 0 { data-max = 1 }
+  let max-val = if t.y-axis-max != none and t.y-axis-max > 0 {
+    t.y-axis-max
+  } else {
+    data-max
+  }
 
   // Calculate dimensions
   let extra-height = 50pt
@@ -187,6 +197,21 @@
               stroke: none,
             )
           )
+
+                // Optional value labels on bars (e.g., 28%) to reduce ambiguity.
+                if show-value-labels {
+                  let label-y = calc.max(0pt, chart-height - bar-h - 10pt)
+                  place(
+                    left + top,
+                    dx: x-pos,
+                    dy: label-y,
+                    box(width: bw - 2pt)[
+                      #align(center)[
+                        #text(size: t.value-label-size, fill: t.text-color)[#val#t.value-label-suffix]
+                      ]
+                    ]
+                  )
+                }
         }
 
         // X-axis labels
@@ -202,13 +227,16 @@
       // Y-axis labels with custom offset
       #for i in range(t.tick-count) {
         let fraction = if t.tick-count > 1 { i / (t.tick-count - 1) } else { 0 }
-        let y-val = calc.round(max-val * fraction, digits: 1)
+        let y-val = calc.round(
+          max-val * fraction,
+          digits: if t.y-axis-value-suffix == "" { 1 } else { 0 },
+        )
         let y-pos = chart-height - fraction * (chart-height - 10pt)
         place(
           left + top,
           dx: t.y-axis-label-offset,
           dy: y-pos - 5pt,
-          text(size: t.axis-label-size, fill: t.text-color)[#y-val]
+          text(size: t.axis-label-size, fill: t.text-color)[#y-val#t.y-axis-value-suffix]
         )
       }
     ]
