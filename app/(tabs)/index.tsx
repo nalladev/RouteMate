@@ -290,12 +290,8 @@ export default function HomeScreen() {
       }
     }
 
-    // Check KYC for both modes - refresh data first to ensure status is up-to-date
-    try {
-      await refreshUser();
-    } catch (error) {
-      console.error('Failed to refresh user data:', error);
-    }
+    // Check KYC for both modes - use existing user object (refreshUser causes state reset race condition)
+    // The refreshUser() call was triggering AppStateContext to sync old state from DB, resetting userState back to 'idle'
 
     if (!user?.IsKycVerified) {
       const modeText = selectedMode === 'driver' ? 'becoming a driver' : 'finding rides';
