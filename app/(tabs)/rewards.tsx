@@ -36,9 +36,7 @@ export default function RewardsScreen() {
   const { isDarkMode } = useTheme();
   const colors = Colors[isDarkMode ? 'dark' : 'light'];
 
-  const [selectedRole, setSelectedRole] = useState<RewardRole>(
-    userState === 'driver' ? 'driver' : 'passenger'
-  );
+  const [selectedRole, setSelectedRole] = useState<RewardRole>('passenger');
   const [rewards, setRewards] = useState<RewardsPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRedeemingVoucherId, setIsRedeemingVoucherId] = useState<string | null>(null);
@@ -67,8 +65,12 @@ export default function RewardsScreen() {
   }, []);
 
   useEffect(() => {
-    // When userState changes, update selected role (idle defaults to passenger)
-    setSelectedRole(userState === 'driver' ? 'driver' : 'passenger');
+    // Initialize and update selected role when userState changes (idle defaults to passenger)
+    if (userState === 'driver') {
+      setSelectedRole('driver');
+    } else {
+      setSelectedRole('passenger');
+    }
   }, [userState]);
 
   useEffect(() => {
