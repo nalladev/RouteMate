@@ -5,7 +5,11 @@ import { User } from '../../../types';
 import { areUsersInCommunity } from '../../community';
 import { calculateFare, formatCurrency } from '../../../config/fare';
 
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+/**
+ * Calculate distance using Haversine formula (straight-line distance)
+ * Used as fallback if OSRM API fails
+ */
+function calculateDistanceFallback(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -15,6 +19,44 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/**
+ * Get route distance using OSRM API (same as frontend)
+ * This ensures consistent fare calculation across frontend and backend
+ */
+async function getRouteDistance(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number }
+): Promise<number> {
+  try {
+    // OSRM API endpoint (using public demo server)
+    const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`OSRM API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      throw new Error('No route found');
+    }
+
+    // Return distance in kilometers (OSRM returns meters)
+    return data.routes[0].distance / 1000;
+  } catch (error) {
+    console.error('OSRM API failed, using fallback distance calculation:', error);
+    // Fallback to straight-line distance
+    return calculateDistanceFallback(origin.lat, origin.lng, destination.lat, destination.lng);
+  }
 }
 
 
@@ -57,12 +99,11 @@ export async function handleRequest(request: Request) {
       );
     }
 
-    // Calculate estimated fare first
-    const distance = calculateDistance(
-      pickupLocation.lat,
-      pickupLocation.lng,
-      destination.lat,
-      destination.lng
+    // Calculate estimated fare using OSRM routing (same method as frontend)
+    // This ensures the fare shown to passenger matches what's stored in backend
+    const distance = await getRouteDistance(
+      pickupLocation,
+      destination
     );
 
     const fare = calculateFare(distance);
