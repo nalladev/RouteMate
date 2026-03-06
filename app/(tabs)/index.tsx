@@ -177,6 +177,8 @@ export default function HomeScreen() {
         setRouteCoordinates([]);
         setSearchQuery('');
         setIsPanicMode(false);
+        // Refresh balance to reflect payment deduction
+        loadBalance();
       }
     }
 
@@ -593,7 +595,10 @@ export default function HomeScreen() {
               Alert.alert(
                 'Ride Cancelled',
                 `${result.message}\nNew Balance: ₹${result.newBalance?.toFixed(2) || '0.00'}`,
-                [{ text: 'OK', onPress: () => refreshUser() }]
+                [{ text: 'OK', onPress: async () => {
+                  await refreshUser();
+                  await loadBalance();
+                }}]
               );
             } else {
               Alert.alert('Success', result.message);
@@ -603,9 +608,10 @@ export default function HomeScreen() {
             await refreshConnections();
             await refreshRequests();
             
-            // Refresh user data to update balance if penalty was charged
+            // Refresh user data and balance to update if penalty was charged
             if (isDriver) {
               await refreshUser();
+              await loadBalance();
             }
           } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to cancel ride');
@@ -653,6 +659,9 @@ export default function HomeScreen() {
       const { fare, paymentStatus, passengerPointsAwarded } = await api.completeRide(connectionId);
       const pointsLine = passengerPointsAwarded ? `\nYou earned ${passengerPointsAwarded} passenger points.` : '';
       Alert.alert('Ride Completed', `Payment ${paymentStatus}! Fare: ₹${fare.toFixed(2)}${pointsLine}`);
+      
+      // Refresh balance to reflect payment transfer
+      await loadBalance();
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
