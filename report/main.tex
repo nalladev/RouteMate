@@ -1252,7 +1252,7 @@ export async function handleRequest(request: Request) {
   const currentUser = await getDocumentById('users', user.Id);
   if (currentUser.WalletBalance < fare) {
     return Response.json(
-      { error: `Insufficient balance. Required: ₹${fare}, Available: ₹${currentUser.WalletBalance}` },
+      { error: `Insufficient balance. Required: Rs ${fare}, Available: Rs ${currentUser.WalletBalance}` },
       { status: 400 }
     );
   }
