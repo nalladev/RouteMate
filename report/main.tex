@@ -1082,21 +1082,6 @@ Wallet balance, reward points, and ride history are displayed through dedicated 
 
 \justify\large The system integrates multiple modules including user authentication, location tracking, ride matching, ride connection management, and community-based ride filtering. The implementation was carried out using modern cross-platform mobile frameworks and serverless backend services to ensure scalability, reliability, and efficient real-time data handling.
 
-\section{System Architecture}
-
-\justify\large The RouteMate system follows a modular, layered, and scalable architecture in which different components operate independently while communicating through well-defined REST APIs. This architecture enables clear separation of concerns between the user interface, backend processing, data management, and external integrations, thereby simplifying system development, testing, and maintenance. It also allows new features to be integrated without affecting existing components.
-
-\justify\large The overall architecture is divided into four major layers: the user interface layer, backend service layer, database layer, and external service integration layer. Each layer performs a specific role while interacting with other layers through secure and structured communication.
-
-\justify\large The \textbf{user interface layer} is implemented as a cross-platform mobile application developed using modern frameworks. It provides an interactive map-based interface where users can register, log in using OTP or password-based authentication, view nearby drivers or passengers, request rides, and manage their profile and wallet. The UI layer also handles user inputs such as destination selection, mode switching (driver or passenger), and ride request actions, while continuously displaying real-time updates received from the backend.
-
-\justify\large The \textbf{backend service layer} is responsible for handling all core application logic. It is implemented using server-side APIs deployed on a cloud platform. This layer manages user authentication, session handling, ride request processing, route matching logic, OTP verification, KYC workflow, and wallet transaction processing. It also enforces important system constraints such as preventing multiple active ride requests, ensuring sufficient wallet balance, and maintaining ride state transitions (requested, accepted, picked\_up, completed). All sensitive operations are securely processed in this layer.
-
-\justify\large The \textbf{database layer} is implemented using Firebase Firestore, which provides scalable and real-time data storage. It stores all persistent data including user profiles, session details, ride connections, transaction history, KYC status, and reward points. Firestore enables real-time synchronization of data between users, allowing dynamic updates such as live location tracking and ride status changes. It also supports atomic transactions, which are critical for maintaining consistency in wallet operations and ride payments.
-
-\justify\large The \textbf{external service integration layer} connects the system with third-party APIs to extend functionality. Mapping and routing services such as OSRM are used to generate routes and estimate travel distance, while Nominatim is used for location search and geocoding. OTP-based authentication services are used for secure user login, and KYC verification services are integrated to validate user identity. Cloudinary is used for storing and delivering user profile images efficiently through a content delivery network.
-
-\justify\large Communication between these layers is performed through RESTful APIs, ensuring secure data exchange and modular interaction. The architecture supports real-time updates, scalability, and flexibility, making the RouteMate system capable of handling multiple users and dynamic ride-sharing scenarios efficiently.
 
 \section{Programming Languages, Tools and Platforms Used}
 
