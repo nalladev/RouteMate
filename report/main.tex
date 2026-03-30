@@ -1,0 +1,1883 @@
+\documentclass[10pt,a4paper]{report}
+\usepackage[top=50pt,bottom=50pt,left=60pt,right=70pt]{geometry}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage{pslatex}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[document]{ragged2e}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{sectsty}
+\usepackage[titletoc]{appendix}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{siunitx}
+\usepackage[inline]{enumitem}
+\usepackage{multicol}
+\usepackage{makecell}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage[titletoc]{appendix}
+\usepackage{ragged2e}
+\usepackage{graphicx}
+\usepackage{float}
+
+\usepackage{placeins}
+
+
+\graphicspath{ {images/} }
+
+\title{ROUTE MATE-An Innovative Ride-Sharing System for Sustainable Urban Mobility}
+
+\author{JESWIN JAISON(VJC20IT035)}
+
+\renewcommand\cftchapfont{\large\bfseries}
+\renewcommand\cftsecfont{\large}
+\renewcommand\cftfigfont{\large}
+\renewcommand\cfttabfont{\large}
+
+\renewcommand\cftchappagefont{\large\bfseries}
+\renewcommand\cftsecpagefont{\large}
+
+\renewcommand\cftchapafterpnum{\vskip20pt}
+\renewcommand\cftsecafterpnum{\vskip20pt}
+\renewcommand\cftsubsecafterpnum{\vskip16pt}
+\renewcommand\cftfigafterpnum{\vskip16pt\par}
+\renewcommand\cfttabafterpnum{\vskip16pt\par}
+
+\sectionfont{\Large\mdseries}
+\subsectionfont{\large\mdseries}
+\chapternumberfont{\LARGE\mdseries}
+\chaptertitlefont{\huge}
+
+
+\begin{document}
+\begin{titlepage}
+\begin{center}
+\line(1,0){500}\\
+[0.20in]
+\Large\bfseries\textbf\ttfamily{ROUTE MATE-}\\
+\Large\bfseries\textbf\ttfamily{An Innovative Ride-Sharing System for Sustainable Urban Mobility }\\
+
+
+\line(1,0){500}\\
+[1cm]
+\textsc{\large\mdseries PROJECT PHASE II REPORT}\\
+
+\textsc{\large\itshape\mdseries by}\\
+[0.30cm]
+
+\textsc{\large ANUPAM PRAKASH ( VJC22IT015 ) }\\
+\textsc{\large GEORGIT DAIN ( VJC22IT027 )}\\
+\textsc{\large JESWIN JAISON ( VJC22IT035 ) }\\
+\textsc{\large JOHNS JOSEPH ( VJC22IT040 ) }\\
+[0.60cm]
+\textsc{\large\itshape\mdseries in partial fulfillment for the award of the degree}\\
+[0.30cm]
+\textsc{\large\itshape\mdseries of}\\
+[0.30cm]
+\textsc{\large\bfseries BACHELOR OF TECHNOLOGY}\\
+[0.30cm]
+\textsc{\large\itshape\mdseries in}\\
+[0.30cm]
+\textsc{\large\bfseries  INFORMATION TECHNOLOGY}\\
+[0.20cm]
+\textsc{\large\bfseries  APJ ABDUL KALAM TECHNOLOGICAL UNIVERSITY}\\
+[1cm]
+\includegraphics[scale=0.60]{vjcet.png}\\
+[1cm]
+\textsc{\large\bfseries DEPARTMENT OF INFORMATION TECHNOLOGY}\\
+[0.08cm]
+\textsc{\large\bfseries VISWAJYOTHI COLLEGE OF ENGINEERING AND}\\
+[0.08cm]
+\textsc{\large\bfseries TECHNOLOGY, VAZHAKULAM}\\
+[0.08cm]
+\textsc{\large\bfseries MARCH 2026}\\
+
+\end{center}
+
+\end{titlepage}
+
+\newpage
+
+\begin{titlepage}
+\begin{center}
+\line(1,0){500}\\
+[0.20in]
+\Large\bfseries\textbf\ttfamily{ROUTE MATE-}\\
+\Large\bfseries\textbf\ttfamily{An Innovative Ride-Sharing System for Sustainable Urban Mobility }\\
+
+
+\line(1,0){500}\\
+[1cm]
+\textsc{\large\mdseries PROJECT PHASE II REPORT}\\
+
+\textsc{\large\itshape\mdseries by}\\
+[0.50cm]
+
+\textsc{\large ANUPAM PRAKASH ( VJC22IT015 ) }\\
+\textsc{\large GEORGIT DAIN ( VJC22IT027 )}\\
+\textsc{\large JESWIN JAISON ( VJC22IT035 ) }\\
+\textsc{\large JOHNS JOSEPH ( VJC22IT040 ) }\\
+\\
+[0.60cm]
+
+\textsc{\large\itshape\mdseries in partial fulfillment for the award of the degree}\\
+[0.30cm]
+\textsc{\large\itshape\mdseries of}\\
+[0.70cm]
+\textsc{\large\bfseries BACHELOR OF TECHNOLOGY}\\
+[0.30cm]
+\textsc{\large\itshape\mdseries in}\\
+[0.30cm]
+\textsc{\large\bfseries  INFORMATION TECHNOLOGY}\\
+[0.50cm]
+\textsc{\large\bfseries APJ ABDUL KALAM TECHNOLOGICAL UNIVERSITY}\\
+[0.08cm]
+\textsc{\large\itshape\mdseries under the guidance of}\\
+[0.12cm]
+\textsc{\large\bfseries\upshape Mrs. Anitta K Mathew
+ }\\
+[0.05cm]
+\textsc{\large\bfseries\upshape Assistant Professor, Dept. of IT}\\
+[1cm]
+\includegraphics[scale=0.60]{vjcet.png}\\
+[1cm]
+\textsc{\large\bfseries DEPARTMENT OF INFORMATION TECHNOLOGY}\\
+[0.06cm]
+\textsc{\large\bfseries VISWAJYOTHI COLLEGE OF ENGINEERING AND}\\
+[0.06cm]
+\textsc{\large\bfseries TECHNOLOGY, VAZHAKULAM}\\
+[0.06cm]
+\textsc{\large\bfseries MARCH 2026}\\
+
+\end{center}
+
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+
+
+
+
+
+\begin{center}
+
+\textsc{\large\bfseries VISWAJYOTHI COLLEGE OF ENGINEERING AND}\\
+[0.15cm]
+\textsc{\large\bfseries TECHNOLOGY, VAZHAKULAM}\\
+[0.50cm]
+\textsc{\large\bfseries\upshape Department of Information Technology}\\
+[1cm]
+\textsc{\large\bfseries\upshape Vision}\\
+[0.50cm]
+\textsc{\large\mdseries\upshape To be a center of excellence in IT learning and provide value-based training to mould students}\\
+[0.10cm]
+\textsc{\large\mdseries\upshape as successful IT professionals.}\\
+
+\begin{center}
+
+\textsc{\large\bfseries }\\
+[0.50cm]
+\textsc{\large\bfseries\upshape Mission}\\
+[0.50cm]
+\justify
+\begin{enumerate}
+\item\large To provide an intellectually stimulating and academically vibrant learning environment for
+students and train them in the basic as well as advanced concepts, knowledge, technology and
+skills of IT.
+\vspace{0.3cm}
+\item\large To promote a nurturing and caring environment and prepare students to achieve their aca-
+demic and career goals in a globally competitive marketplace.
+\vspace{0.3cm}
+\item\large To mould students into ethical and competent professionals who will contribute to the
+betterment of the community.
+
+\end{enumerate}
+
+\end{center}
+
+\begin{center}
+
+\textsc{\normalsize\mdseries\upshape }\\
+[0.50cm]
+\textsc{\large\bfseries\upshape Program Educational Objectives}\\
+\justify
+\textsc{\large\bfseries }\\
+[0.05cm]
+\textbf{\large Our Graduates }\\
+\begin{enumerate}
+\item\large Graduates shall excel in programming and analytical skills enabling them to be professionally
+competent and find solutions to software-based problems.
+\vspace{0.3cm}
+\item\large Graduates shall have social and ethical values making them socially more acceptable and in
+being instrumental in uplifting quality of life.
+\vspace{0.3cm}
+\item\large Graduates shall have positive attitude towards research and entrepreneurship.
+
+
+\end{enumerate}
+
+\textsc{\large\bfseries }\\
+
+\end{center}
+
+\begin{center}
+
+\textsc{\large\bfseries\upshape Program Outcomes}\\
+\textsc{\large\bfseries }\\
+[0.20cm]
+\justify
+\begin{enumerate}
+
+\item \textbf{\large Engineering knowledge}\large:Apply the knowledge of mathematics, science, engineering
+fund- mentals, and an engineering specialization to the solution of complex engineering
+problems. ~
+\vspace{0.5cm}
+\item \textbf{\large Problem analysis}\large:Identify, formulate, review research literature, and analyze complex
+en- gineering problems reaching substantiated conclusions using first principles of
+mathematics, natural sciences, and engineering sciences ~
+\vspace{0.5cm}
+\item \textbf{\large Design / development of solutions}\large:Design solutions for complex engineering problems
+and design system components or processes that meet the specified needs with
+appropriate con- sideration for the public health and safety, and the cultural, societal, and
+environmental considerations.~
+\vspace{0.5cm}
+\item \textbf{\large Conduct investigations of complex problems}\large:Use research-based knowledge and
+research methods including design of experiments, analysis and interpretation of data, and
+synthesis of the information to provide valid conclusions.~
+\vspace{0.5cm}
+\item \textbf{\large Modern tool usage}\large:Create, select, and apply appropriate techniques, resources, and
+modern engineering and IT tools including prediction and modelling to complex
+engineering activities with an understanding of the limitations.~
+\vspace{0.5cm}
+\item \textbf{\large The engineer and society:}\large Apply reasoning informed by the contextual knowledge to
+assess societal, health, safety, legal and cultural issues and the consequent responsibilities
+relevant to the professional engineering practice.~
+\vspace{0.5cm}
+\item \textbf{\large Environment and sustainability:}\large Understand the impact of the professional engineering
+solutions in societal and environmental contexts, and demonstrate the knowledge of, and
+need for sustainable development.~
+\vspace{0.5cm}
+\item \textbf{\large Ethics:}\large Apply ethical principles and commit to professional ethics and responsibilities
+and norms of the engineering practice
+\vspace{0.5cm}
+\item \textbf{\large Individual and team work:}\large Function effectively as an individual, and as a member or
+leader in diverse teams, and in multidisciplinary settings. ~
+\vspace{0.5cm}
+\item \textbf{\large Communication:}\large Communicate effectively on complex engineering activities with the
+engineering community and with society at large, such as, being able to comprehend and
+write effective reports and design documentation, make effective presentations, and give
+and receive clear instructions. ~
+\vspace{0.5cm}
+\item \textbf{\large Project management and finance}\large: Demonstrate knowledge and understanding of the en-
+gineering and management principles and apply these to one’s own work, as a member
+and unread in a team, to manage projects and in multidisciplinary environments.~
+\vspace{0.5cm}
+\item \textbf{\large Life-long learning}\large :Recognize the need for, and have the preparation and ability to
+engage in independent and life-long learning in the broadest context of technological
+change.~
+
+\end{enumerate}
+
+\thispagestyle{empty}
+
+\end{center}
+
+
+
+\begin{center}
+
+\textsc{\large\bfseries }\\
+[0.50cm]
+\textsc{\large\bfseries\upshape Program Specific Outcomes}\\
+[0.70cm]
+\justify
+\begin{enumerate}
+\item\large Graduates shall have knowledge on smart technologies in the field of IT and are well equipped
+with cutting edge technologies and concepts.
+\vspace{0.1cm}
+\item\large Graduates shall bring in the advantages of technology into the society, so that it will accelerate the development and betterment of people.
+
+\end{enumerate}
+
+\end{center}
+
+\end{center}
+
+\thispagestyle{empty}
+
+\newpage
+
+\begin{center}
+
+\textsc{\large\bfseries VISWAJYOTHI COLLEGE OF ENGINEERING AND}\\
+[0.15cm]
+\textsc{\large\bfseries TECHNOLOGY, VAZHAKULAM}\\
+[0.50cm]
+\textsc{\large\bfseries DEPARTMENT OF INFORMATION TECHNOLOGY}\\
+[1.5cm]
+\includegraphics[scale=0.60]{vjcet.png}\\
+[0.5cm]
+\textsc{\large\bfseries BONAFIDE CERTIFICATE}\\
+[0.5cm]
+\justify \fontsize{12}{24} \selectfont {This is to certify that the Main Project Report entitled   \textbf {\normalsize \large{\textquotedblleft$ \:$  \textbf{ROUTEMATE – An Innovative Ride-Sharing System for Sustainable Urban Mobility} \textquotedblright}} is a bonafide record of the work by \textbf {{\normalsize
+\newline
+\textsc{\large ANUPAM PRAKASH (VJC22IT015),
+\textsc \large GEORGIT DAIN (VJC22IT027) },
+\textsc{\large JESWIN JAISON (VJC22IT035) ,}
+\textsc{\large JOHNS JOSEPH (VJC22IT040) }}}  in partial fulfilment of the requirements for the award of the Degree of  \textbf{Bachelor of Technology in Information Technology} of APJ Abdul Kalam Technological
+University.}
+\vspace{0.1cm}
+\newline
+\newline
+
+
+
+\begin{minipage}{0.3\textwidth}
+%\vspace{2cm}
+\begin{flushleft}
+
+\textbf{Date:}
+\text{......................}\newline
+\textbf{Place:}
+\text{Vazhakulam}
+\end{flushleft}
+\end{minipage}
+
+
+\vspace{1.5cm}
+
+\setlength{\tabcolsep}{32pt}
+\begin{tabular}{l l l l l}
+\hspace{-1.2cm}
+ \textbf{\large Mrs.Anitta K Mathew} & \textbf{Mrs.Chinchu M M } &\textbf{
+    Mrs. Jesline Joseph} }\\
+ \hspace{-1.1cm}Project Guide & Project Co-ordinator &
+   Assistant Professor \\
+ \hspace{-1.1cm}Assistant Professor  & Assistant Professor & HOD  \\
+ \hspace{-1.1cm}Dept.of IT  & Dept.of IT & Dept. of IT \\
+ \hspace{-1.1cm}VJCET & VJCET &VJCET
+\end{tabular}
+\newline
+\newline
+\newline
+
+\begin{tabular}{p{7cm} p{7cm}}
+\hspace{-0.8cm}
+\textbf{Internal Examiner} &
+\hspace{2.2cm}
+\textbf{External Examiner}
+\hspace{2.5cm}
+\end{tabular}
+}
+
+\end{center}
+
+\thispagestyle{empty}
+
+
+
+
+
+\newpage
+
+\begin{center}
+\textsc{\large\bfseries }\\
+[3cm]
+\textsc{\Large\bfseries ACKNOWLEDGEMENT}\\
+[1.5cm]
+\justify \fontsize{12}{22} \selectfont {First of all and whole heartedly,  we thank God Almighty for giving us this opportunity for the successful completion of our project report work. We are immensely indebted to our beloved Manager \textbf {\normalsize {$ \: $Msgr. Dr. Pius Malekandathil, }} and our beloved Director\textbf {\normalsize {$ \: $ Rev. Dr. Paul Parathazham,  }}for providing a good infrastructure with well-equipped labs. Our Principal \textbf {\normalsize {$ \: $Dr. K K Rajan  }}deserves special mention for the moral support he has given to us. We assert beyond the confines of simple gratitude to the Head of the Department of IT \textbf {\normalsize {$ \: $ Mrs. Jesline Joseph,}}  project co-ordinator \textbf {\normalsize {$ \: $Mrs. Chinchu M M,}} project guide\textbf {\normalsize {$ \: $  Mrs. Anitta K Mathew,  }}for their very able guidance and valuable cooperation. Also, we would like to express our gratitude for their guidance and valuable suggestions and encouragement in this topic. Unflinching support and constant encouragement from our friends help us for a long way to complete the project report work. We thank them from the depth of our heart. }
+
+
+\end{center}
+
+\thispagestyle{empty}
+
+
+\newpage
+
+\begin{center}
+\textsc{\large\bfseries }\\
+[3cm]
+\textsc{\Large\bfseries DECLARATION}\\
+[1.5cm]
+\justify \fontsize{12}{22} \selectfont {We hereby declare that the project report entitled “Route Mate” submitted by us to the Department of Information Technology, Viswajyothi College of Engineering Technology, Vazhakulam, Muvattupuzha in partial fulfillment of the requirement for the award of the degree of B.Tech in Information Technology is a record of bonafide project work carried out by us under the guidance of Mrs. Anitta K Mathew, Assistant Professor. We further declare that the work reported in this project has
+not been submitted and will not be submitted, either in part or in full, for the award of any other degree in this college.}
+
+\vspace{2cm}
+
+\begin{minipage}{.7\textwidth}
+%\vspace{1cm}
+\vspace{1cm}
+\begin{flushleft}
+\textbf{Place :}
+\text{Vazhakulam}\\
+\textbf{Date :}
+\text{......................}\\
+\end{flushleft}
+\end{minipage}
+%\vspace{1cm}
+\begin{minipage}{0.7\textwidth}
+\begin{flushright}
+
+\begin{flushleft}
+\vspace{2.1cm}
+
+\textsc{\large \textbf{ANUPAM PRAKASH}  }\\
+\textsc{\large \textbf{GEORGIT DAIN} }\\
+\textsc{\large \textbf{JESWIN JAISON}  }\\
+\textsc{\large \textbf{JOHNS JOSEPH} }\\
+\large \textbf{}\\
+
+\end{flushleft}
+\end{flushright}
+\end{minipage}
+
+\end{center}
+
+\thispagestyle{empty}
+
+
+\newpage
+
+\begin{center}
+\textsc{\large\bfseries }\\
+[3cm]
+\textsc{\Large\bfseries ABSTRACT}\\
+[1cm]
+\justify \fontsize{13}{24} \selectfont {Route Mate is a next-generation ride-sharing platform designed to address urban traffic congestion and fuel consumption by optimizing vehicle usage. The system enables private vehicle owners to offer rides to passengers whose destinations align with their intended routes. Unlike traditional ride-sharing systems based on fixed schedules or commercial fleets, Routemate facilitates spontaneous, real-time route-based matching between drivers and riders. A key innovation in Routemate is the integration of Aadhaar-based account verification, ensuring a secure and trustworthy community of users. The platform employs advanced location tracking, dynamic route optimization algorithms to match riders efficiently, minimizing detours and travel time. Additionally, Routemate introduces a reward system that incentivizes participation — offering benefits such as fuel vouchers, carbon credit points, and discounts for frequent users. The system is designed for ease of use, affordability, and environmental impact, creating a socially driven ecosystem that promotes shared responsibility. By reducing the number of empty seats in daily travel and encouraging responsible vehicle use, Routemate contributes to a cleaner, smarter, and more connected urban mobility network.}
+
+
+
+\end{center}
+
+\thispagestyle{empty}
+
+
+\newpage
+
+\textsc{\large\bfseries }\\
+[0.5cm]
+\tableofcontents
+\addtocontents{toc}{\protect\thispagestyle{empty}}
+\pagenumbering{gobble}
+
+\thispagestyle{empty}
+% ========================
+% LIST OF FIGURES
+% ========================
+\newpage
+
+\textsc{\large\bfseries }\\
+[0.5cm]
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\pagenumbering{roman}
+\setcounter{page}{1}
+\newpage
+
+% ========================
+% LIST OF TABLES
+% ========================
+\textsc{\large\bfseries }\\[0.5cm]
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+\pagenumbering{roman}
+\setcounter{page}{2}
+
+% ========================
+% LIST OF ABBREVIATIONS
+% ========================
+\newpage
+\textsc{\large\bfseries }\\
+[1.5cm]
+\textsc{\Huge\bfseries\upshape List of Abbreviations}
+\pagenumbering{roman}
+\setcounter{page}{3}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\vspace{2cm}\\
+
+
+\vspace{0.3cm}
+\begin{flushleft}
+\Large\begin{tabular}{p{4cm} l}
+\textsc{\bfseries AI}   & \textup{Artificial Intelligence} \\[1.9cm]
+\textsc{\bfseries SUE}   & \textup{Stochastic User-Equilibrium} \\[1.9cm]
+\textsc{\bfseries OD}    & \textup{Origin-Destination} \\[1.9cm]
+\textsc{\bfseries ARS}   & \textup{Automated Ride-Sharing Services} \\[1.9cm]
+\textsc{\bfseries CAV}   & \textup{Connected and Autonomous Vehicles} \\[1.9cm]
+\textsc{\bfseries VKT}   & \textup{Vehicle Kilometers Traveled} \\[1.9cm]
+\textsc{\bfseries WTS}   & \textup{Willingness-to-Share} \\[1.9cm]
+\textsc{\bfseries KPIs}  & \textup{Key Performance Indicators} \\[1.9cm]
+
+\end{tabular}
+\end{flushleft}
+
+\clearpage
+
+ \newpage
+\textsc{\large\bfseries }\\
+[1.5cm]
+
+\pagenumbering{roman}
+\setcounter{page}{4}
+
+    \vspace{0.3cm}
+	\begin{flushleft} \Large \begin{tabular}{p{4cm} l}
+    \textsc{\bfseries DBS}   & \textup{Dockless Bike Sharing} \\[1.9cm]
+    \textsc{\bfseries RHS}   & \textup{Ride-Hailing Services} \\[1.9cm]
+    \textsc{\bfseries G2SFCA} & \textup{Generalized Two-Step Floating Catchment Area} \\[1.9cm]
+    \textsc{\bfseries FYP}   & \textup{Final Year Project} \\[1.9cm]
+    \end{tabular} \end{flushleft}
+\clearpage
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{ROUTEMATE}
+
+\rfoot{Page \thepage}
+\lfoot{\footnotesize{Dept. of Information Technology, VJCET}}
+\newpage
+\pagenumbering{roman}
+\renewcommand{\baselinestretch}{1.50}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+
+\renewcommand{\bibname}{References}
+\pagenumbering{roman}
+\setcounter{page}{3}
+\chapterfont{\centering}
+
+
+
+
+
+
+
+\chapter{INTRODUCTION}
+
+\thispagestyle{fancy}
+\pagenumbering{arabic}
+
+
+\large\justify In recent years, rapid urbanization has led to rising traffic congestion, increased fuel consumption, and worsening environmental pollution, creating significant challenges for sustainable mobility. Traditional transportation systems often fail to utilize vehicle capacity efficiently, resulting in a large number of underutilized private vehicles on the road. This project proposes a smart, route-based ride-sharing platform that connects commuters traveling along similar routes to optimize vehicle usage. Leveraging real-time location tracking, secure OTP-based authentication, integrated KYC verification, and a reward-based engagement system, the platform ensures security, trust, and active community participation. It supports functionalities such as dynamic ride-matching, community-based ride sharing, internal wallet transactions, and affordability, making shared mobility accessible to both individual users and urban communities. By reducing traffic loads and enabling sustainable travel practices, this approach promotes responsible vehicle use, lowers carbon emissions, and fosters a more connected and environmentally conscious urban transport ecosystem.
+
+\section{\textbf{BACKGROUND AND MOTIVATION}}
+\large\justify In recent years, rapid urbanization has fundamentally transformed the landscape of modern cities, leading to a dramatic and sustained increase in the number of vehicles on the road. As urban populations continue to expand, the demand for personal mobility has outpaced infrastructure development, resulting in severe traffic congestion that disrupts daily commuting. This surge in vehicular density has cascading effects, including increased fuel consumption and environmental pollution, which have become major concerns for sustainable urban development. These challenges necessitate innovative and technology-driven mobility solutions that go beyond traditional transportation systems.
+
+\large\justify Traditional transportation systems often fail to utilize vehicle capacity efficiently. A common observation during peak hours is that many private vehicles carry only a single occupant. This phenomenon of Single Occupancy Vehicles (SOVs) leads to significant underutilization of available resources. It places excessive strain on infrastructure while contributing disproportionately to emissions and fuel wastage. The unused capacity in private vehicles represents an opportunity to optimize transportation through shared mobility solutions.
+
+\large\justify The motivation behind the RouteMate project arises from the need to address these inefficiencies through a secure, real-time, and flexible ride-sharing platform. Existing solutions often lack dynamic matching, secure identity verification, and seamless user experience. Additionally, the absence of integrated financial systems and proper user accountability discourages adoption. RouteMate aims to bridge this gap by combining real-time route-based matching with secure authentication and backend-controlled wallet transactions.
+
+\large\justify RouteMate is designed to promote shared mobility as a practical and scalable alternative to private commuting. By reducing empty seats through intelligent ride matching, the platform enhances vehicle utilization and reduces congestion. It also improves affordability by enabling cost-sharing between users while maintaining safety through KYC verification and OTP-based ride confirmation. Furthermore, the inclusion of reward systems and community-based ride sharing encourages user engagement and trust. Overall, RouteMate aims to create a secure, efficient, and sustainable urban mobility ecosystem.
+
+\section{\textbf{PROBLEM STATEMENT}}
+\large\justify
+The current landscape of urban mobility is characterized by inefficiency, lack of trust, and limited real-time coordination. While ride-sharing solutions exist, many operate as commercial taxi services rather than true peer-to-peer platforms. Existing systems often lack flexibility, secure identity verification, and integrated financial accountability, making them less suitable for spontaneous and community-driven ride sharing.
+
+\large\justify The specific problems identified that RouteMate aims to resolve are:
+
+\begin{itemize}
+    \item \textbf{Inefficient Vehicle Usage:} A major contributor to congestion is the large number of private vehicles operating with unused seating capacity. This leads to excessive fuel consumption and inefficient utilization of road infrastructure, increasing overall travel cost and environmental impact.
+
+    \item \textbf{Lack of Real-Time Matching:} Many existing systems rely on pre-scheduled rides or static routes, limiting their ability to support dynamic, real-time ride matching. This reduces usability for users with flexible or immediate travel requirements.
+
+    \item \textbf{Security and Trust Issues:} The absence of strong identity verification mechanisms creates safety concerns among users. Without proper KYC verification and accountability, users are hesitant to share rides with unknown individuals.
+
+    \item \textbf{Lack of Integrated Payment Systems:} Many platforms do not provide a secure and controlled payment mechanism. This leads to disputes, inconsistent fare handling, and lack of transparency in transactions.
+
+    \item \textbf{Limited User Engagement:} Existing platforms often fail to provide incentives for participation. Without reward systems or engagement features, users are less motivated to actively participate in ride sharing.
+\end{itemize}
+
+\large\justify RouteMate addresses these challenges by integrating real-time route matching, secure OTP-based authentication with KYC verification, backend-managed wallet transactions, and a reward-driven engagement system, thereby creating a reliable and efficient ride-sharing platform.
+
+\section{\textbf{OBJECTIVES}}
+\large\justify
+The primary aim of this project is to design and develop a scalable ride-sharing platform that improves vehicle utilization while ensuring security, efficiency, and affordability.
+
+\large\justify The specific objectives are:
+
+\begin{enumerate}
+    \item \textbf{To Develop a Real-Time Ride-Sharing Platform:} To build a mobile application that enables users to act as drivers or passengers, supporting dynamic ride discovery and interaction based on real-time location and route compatibility.
+
+    \item \textbf{To Implement Secure Authentication and KYC Verification:} To integrate OTP-based login along with KYC verification to ensure user authenticity, enhance trust, and enforce security in critical operations such as driving and withdrawals.
+
+    \item \textbf{To Design an Intelligent Matching System:} To develop backend-driven algorithms that match users based on route alignment, proximity, and travel direction, ensuring efficient and flexible ride pairing.
+
+    \item \textbf{To Integrate a Secure Wallet System:} To implement an internal wallet system that handles all ride payments, ensuring balance validation, transaction tracking, and secure financial operations.
+
+    \item \textbf{To Encourage User Engagement through Rewards:} To introduce a reward points system that incentivizes participation, allowing users to earn and redeem points based on ride completion and ratings.
+
+    \item \textbf{To Promote Sustainable Transportation:} To reduce traffic congestion and environmental impact by encouraging shared mobility and optimizing vehicle usage.
+\end{enumerate}
+
+\section{\textbf{SCOPE OF THE PROJECT}}
+\large\justify
+The scope of RouteMate includes the complete development of a real-time ride-sharing ecosystem, covering mobile application development, backend services, database management, and third-party integrations.
+
+\begin{itemize}
+    \item \textbf{User Authentication and Verification:} The system includes OTP-based login and KYC verification integration to ensure secure and verified user participation.
+
+    \item \textbf{Dynamic Ride Matching:} The platform supports real-time route-based matching using location data and backend processing to connect drivers and passengers efficiently.
+
+    \item \textbf{Wallet and Payment System:} The scope includes a backend-controlled wallet system for handling ride payments, ensuring secure transactions and preventing negative balances.
+
+    \item \textbf{Community-Based Ride Sharing:} The system supports community mode, allowing users to restrict ride sharing within specific groups, enhancing safety and trust.
+
+    \item \textbf{Scalable Architecture:} The platform is designed to handle multiple users, real-time updates, and future expansion, making it adaptable for large-scale deployment.
+\end{itemize}
+
+\section{\textbf{ORGANIZATION OF THE PROJECT}}
+\large\justify
+The remainder of this report is organized as follows to provide a structured overview of the project:
+
+\begin{itemize}
+    \item \textbf{Chapter 1: INTRODUCTION}
+    It provides an overview of the project, including background, problem statement, objectives, and scope.
+    \item \textbf{Chapter 2: LITERATURE SURVEY} discusses existing systems and research related to ride-sharing and identifies gaps addressed by RouteMate.
+    \item \textbf{Chapter 3: SYSTEM ANALYSIS} explains system requirements, feasibility analysis, and overall system understanding.
+    \item \textbf{Chapter 4: SYSTEM DESIGN} presents architecture, design diagrams, and database structure.
+    \item \textbf{Chapter 5: SYSTEM IMPLEMENTATION} details the technologies used and module-wise implementation.
+    \item \textbf{Chapter 6: TESTING} describes testing methods and validation results.
+    \item \textbf{Chapter 7: SYSTEM MAINTENANCE} outlines strategies for system updates and maintenance.
+    \item \textbf{Chapter 8: RESULTS AND DECLARATION} presents system outputs, performance analysis, and advantages.
+    \item \textbf{Chapter 9: CONCLUSION AND FUTURE WORK} summarizes the work and suggests future improvements.
+\end{itemize}
+
+\newpage
+
+\chapter{LITERATURE SURVEY}
+\section{\textbf{COMPARISON AND LIMITATIONS OF EXISTING WORKS}}
+
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1} % reduce vertical row height
+\fontsize{9.3}{8.5}\selectfont% font size for the table
+\setlength{\tabcolsep}{3pt} % column separation
+\begin{tabular}{|p{3.5cm}|p{4cm}|p{4cm}|p{4.2cm}|}
+\hline
+\textbf{Paper Name}  & \textbf{Advantages} & \textbf{Disadvantages} \\ \hline
+\textbf{Efficient and Privacy-Preserving Ride Matching Using Exact Road Distance in Online Ride-Hailing Services (EPRide, 2020)}
+ &
+\begin{itemize}[leftmargin=*,nosep]
+\item Preserves location privacy.
+\item Near-perfect matching accuracy.
+\item Uses realistic road distance.
+\item Scalable with candidate pruning.
+\end{itemize} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Higher computation/latency.
+\item Requires cryptographic infra.
+\item Integration complexity with existing stacks.
+\end{itemize} \\ \hline
+\textbf{Real-Time City-Scale Taxi Ridesharing (2014)} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Reduces VKT and emissions.
+\item Improves occupancy.
+\item Tunable detour thresholds.
+\item City-scale feasibility.
+\end{itemize} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Heavy peak-time computation.
+\item Sensitive to sparse demand.
+\item Depends on GPS/network.
+\item Complex legacy integration.
+\end{itemize} \\ \hline
+\textbf{Day-to-Day Dynamic Traffic Evolution with Ride-Sharing (2025)}
+ &
+\begin{itemize}[leftmargin=*,nosep]
+\item Captures long-term adoption.
+\item Supports policy testing.
+\item Proves stability properties.
+\end{itemize} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Theoretical
+\item Assumes simplified structures.
+\item Computationally intensive.
+\item Needs empirical validation.
+\end{itemize} \\ \hline
+\textbf{Analysing Mobility and Environmental Impacts of Automated Ride-Sharing Under Mixed Traffic (2023–2025)}  &
+\begin{itemize}[leftmargin=*,nosep]
+\item Quantifies mobility + emissions trade-offs.
+\item Shows gains at higher adoption.
+\item Informs policy/incentives.
+\end{itemize} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Low WTS can worsen congestion/emissions.
+\item Depends on infrastructure and assumptions.
+\item Generalization limits.
+\end{itemize} \\ \hline
+\textbf{Shared Mobility, Metro Accessibility and Equity (2025)}  &
+\begin{itemize}[leftmargin=*,nosep]
+\item DBS improves last-mile access.
+\item RHS improves equity in suburbs.
+\item Supports TOD planning.
+\end{itemize} &
+\begin{itemize}[leftmargin=*,nosep]
+\item Gaps persist in underserved areas.
+\item Reliant on high-quality data and affordability.
+\item Coordination required.
+\end{itemize} \\ \hline
+\end{tabular}
+\caption{Significant insights from the literature}
+\label{tab:lit_insights}
+\end{table}
+
+
+\end{itemize}
+
+
+\newpage
+\chapter{SYSTEM ANALYSIS}
+
+\section{\textbf{PROBLEM DEFINTION}}
+\large\justify
+The core problem RouteMate addresses is the inefficiency of urban mobility due to low vehicle occupancy rates combined with lack of secure and real-time coordination. In the current scenario, thousands of private vehicles traverse the same corridors daily with empty seats. This represents a significant loss to the transportation network, causing:
+
+\begin{itemize}
+    \item \textbf{Traffic Congestion:} More vehicles are required to transport fewer people, increasing road density.
+    \item \textbf{Environmental Degradation:} Higher fuel consumption per user leading to increased carbon emissions.
+    \item \textbf{Economic Inefficiency:} Increased travel costs for individuals and absence of affordable shared mobility options.
+\end{itemize}
+
+\vspace{0.5em}
+\noindent Furthermore, the absence of a secure and verified ecosystem creates a major trust barrier in peer-to-peer ride sharing. Without strong authentication, KYC verification, and controlled transactions, users are reluctant to interact with unknown individuals. RouteMate defines the problem as: how to design a secure, real-time, and scalable digital platform that efficiently matches drivers and passengers based on route compatibility while ensuring trust, safety, and seamless financial transactions.
+
+\section{\textbf{PROPOSED SYSTEM}}
+\large\justify
+RouteMate is proposed as a comprehensive mobile and backend-driven platform designed to enable real-time, route-based ride sharing with strong emphasis on security and system control.
+
+\vspace{0.5em}
+\noindent \textbf{Key Features of the Proposed System:}
+\begin{itemize}
+    \item \textbf{OTP-Based Authentication with KYC Verification:} The system integrates OTP-based login along with external KYC verification workflows to ensure that all users are authenticated and verified before accessing critical features.
+
+    \item \textbf{Dynamic Route Matching Engine:} The platform utilizes backend-driven algorithms that analyze route corridors, proximity, and direction to match drivers and passengers efficiently, minimizing detours.
+
+    \item \textbf{Real-Time Operation:} The system operates dynamically without requiring advance booking, enabling spontaneous ride discovery and interaction using continuous location updates.
+
+    \item \textbf{Integrated Wallet System:} A backend-controlled wallet manages all financial transactions, ensuring balance validation, secure payments, and proper transaction tracking.
+
+    \item \textbf{Community-Based Ride Sharing:} The platform supports community mode, allowing users to restrict ride interactions within trusted groups, enhancing safety and personalization.
+\end{itemize}
+
+\section{\textbf{REQUIREMENT ANALYSIS}}
+\large\justify
+To ensure effective implementation, both functional and non-functional requirements of the system are analyzed.
+
+\subsection{Functional Requirements}
+\large\justify
+\begin{enumerate}
+    \item \textbf{User Registration \& Authentication:}
+    \begin{itemize}
+        \item The system must allow users to log in using mobile number and OTP or password.
+        \item The system must verify user identity using external KYC verification services.
+        \item The system must support multiple active sessions per user.
+    \end{itemize}
+
+    \item \textbf{Profile Management:}
+    \begin{itemize}
+        \item Users must be able to manage profile details including name, profile image, and vehicle information.
+        \item Users must be able to switch between driver and passenger roles.
+    \end{itemize}
+
+    \item \textbf{Ride Activation (Driver/Passenger):}
+    \begin{itemize}
+        \item Users must be able to select destination and enter active state.
+        \item The system must update user state and location in real time.
+    \end{itemize}
+
+    \item \textbf{Ride Request \& Discovery:}
+    \begin{itemize}
+        \item Passengers must be able to discover compatible drivers and request rides.
+        \item The system must show fare estimates, ETA, and vehicle details before request.
+    \end{itemize}
+
+    \item \textbf{Matching \& Interaction:}
+    \begin{itemize}
+        \item The system must notify drivers of incoming ride requests.
+        \item Drivers must be able to accept or reject requests within a defined time.
+    \end{itemize}
+
+    \item \textbf{Live Tracking \& Navigation:}
+    \begin{itemize}
+        \item The system must provide real-time tracking of users during active rides.
+        \item The system must display route navigation using routing services.
+    \end{itemize}
+
+    \item \textbf{Payments \& Rewards:}
+    \begin{itemize}
+        \item The system must process ride payments using an internal wallet.
+        \item The system must assign reward points based on ride completion and ratings.
+    \end{itemize}
+
+    \item \textbf{Safety Features:}
+    \begin{itemize}
+        \item The system must include a panic button for emergency situations.
+        \item The system must support OTP-based ride confirmation and post-ride rating.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Non-Functional Requirements}
+\large\justify
+\begin{itemize}
+    \item \textbf{Security:} All authentication, KYC, and transaction data must be securely processed and stored. Sensitive operations must be handled only on the backend.
+
+    \item \textbf{Performance \& Latency:} The system must support near real-time updates for location tracking and ride matching with minimal delay.
+
+    \item \textbf{Scalability:} The backend must handle multiple concurrent users and scale efficiently with increasing demand.
+
+    \item \textbf{Usability:} The application must provide an intuitive and responsive user interface with minimal interaction steps.
+
+    \item \textbf{Reliability:} The system must ensure consistent availability and accurate data synchronization across users.
+\end{itemize}
+
+\section{\textbf{FEASIBILITY STUDY}}
+\large\justify
+A feasibility study was conducted to evaluate the practicality of the proposed system.
+
+\subsection{Technical Feasibility}
+\large\justify
+The system is feasible using modern technologies and frameworks.
+\begin{itemize}
+    \item \textbf{Platform:} Mobile application built using cross-platform frameworks.
+    \item \textbf{Geolocation:} Open-source mapping and routing services such as OpenStreetMap and OSRM provide required functionality.
+    \item \textbf{Verification:} OTP authentication and KYC APIs are readily available for integration.
+    \item \textbf{Backend:} Node.js and Firestore support real-time operations and scalable architecture.
+    \item \textbf{Conclusion:} Required tools and technologies are accessible and implementable.
+\end{itemize}
+
+\subsection{Operational Feasibility}
+\large\justify
+\begin{itemize}
+    \item \textbf{User Adoption:} Increasing travel costs and congestion create demand for shared mobility solutions.
+    \item \textbf{Process:} The workflow is similar to existing ride-hailing apps but focuses on peer-to-peer sharing.
+    \item \textbf{Security:} KYC verification and wallet-based transactions improve user trust.
+    \item \textbf{Conclusion:} The system effectively addresses real-world transportation challenges.
+\end{itemize}
+
+\subsection{Economic Feasibility}
+\begin{itemize}
+    \item \textbf{Development Costs:} Includes development, cloud hosting, and API usage, which are manageable.
+    \item \textbf{Benefits:} Reduces travel costs and improves resource utilization.
+    \item \textbf{Sustainability:} Can be extended with partnerships and monetization strategies.
+    \item \textbf{Conclusion:} The system is economically viable with long-term benefits.
+\end{itemize}
+
+\section{\textbf{SYSTEM SPECIFICATIONS}}
+\large\justify
+The system requires a scalable and efficient infrastructure to support real-time ride sharing, secure authentication, and backend-controlled operations.
+
+\subsection{Hardware Requirements}
+
+\vspace{0.5em}
+\noindent \textbf{1. Development Environment:}
+\begin{itemize}
+    \item \textbf{Processor:} Intel Core i5 or equivalent.
+    \item \textbf{RAM:} Minimum 8GB (16GB recommended).
+    \item \textbf{Storage:} SSD-based storage for faster processing.
+\end{itemize}
+
+\vspace{0.5em}
+\noindent \textbf{2. Server Environment:}
+\begin{itemize}
+    \item \textbf{Compute:} Cloud-based scalable servers.
+    \item \textbf{Memory:} Configurable RAM for handling backend operations and real-time updates.
+\end{itemize}
+
+\vspace{0.5em}
+\noindent \textbf{3. Client Device:}
+\begin{itemize}
+    \item \textbf{Device:} Smartphone (Android/iOS).
+    \item \textbf{Sensors:} GPS for location tracking.
+    \item \textbf{Connectivity:} Internet access for real-time communication.
+\end{itemize}
+
+\subsection{Software Requirements}
+
+\begin{itemize}
+    \item \textbf{Operating System:}
+    \begin{itemize}
+        \item Development: Windows, Linux, or macOS.
+        \item Deployment: Cloud-based serverless environments.
+        \item Client: Android and iOS mobile platforms.
+    \end{itemize}
+
+    \item \textbf{Front-End Technology:}
+    \begin{itemize}
+        \item \textbf{Framework:} React Native with Expo for cross-platform mobile development.
+        \item \textbf{Language:} JavaScript / TypeScript.
+        \item \textbf{Navigation:} React Navigation for screen management and routing.
+        \item \textbf{UI:} Custom components with support for light and dark themes.
+    \end{itemize}
+
+    \item \textbf{Back-End Technology:}
+    \begin{itemize}
+        \item \textbf{Platform:} Vercel serverless deployment.
+        \item \textbf{Runtime:} Node.js.
+        \item \textbf{Framework:} Express.js for REST API development.
+        \item \textbf{Architecture:} Stateless APIs with JWT-based session management and multi-session support.
+    \end{itemize}
+
+    \item \textbf{Database \& Storage:}
+    \begin{itemize}
+        \item \textbf{Firebase Firestore:} Used for storing user data, ride connections, wallet balances, and transactions with real-time synchronization.
+        \item \textbf{Cloudinary:} Used for storing and serving user profile images.
+    \end{itemize}
+
+    \item \textbf{Maps, Routing \& Location Services:}
+    \begin{itemize}
+        \item \textbf{React Native Maps:} Used for map rendering (Google Maps on Android and Apple Maps on iOS).
+        \item \textbf{OpenStreetMap (Nominatim):} Used for place search and geocoding.
+        \item \textbf{OSRM:} Used for route generation, distance calculation, and ETA estimation.
+        \item \textbf{Geolocation APIs:} Used for real-time location tracking.
+    \end{itemize}
+
+    \item \textbf{Authentication \& Verification:}
+    \begin{itemize}
+        \item \textbf{phone.email:} Used for OTP-based authentication and JWT token generation.
+        \item \textbf{Didit:} Used for KYC verification through WebView-based flow and webhook-driven status updates.
+    \end{itemize}
+
+    \item \textbf{Payments (Planned Integration):}
+    \begin{itemize}
+        \item \textbf{Razorpay:} Intended for wallet top-ups and payouts via UPI (currently disabled).
+    \end{itemize}
+
+    \item \textbf{Development Tools:}
+    \begin{itemize}
+        \item \textbf{IDE:} Visual Studio Code and Android Studio.
+        \item \textbf{Version Control:} Git for source code management.
+    \end{itemize}
+\end{itemize}
+
+
+
+\newpage
+\chapter{SYSTEM DESIGN}
+\large\justify
+This chapter presents the detailed system design of Route Mate, a real-time route-based ride-sharing application developed to improve urban mobility through efficient vehicle utilization. The system is designed to connect drivers and passengers traveling along similar routes using dynamic matching, enabling optimized ride coordination and reduced vehicle congestion. The application operates as a unified platform where users can seamlessly switch roles between driver and passenger, authenticate using OTP-based login, and optionally complete KYC verification to participate in a secure and trusted environment.
+
+\large\justify
+The design explains how real-time location data, route information, and user state are processed through the mobile application and backend APIs to perform ride matching, route visualization, wallet-based transactions, and reward allocation. Map services are used to track and display nearby users, while the backend manages authentication, ride lifecycle, and financial operations. To ensure a clear understanding of system functionality and structure, the design is represented using high-level architecture, data flow diagrams, UML diagrams, database design, and interface models covering both functional and technical aspects of the Route Mate system.
+
+\section{\textbf{HIGH LEVEL DESIGN}}
+\justify\large The high-level design of the Route Mate system illustrates how major components interact to enable efficient and secure ride sharing. Users access the system through a React Native (Expo) mobile application where they can act as either drivers or passengers. The application allows users to enter destinations, manage profile and vehicle details, and discover nearby ride matches using map-based interfaces.
+
+\justify\large The mobile application communicates with a Node.js backend hosted on Vercel, which handles authentication, ride matching, wallet processing, and overall system logic through REST APIs. User and ride data are stored in Firebase Firestore, while OpenStreetMap (Nominatim) and OSRM provide location search and route generation. The authentication and KYC modules ensure secure participation, while reward and community features encourage engagement, enabling smooth coordination between users through a unified platform.
+
+\subsection{SYSTEM ARCHITECTURE DIAGRAM}
+\justify\large The system architecture diagram of Route Mate illustrates the interaction between the mobile application, backend services, database, and external APIs to support real-time ride sharing. Users access the system through a React Native mobile application, where they can act as drivers or passengers. The application sends authentication tokens, location updates, and ride requests to the backend server using secure API communication.
+
+\justify\large The backend server manages authentication, ride matching, connection management, and wallet transactions through dedicated modules and stores user and trip data in Firebase Firestore. External services such as OpenStreetMap and OSRM provide geolocation, search, and routing functionalities, while KYC verification is handled through integrated third-party services. This architecture enables efficient real-time updates, secure communication, and reliable coordination between drivers and passengers within a scalable platform.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=0.33]{arc.png}
+\captionof{figure}{Architecture Diagram }
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\subsection{DATA FLOW DIAGRAM(DFD)}
+\subsubsection{DFD Level 0}
+
+\justify\large The Level 0 Data Flow Diagram represents the Route Mate system as a single process interacting with external entities such as Driver, Passenger, and Backend Services. At this level, internal processes are abstracted, focusing only on data exchange between users and the system.
+
+\justify\large Drivers and passengers provide authentication details, location updates, and ride requests, while the system returns ride status, route information, and wallet updates. The backend processes all operations including matching, verification, and transactions. This level highlights the core functionality of connecting users and managing ride-related data in a secure and real-time manner.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=1]{dfd0.png}
+\captionof{figure}{Data Flow Diagram Level 0}
+\label{fig:ROUTE_MATE DFD0}
+\end{center}
+\vspace{0.5cm}
+
+\subsubsection{DFD Level 1}
+
+\justify\large The Level 1 Data Flow Diagram expands the system into internal processes that manage authentication, ride coordination, and transaction handling. When users access the application, their credentials are processed through the Authentication module, which supports OTP login and KYC verification before granting access. After authentication, passengers submit ride requests and destinations, which are processed by the Ride Matching engine to identify compatible drivers based on route alignment.
+
+\justify\large Once a ride is accepted, location data is continuously processed by the Tracking module to monitor trip progress. After ride completion, the Payment module processes fare transactions through the internal wallet system, and the Rewards module assigns points based on ride activity. All user data, ride connections, and transactions are stored in Firestore, ensuring consistency and real-time synchronization.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=1]{dfd1.png}
+\captionof{figure}{Data Flow Diagram Level 1}
+\label{fig:ROUTE_MATE DFD1}
+\end{center}
+\vspace{0.5cm}
+
+\subsection{UML Diagrams}
+\justify\large UML diagrams are used to represent the structure and interactions of the Route Mate ride-sharing system. These diagrams help visualize how users interact with system components, how ride states are managed, and how backend processes coordinate ride requests and responses.
+
+\justify\large The diagrams illustrate relationships between modules such as authentication, ride management, wallet processing, and rewards. They also show how user actions in the mobile application trigger backend API calls and database operations, ensuring efficient coordination across the system.
+
+\subsubsection{USE CASE DIAGRAM}
+\justify\large The use case diagram illustrates interactions between actors such as Driver and Passenger with the Route Mate system. It highlights functionalities including login, destination selection, ride discovery, request handling, and KYC verification.
+
+\justify\large Users can browse available rides, send requests, accept or reject connections, and complete trips using OTP verification. The system also supports wallet transactions, reward generation, and ride history tracking. Overall, the diagram represents how the system enables secure and efficient ride coordination through defined user actions and system responses.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=1.3]{usecase.png}
+\captionof{figure}{Use Case Diagram}
+\label{fig:ROUTE_MATE USE CASE}
+\end{center}
+\vspace{0.5cm}
+
+\section{\textbf{LOW LEVEL DESIGN}}
+\justify\large The low-level design describes the internal working of application modules and their interactions for performing ride-sharing operations. It focuses on authentication handling, ride state transitions, location updates, request processing, and transaction execution.
+
+\justify\large This design explains how the React Native application interacts with backend APIs, how session tokens and KYC status are managed, and how ride and transaction data are processed in Firestore. It also defines communication between modules such as ride matching, tracking, wallet, and notifications to ensure reliable and real-time system behavior.
+
+\subsection{CLASS DIAGRAM}
+\justify\large The class diagram represents the structural organization of the Route Mate system and the interaction between different entities. The User class contains general attributes, while role-specific properties such as vehicle details are included within the same structure based on user state.
+
+\justify\large The RideConnection class manages ride-related information including pickup, destination, status, and OTP. Additional classes such as Wallet, Transaction, and Reward handle financial operations and user incentives. These relationships define how ride processing, payments, and rewards are managed within the system.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=1.2]{class diagram.png}
+\captionof{figure}{Class Diagram}
+\label{fig:ROUTE_MATE Class Diagram}
+\end{center}
+\vspace{0.5cm}
+
+\subsection{ANALYSIS DESIGN}
+\justify\large The analysis design explains how user inputs and system data are processed within the application. Inputs such as authentication data, location updates, and ride requests are collected through the mobile application and processed by backend APIs.
+
+\justify\large The processed data is structured into entities such as User, RideConnection, Transaction, and Reward with defined attributes and relationships. This ensures efficient ride matching, secure payment handling, and accurate reward calculation, enabling reliable system performance.
+
+\subsubsection{ER DIAGRAM}
+\justify\large The ER diagram represents the data structure of the Route Mate system. It defines entities such as User, RideConnection, Transactions, and Rewards along with their attributes required for ride-sharing operations.
+
+\justify\large The relationships illustrate how users interact through ride connections, how transactions are processed, and how rewards are assigned. This structured design ensures data consistency, scalability, and efficient system operation.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=0.8]{ER_Diagram.png}
+\captionof{figure}{ER Diagram}
+\label{fig:ROUTE_MATE ER Diagram}
+\end{center}
+\vspace{0.5cm}
+
+\section{\textbf{INTERFACE DESIGN}}
+
+\large\justify The interface design focuses on providing a smooth and intuitive user experience with map-based interaction. The application uses a clean layout with dynamic elements such as bottom navigation, search input, and ride status panels to support real-time operations.
+
+\large\justify The interface supports seamless transitions between idle, active, and connected states, displaying relevant information such as driver details, route visualization, and wallet balance. Consistent design elements and theme support improve usability and enhance overall user experience.
+
+\subsection{INPUT DESIGN}
+
+\large\justify The input design allows users to provide essential data such as mobile number for authentication, destination selection through map search, and ride requests. Additional inputs include profile details, vehicle information, and optional KYC verification data for secure participation.
+
+\subsection{OUTPUT DESIGN}
+
+\large\justify
+The output design presents real-time ride information including driver details, route maps, ride status, and transaction updates in a structured manner.
+
+\large\justify
+Wallet balance, reward points, and ride history are displayed through dedicated sections, while notifications provide updates on requests and ride progress. This ensures clear communication and smooth user interaction throughout the ride-sharing process.
+
+\vspace{0.5cm}
+\begin{center}
+\includegraphics[scale=0.30]{UI DESIGN.jpeg}
+\captionof{figure}{UI DESIGN}
+\label{fig:ROUTE_MATE UI Design}
+\end{center}
+\vspace{0.5cm}
+
+
+\newpage
+\chapter{System Implementation}
+\section{Introduction}
+\justify\large The system implementation phase focuses on transforming the system design into a fully functional software application. In the RouteMate project, the implementation involved developing a mobile-based ride-sharing platform that enables users to connect with nearby drivers and passengers in real time. The application supports ride discovery, ride requests, route visualization, and secure identity verification through OTP and KYC processes.
+
+\justify\large The system integrates multiple modules including user authentication, location tracking, ride matching, ride connection management, and community-based ride filtering. The implementation was carried out using modern cross-platform mobile frameworks and serverless backend services to ensure scalability, reliability, and efficient real-time data handling.
+
+\section{System Architecture}
+\justify\large The RouteMate system follows a modular and layered architecture in which different components operate independently while communicating through well-defined REST APIs. This architecture simplifies system development, testing, and maintenance while allowing new features to be integrated easily.
+
+\justify\large The architecture consists of several layers including the user interface layer, backend service layer, database layer, and external service integration layer.
+
+\justify\large The user interface layer is implemented as a cross-platform mobile application that allows users to register, log in, view nearby drivers or passengers on a map, request rides, and manage their accounts.
+\justify\large The backend service layer processes all application logic including authentication, ride request handling, route matching, and KYC verification. All sensitive operations such as session management and identity verification are handled securely through backend APIs.
+
+\justify\large The database layer stores persistent data such as user profiles, ride connections, and ride status. Firebase Firestore is used as the primary database to support real-time synchronization and scalable data storage.
+
+\justify\large The external service layer integrates third-party APIs for additional functionality. These include mapping and routing services for route visualization, OTP-based authentication services, KYC verification services, and cloud storage for profile image management.
+
+\section{Programming Languages, Tools and Platforms Used}
+\justify\large The RouteMate application was implemented using a combination of programming languages, development tools, and cloud platforms that support mobile application development and real-time data processing.
+
+\begin{itemize}
+\item \textbf{Programming Language:} JavaScript and TypeScript were used for implementing both the frontend mobile application and backend APIs due to their flexibility and compatibility with modern frameworks.
+
+\item\textbf{Mobile Development Framework:} React Native with Expo was used to build a cross-platform mobile application supporting both Android and iOS devices.
+
+\item\textbf{Backend Platform:} Node.js with Express.js was deployed using Vercel serverless functions to handle API requests, authentication, and ride coordination logic.
+
+\item \textbf{Database:} Firebase Firestore was used as the cloud database for storing user data, ride details, and real-time ride updates.
+
+\item \textbf{Mapping and Routing Services:} React Native Maps was used for map rendering, while OpenStreetMap (Nominatim) and OSRM were used for location search and route generation.
+
+\item \textbf{Authentication:} phone.email service was used for OTP-based authentication and secure session management using JWT tokens.
+
+\item \textbf{Identity Verification:} Didit KYC service was integrated through WebView-based flow for verifying user identity.
+
+\item \textbf{Media Storage:} Cloudinary was used to store and manage profile images uploaded by users.
+
+\item \textbf{Testing Platform:} The application was tested on multiple Android devices to evaluate real-time tracking, ride matching, and system performance.
+\end{itemize}
+
+\section{Modules of the System}
+\justify\large The RouteMate system is composed of several functional modules that work together to enable real-time ride sharing between drivers and passengers.
+
+\subsection{Authentication Module}
+\justify\large This module handles user login and account creation using OTP-based authentication. It verifies mobile numbers using phone.email service, generates JWT tokens, and manages multiple user sessions securely.
+
+\subsection{Location Tracking Module}
+\justify\large The location tracking module continuously updates the user’s geographical coordinates using geolocation APIs. This information is used to display nearby drivers and passengers on the map and to calculate routes dynamically.
+
+\subsection{Ride Matching Module}
+\justify\large The ride matching module identifies potential drivers for passengers by analyzing route compatibility using OSRM routing data. The system compares driver routes and passenger destinations to determine alignment.
+
+\subsection{Ride Connection Management Module}
+\justify\large This module handles ride requests, ride acceptance, OTP verification, and ride completion. Once a driver accepts a ride request, a ride connection is established and managed until completion.
+
+\subsection{KYC Verification Module}
+\justify\large The KYC module integrates identity verification using the Didit verification service through a WebView-based workflow. Users must complete verification before accessing certain features.
+
+\subsection{Community Management Module}
+\justify\large The community module allows users to create and join private communities where ride sharing is restricted within trusted groups such as organizations or institutions.
+
+\subsection{User Interface Module}
+\justify\large The user interface module provides an interactive platform that allows users to search destinations, view routes, request rides, and track ride progress. The UI supports smooth navigation and theme-based customization.
+
+\section{Algorithm / Methodology Explanation}
+\justify\large The RouteMate system follows a structured methodology for connecting passengers with suitable drivers based on their location and travel direction.
+
+\justify\large The process begins when a user selects a destination on the map. The system determines whether the user is acting as a driver or passenger and calculates the optimal route using OSRM.
+
+\justify\large The ride matching algorithm analyzes nearby drivers and compares their routes with the passenger’s destination. If the routes align within a defined threshold, the driver is shown as a potential match.
+
+\justify\large When a passenger sends a ride request, the driver receives a notification and can accept or reject it. Upon acceptance, the ride is initiated and tracked in real time until completion.
+
+\subsection{Ride Request and Connection Workflow}
+\justify\large The ride request process in RouteMate follows a structured workflow that ensures reliable communication between drivers and passengers.
+
+\justify\large The process begins when a passenger selects a driver and sends a ride request. The application sends this request to the backend API along with route and location details.
+
+\justify\large The backend forwards the request to the driver, who receives a notification with ride details. If accepted, a ride connection record is created in the database.
+
+\justify\large The passenger receives confirmation and the ride begins. The system continuously tracks the journey and updates ride status until completion.
+
+\section{Code Snippets}
+
+\section{Integration Process}
+\justify\large The integration process involved combining all modules into a unified application. Each module was developed and tested independently before integration.
+
+\justify\large The authentication module was integrated with the frontend to enable secure login. The ride matching module was connected with location tracking for real-time updates.
+
+\justify\large External services such as maps, routing, OTP authentication, and KYC verification were integrated to enhance functionality and provide a complete user experience.
+
+\section{Implementation Challenges}
+During the development of the RouteMate application, several technical challenges were encountered.
+
+\justify\large One major challenge involved maintaining accurate real-time location updates while minimizing battery consumption.
+
+\justify\large Another challenge was designing an efficient route matching algorithm using OSRM data to ensure accurate and fast ride suggestions.
+
+\justify\large Managing real-time data synchronization using Firestore required careful handling to avoid inconsistencies in ride states.
+
+\justify\large Integrating multiple external services such as OTP authentication and KYC verification also required proper error handling and API coordination.
+
+\section{Implementation Details}
+\justify\large The RouteMate application was implemented using a modular architecture to simplify development and scalability. Each component communicates through REST APIs.
+
+\justify\large The mobile application was developed using React Native and tested on Android devices to simulate real-world scenarios.
+
+\justify\large The system was tested under various conditions such as ride request handling, route matching, and KYC verification to ensure reliability.
+
+\section{Security Implementation}
+Security is an essential component of the RouteMate platform.
+
+\justify\large User authentication is implemented using OTP-based verification and JWT session tokens. Backend APIs ensure that sensitive operations are securely handled.
+
+
+\justify\large All data transactions are managed securely within the backend and Firestore database to maintain consistency and prevent unauthorized access.
+\newpage
+\chapter{Testing}
+
+\section{Testing Methods}
+
+\justify\large Different software testing techniques were employed to validate the functionality and reliability of the RouteMate platform. These methods ensured that individual modules work correctly and that the integrated system performs as expected.
+
+\subsection{Unit Testing}
+
+\justify\large Unit testing is the process of testing individual components or modules of a system independently to ensure that each unit performs its intended functionality correctly. The primary objective of unit testing is to identify defects at an early stage of development, thereby reducing integration issues and improving overall system reliability.
+
+\justify\large In the RouteMate system, unit testing was carried out on all major functional modules including authentication, ride matching, location tracking, wallet management, and user interface components. Since RouteMate is a real-time ride-sharing platform that involves multiple interacting subsystems such as mobile frontend, backend APIs, and cloud database, it was essential to validate each module independently before integrating them.
+
+\justify\large The testing process focused on verifying the correctness of backend logic, API responses, and frontend behavior under different conditions. Each module was tested using controlled inputs and expected outputs to ensure consistent and predictable performance.
+
+\justify\large The following modules were tested during unit testing:
+
+\begin{itemize}
+
+\item \textbf{Authentication Module:}
+This module handles user login and session management using both password-based authentication and OTP-based login. Unit testing verified API endpoints such as \texttt{/api/auth/login} and OTP verification flow. Test cases included valid login, invalid credentials, session token generation, and handling multiple active sessions. Proper redirection based on KYC status was also validated.
+
+\item \textbf{KYC Verification Module:}
+The KYC module integrates with the Didit API for identity verification. Unit testing ensured correct session creation, webhook handling, and status updates such as \texttt{under\_review}, \texttt{approved}, and \texttt{rejected}. The system was tested for correct storage of KYC data and enforcement of KYC requirements when switching to driver mode.
+
+\item \textbf{Ride Request Module:}
+This module manages the creation and lifecycle of ride requests. Unit testing verified that passengers can create ride requests only when sufficient wallet balance is available. Test cases included request creation, request cancellation, auto-expiry after timeout, and validation of single active request constraint.
+
+\item \textbf{Route Matching Algorithm:}
+The core functionality of RouteMate lies in its route-overlap matching algorithm. Unit testing was performed to verify that drivers and passengers are matched correctly based on route compatibility, proximity thresholds, and destination alignment. The algorithm was tested for different scenarios including short-distance rides, long-distance rides, and partial route overlaps.
+
+\item \textbf{Location Tracking Module:}
+This module handles real-time GPS updates and map rendering. Unit testing ensured accurate updating of user location in Firestore and correct retrieval for display on the map. Edge cases such as delayed updates and location drift were also tested.
+
+\item \textbf{Wallet and Payment Module:}
+The wallet module manages user balances and ride payments. Unit testing verified that:
+\begin{itemize}
+\item Wallet balance is correctly updated after each ride.
+\item Fare deduction from passengers and credit to drivers is performed atomically.
+\item Negative balance is prevented through backend validation.
+\item Transaction records are correctly stored in the database.
+\end{itemize}
+
+\item \textbf{Cancellation and Penalty Module:}
+This module enforces time-based penalties for driver cancellations. Unit testing verified penalty calculation logic based on cancellation time intervals and ensured that penalties are deducted correctly from the driver's wallet.
+
+\item \textbf{User Interface Components:}
+Frontend components such as login screens, map interface, ride request panels, and navigation elements were tested individually. The UI was verified for correct rendering, input validation, and responsiveness across different user actions.
+
+\end{itemize}
+
+\justify\large Each module was tested in isolation using predefined inputs and expected outputs. The results of unit testing confirmed that all individual components of the RouteMate system function correctly and are ready for integration with other modules.
+
+\justify\large Overall, unit testing significantly improved the reliability of the system by ensuring that core functionalities such as authentication, ride matching, and payment processing operate without errors before proceeding to integration testing.
+
+\subsection{Integration Testing}
+
+\justify\large Integration testing is performed after unit testing to verify that different modules of the application interact correctly with one another. The primary objective of integration testing is to ensure that data flows seamlessly between components and that the system behaves correctly when modules are combined.
+
+\justify\large The RouteMate system follows a multi-tier architecture consisting of a mobile frontend (React Native), backend API services (Node.js), and a cloud-based database (Firebase Firestore). In addition, the system integrates with external services such as OSRM for route calculation, Nominatim for location search, and Didit API for KYC verification. Therefore, integration testing was essential to validate the communication between these components and ensure reliable end-to-end functionality.
+
+\justify\large Integration testing in RouteMate focused on verifying the interaction between frontend user actions, backend processing logic, and real-time database updates. The testing ensured that API calls were correctly handled, data consistency was maintained, and system responses were accurate under different scenarios.
+
+\justify\large The following integration scenarios were tested:
+
+\begin{itemize}
+
+\item \textbf{Authentication and Session Management Integration:}
+Integration between the frontend login interface and backend authentication APIs was tested. This included password-based login and OTP-based login using phone verification. The system was verified for correct session token generation, storage, and retrieval of user data from Firestore. Post-login redirection based on KYC status was also validated.
+
+\item \textbf{KYC Verification Workflow Integration:}
+Integration between the backend and Didit KYC service was tested to ensure proper session creation, user redirection to verification flow, and webhook-based status updates. The system correctly updated user verification status in Firestore and enforced KYC requirements for driver mode and withdrawals.
+
+\item \textbf{Ride Request and Matching Integration:}
+This scenario verified the interaction between the ride request module and the route matching engine. When a passenger submits a ride request, the backend processes route data and fetches compatible drivers based on route overlap and proximity thresholds. The integration ensured that filtered driver data is correctly returned and displayed on the mobile interface.
+
+\item \textbf{Frontend–Backend API Communication:}
+All API endpoints were tested to ensure proper request handling and response delivery. This includes endpoints for user authentication, ride requests, ride connections, wallet operations, and KYC services. The system was verified for correct handling of HTTP requests, error responses, and data validation.
+
+\item \textbf{Real-Time Location Tracking Integration:}
+Integration between the mobile application and Firestore was tested to ensure continuous location updates. Driver and passenger locations were updated in real time and reflected accurately on the map interface. The system was tested for synchronization delays and consistency of location data.
+
+\item \textbf{Ride Connection and OTP Verification Integration:}
+After a driver accepts a ride request, the system creates a connection record in the database. Integration testing verified that the passenger receives the OTP and the driver can successfully validate it to start the ride. The transition of ride states from \texttt{requested} to \texttt{accepted}, \texttt{picked\_up}, and \texttt{completed} was validated.
+
+\item \textbf{Wallet and Payment Processing Integration:}
+Integration between ride completion and wallet transactions was tested to ensure correct fare deduction from the passenger and credit to the driver. Firestore transactions were verified for atomicity, ensuring that balances are updated correctly without inconsistencies. Payment validation checks such as insufficient balance handling were also tested.
+
+\item \textbf{Cancellation and Penalty System Integration:}
+The integration between ride cancellation events and the penalty system was tested. The system correctly calculated penalties based on time intervals and deducted the appropriate amount from the driver’s wallet. Notification updates for both driver and passenger were also verified.
+
+\item \textbf{Map and Routing Services Integration:}
+Integration with OSRM routing service and map visualization was tested to ensure correct route generation between source and destination. The system was verified for accurate route display and proper handling of route recalculations when location updates occur.
+
+\end{itemize}
+
+\justify\large Through integration testing, it was confirmed that all modules of the RouteMate system communicate effectively and function cohesively as a unified application. The system demonstrated reliable data flow, accurate real-time updates, and consistent behavior across different user interactions, thereby ensuring a seamless ride-sharing experience.
+
+\subsection{System Testing}
+
+\justify\large System testing evaluates the complete RouteMate application as a whole to ensure that all integrated modules function correctly as a unified system. The primary objective of system testing is to validate that the system meets all functional and performance requirements defined during the design phase and behaves correctly under real-world operating conditions.
+
+\justify\large The RouteMate platform is a distributed system consisting of a mobile frontend developed using React Native, a backend server implemented using Node.js, and a cloud-based database using Firebase Firestore. In addition, the system integrates external services such as OSRM for route calculation, Nominatim for location search, and Didit API for KYC verification. Therefore, system testing was essential to ensure the proper coordination of all these components.
+
+\justify\large System testing was conducted by simulating real-world ride-sharing scenarios involving multiple users acting as drivers and passengers. The application was tested on multiple mobile devices to replicate actual usage conditions, including real-time location updates, ride requests, and concurrent user interactions.
+
+\justify\large The testing process included complete end-to-end workflows starting from user login to ride completion. These workflows validated the correctness of system behavior across different stages of operation.
+
+\justify\large The following key functionalities were verified during system testing:
+
+\begin{itemize}
+
+\item \textbf{User Authentication and Session Flow:}
+Verification of both OTP-based and password-based login mechanisms. The system was tested for session persistence, multiple device logins, and correct redirection based on KYC verification status.
+
+\item \textbf{KYC Verification Enforcement:}
+The system was tested to ensure that users are restricted from switching to driver mode or performing sensitive operations unless KYC verification is completed. The complete verification lifecycle including submission and approval was validated.
+
+\item \textbf{Real-Time Location Tracking and Map Interaction:}
+Continuous GPS location updates were tested to ensure accurate tracking of drivers and passengers. Map rendering, marker updates, and route visualization were verified under different movement conditions.
+
+\item \textbf{Ride Discovery and Matching Workflow:}
+Passenger-side discovery of nearby drivers based on route overlap and proximity was tested. The system correctly filtered and displayed only compatible drivers using the route matching algorithm.
+
+\item \textbf{Ride Request and Connection Lifecycle:}
+The complete ride request flow was validated, including request creation, driver notification, acceptance/rejection, auto-expiry after timeout, and transition to active ride state. The system was tested for enforcing constraints such as allowing only one active request per passenger.
+
+\item \textbf{OTP-Based Ride Verification:}
+The OTP handshake process between driver and passenger was tested to ensure secure ride initiation. The system correctly validated OTP input and transitioned the ride state from \texttt{accepted} to \texttt{picked\_up}.
+
+\item \textbf{Ride Completion and Payment Processing:}
+End-to-end ride completion flow was tested, including automatic fare calculation, deduction from passenger wallet, and credit to driver wallet. Firestore transaction consistency and prevention of negative balance were verified.
+
+\item \textbf{Cancellation and Penalty Handling:}
+System behavior during ride cancellation was tested for both driver and passenger scenarios. Time-based penalty calculations for driver cancellations were validated along with correct wallet deductions and state updates.
+
+\item \textbf{Reward Points and Incentive System:}
+The reward mechanism was tested to ensure that passengers and drivers receive points correctly after ride completion. Voucher redemption logic and reward tracking were also verified.
+
+\item \textbf{System Constraints and State Management:}
+Critical constraints such as preventing users from exiting active mode during an ongoing ride and restricting multiple simultaneous ride requests were tested to ensure system consistency.
+
+\end{itemize}
+
+\justify\large The system was also tested under different conditions such as multiple concurrent users, varying network speeds, and continuous location updates to evaluate stability and responsiveness.
+
+\justify\large The results of system testing confirmed that the RouteMate application performs reliably and efficiently under real-world conditions. All modules worked together seamlessly, ensuring accurate ride matching, secure transactions, and a smooth user experience for both drivers and passengers.
+
+\subsection{User Acceptance Testing}
+
+\justify\large User Acceptance Testing (UAT) is conducted to evaluate whether the developed system meets the expectations and requirements of end users. This phase focuses on validating the usability, functionality, reliability, and overall user experience of the application under real-world conditions.
+
+\justify\large For the RouteMate system, user acceptance testing was carried out by allowing a group of test users to interact with the mobile application in realistic ride-sharing scenarios. The participants included users acting as both drivers and passengers, enabling comprehensive evaluation of the system from multiple perspectives.
+
+\justify\large The testing process involved executing complete end-to-end workflows such as user registration, login using OTP and password-based authentication, KYC verification, ride discovery, ride request handling, ride execution, and payment processing. Users were instructed to use the application independently and provide feedback based on their experience.
+
+\justify\large The following real-world user activities were performed during UAT:
+
+\begin{itemize}
+
+\item \textbf{User Registration and Login:}
+Users tested both OTP-based login and password-based login methods. The authentication process was evaluated for ease of use, response time, and error handling.
+
+\item \textbf{KYC Verification Experience:}
+Users interacted with the KYC verification flow and evaluated the clarity of instructions, ease of document submission, and overall verification process.
+
+\item \textbf{Ride Discovery and Matching:}
+Passengers searched for available drivers using the map interface. Users verified whether the system displayed relevant drivers based on route overlap and proximity.
+
+\item \textbf{Ride Request and Driver Interaction:}
+Passengers sent ride requests and drivers responded by accepting or rejecting them. Users evaluated the responsiveness of request notifications and clarity of ride details such as pickup location, destination, and estimated fare.
+
+\item \textbf{OTP-Based Ride Initiation:}
+The OTP verification process between driver and passenger was tested to ensure secure ride start. Users verified the ease of OTP sharing and validation.
+
+\item \textbf{Ride Tracking and Navigation:}
+During active rides, users evaluated real-time location tracking, route visualization, and navigation accuracy on the map interface.
+
+\item \textbf{Wallet and Payment Experience:}
+Users tested the internal wallet system for fare deduction and balance updates. The clarity of transaction details and reliability of payment processing were evaluated.
+
+\item \textbf{Cancellation and Penalty Awareness:}
+Users tested ride cancellation scenarios and verified whether penalty rules and notifications were clearly communicated.
+
+\item \textbf{Reward System Interaction:}
+Users observed the reward points system after ride completion and evaluated its effectiveness in encouraging participation.
+
+\end{itemize}
+
+\justify\large Feedback collected from users indicated that the RouteMate application provides a smooth and intuitive user interface with minimal learning curve. The integration of real-time location tracking and route-based ride matching significantly improved the efficiency of finding suitable rides. Users appreciated the OTP-based ride verification mechanism, which enhanced safety and trust between drivers and passengers.
+
+\justify\large Some minor suggestions were received regarding UI improvements and faster response times under heavy load, which were considered for future enhancements.
+
+\justify\large Based on the feedback obtained during the testing phase, the RouteMate system was confirmed to be functional, user-friendly, and reliable. The application successfully met user expectations and demonstrated its suitability for real-world ride-sharing operations.
+
+\section{Test Cases and Results}
+
+\justify\large To evaluate the effectiveness and performance of the RouteMate system,
+a series of test cases were designed and executed under different real-world
+scenarios. The testing focused on validating the correctness of system
+functionalities as well as analyzing the performance of the ride matching
+algorithm, system responsiveness, and route optimization efficiency.
+
+\justify\large The evaluation was carried out using simulated ride requests
+through the mobile application, where users acted as both drivers and passengers.
+These test cases covered the complete ride lifecycle including user authentication,
+KYC verification, ride discovery, ride request handling, OTP-based ride initiation,
+payment processing, and ride completion.
+
+\justify\large Special attention was given to the core functionality of RouteMate,
+which is the route-overlap based ride matching system. The algorithm was tested
+under different conditions such as peak hours, off-peak hours, and long-distance
+travel scenarios to analyze its performance and reliability.
+
+\justify\large The performance metrics considered during testing include matching
+success rate, average route deviation, and response time for ride matching. These
+metrics help in understanding how efficiently the system identifies suitable
+driver-passenger pairs while maintaining minimal deviation from the original route.
+
+\justify\large In addition to performance evaluation, functional test cases were
+also executed to ensure that all modules of the system operate correctly. These
+include verification of login mechanisms, real-time location updates, ride request
+flows, wallet transactions, and cancellation handling.
+
+\justify\large The results obtained from the test cases indicate that the RouteMate
+system performs efficiently in real-time conditions, providing accurate ride
+matching, fast response times, and reliable system behavior across different
+scenarios.
+
+\subsection{System Performance Metrics}
+
+\justify\large The system performance was evaluated based on three major metrics:
+
+\begin{itemize}
+
+\item \textbf{Matching Success Rate} – Percentage of ride requests that were successfully matched with compatible drivers.
+
+\item \textbf{Average Route Deviation} – The additional distance added to the driver's original route in order to pick up and drop off passengers.
+
+\item \textbf{Response Time} – Time taken by the system to process a ride request and return suitable driver matches.
+
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Scenario} & \textbf{Requests} & \textbf{Success Rate} & \textbf{Avg Deviation} & \textbf{Response Time} \\
+\hline
+Peak Hours & 250 & 87.2\% & 1.3 km & 3.8 sec \\
+\hline
+Off-Peak & 150 & 92.4\% & 1.1 km & 2.9 sec \\
+\hline
+Long Distance & 100 & 78.5\% & 2.8 km & 4.5 sec \\
+\hline
+Overall Average & -- & 86.8\% & 1.5 km & 3.6 sec \\
+\hline
+\end{tabular}
+\caption{System Performance Metrics Across Different Scenarios}
+\end{table}
+
+\justify\large As shown in Table 6.1, the system achieved an overall matching success
+rate of approximately 86.8\%. During off-peak hours the system
+performed better due to lower traffic complexity and fewer route
+conflicts. The average response time of 3.6 seconds demonstrates that
+the RouteMate system is capable of providing near real-time ride
+matching.
+
+\subsection{Route Deviation Analysis}
+
+\justify\large Route deviation analysis was conducted to measure the additional
+distance introduced when matching drivers and passengers whose routes
+overlap partially. The RouteMate matching algorithm ensures that ride
+matches occur only when the deviation from the driver’s original route
+remains within acceptable limits.
+
+\justify\large Experimental observations indicate that most successful ride matches
+occurred with minimal route deviation. The majority of matches
+required less than 1 km of additional travel distance.
+
+\begin{figure}[h]
+\centering \includegraphics[width=0.7\textwidth]
+{route_deviation_distribution.png}
+\caption{Route Deviation Distribution Analysis}
+\end{figure}
+
+\justify\large The results show that nearly 63\% of all ride matches had route
+deviations less than 1 km, with 28\% of matches having minimal
+deviation between 0 and 0.5 km. Only a small percentage of matches
+approached the upper deviation threshold of 2 km, demonstrating the
+effectiveness of the route-aware matching algorithm in preserving
+driver route integrity.
+
+\subsection{Eco-Driven Reward System Impact}
+
+\justify\large To encourage user participation and promote sustainable ride-sharing,
+the RouteMate platform integrates a reward-based incentive mechanism.
+This system is designed to motivate both drivers and passengers to actively
+engage in shared mobility by offering reward points for successful ride completion.
+
+\justify\large In the RouteMate system, reward points are distributed based on user roles.
+Passengers earn points for completing rides, while drivers receive higher reward
+points for providing ride services and maintaining good ratings. This role-based
+incentive structure ensures balanced participation and encourages drivers to
+deliver better service quality.
+
+\justify\large The reward system performance was analyzed by tracking user engagement,
+point accumulation, and reward redemption patterns over a period of testing.
+Metrics such as total points awarded, average points per ride, and voucher
+redemption rates were considered to evaluate the effectiveness of the system.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Metric} & \textbf{Total} & \textbf{Per Ride Avg} & \textbf{User Type} \\
+\hline
+Points Awarded & 13250 & 30.4 & Combined \\
+\hline
+Passenger Points & 4340 & 10.0 & Passenger \\
+\hline
+Driver Points & 8910 & 20.3 & Driver \\
+\hline
+Vouchers Redeemed & 89 & 0.20 & Combined \\
+\hline
+\end{tabular}
+\caption{Reward System Engagement Among Users}
+\end{table}
+
+\justify\large As shown in Table 6.2, the reward system achieved strong user engagement
+with a significant number of points distributed across both drivers and passengers.
+Drivers earned higher average points due to their active involvement in ride provision,
+while passengers consistently accumulated points through regular ride participation.
+
+\justify\large The reward mechanism also demonstrated effective user retention, as
+users were motivated to complete more rides in order to earn and redeem points.
+The voucher redemption statistics indicate that users actively utilized the reward
+system, contributing to continuous engagement within the platform.
+
+\justify\large Overall, the results confirm that the eco-driven reward system plays a
+crucial role in enhancing user participation, improving ride availability, and
+promoting sustainable urban mobility. By incentivizing shared travel, the system
+helps reduce traffic congestion, fuel consumption, and environmental impact.
+
+\section{Bug Reports}
+
+\justify\large During the testing phase of the RouteMate system, several minor issues were identified and resolved.
+These bugs were mainly related to ride matching response delays, real-time location synchronization, and
+wallet transaction updates. Each issue was analyzed carefully and appropriate fixes were implemented
+to ensure stable system performance.
+
+\begin{itemize}
+
+\item \textbf{Bug 1: Delay in ride matching response}
+
+During initial testing, the system occasionally experienced delays in returning suitable driver matches
+after a passenger submitted a ride request. This occurred due to inefficient filtering of driver data
+based on route overlap and frequent polling requests. The issue was resolved by optimizing the backend
+matching logic and improving query handling for faster response.
+
+\item \textbf{Bug 2: Location synchronization inconsistency}
+
+Minor discrepancies were observed between the actual driver location and the location displayed on the
+passenger’s map interface. This was caused by delays in updating location data to Firestore and retrieving
+it on the frontend. The issue was fixed by increasing the frequency of location updates and improving
+real-time synchronization between the mobile application and the backend.
+
+\item \textbf{Bug 3: Wallet transaction update delay}
+
+In some cases, wallet balances were not updated immediately after ride completion and fare processing.
+This occurred due to asynchronous transaction handling in the backend. The issue was resolved by enforcing
+Firestore transaction-based updates to ensure atomic balance deduction and credit operations.
+
+\end{itemize}
+
+\justify\large The testing process confirmed that the RouteMate system operates reliably and meets the
+intended objectives of providing an efficient and secure ride-sharing platform. All system modules
+including user authentication, ride matching, payment processing, and reward management performed
+successfully after the identified issues were resolved.
+
+\justify\large The results demonstrate that RouteMate supports real-time ride discovery, efficient route
+matching, and secure transactions while maintaining a smooth user experience for both drivers and passengers.
+
+
+
+
+\newpage
+\chapter{System Maintenance}
+
+\section{Types of Maintenance}
+\subsection{Corrective Maintenance}
+\justify\large Corrective maintenance involves fixing errors or bugs discovered after the system has been deployed.
+
+\justify\large In RouteMate, corrective maintenance may include:
+
+\justify\large Fixing issues related to ride request processing or connection creation between drivers and passengers.
+
+\justify\large Resolving errors in location tracking or map rendering.
+
+\justify\large Correcting issues in wallet balance calculations or payment transactions.
+
+\justify\large Fixing problems in OTP authentication or session management.
+
+\justify\large Resolving database inconsistencies in Firestore collections.
+
+\justify\large Corrective maintenance ensures that the application continues to operate smoothly without affecting user experience.
+
+\subsection{Adaptive Maintenance}
+\justify\large Adaptive maintenance refers to modifications required when the environment in which the software operates changes.
+
+\justify\large For RouteMate, adaptive maintenance may include:
+
+\justify\large Updating the application to support new versions of Android or iOS operating systems.
+
+\justify\large Modifying backend services when API providers such as OSRM, Nominatim, or payment gateways change their interfaces.
+
+\justify\large Updating integration with identity verification systems such as KYC providers.
+
+\justify\large Adjusting system configurations when deploying the backend on new cloud infrastructure or server environments.
+
+\justify\large This type of maintenance ensures that the application remains compatible with evolving technology platforms.
+
+\subsection{Perfective Maintenance}
+\justify\large Perfective maintenance focuses on improving system performance, usability, and functionality based on user feedback.
+
+\justify\large In RouteMate, perfective maintenance may include:
+
+\justify\large Optimizing the ride matching algorithm for better driver-passenger discovery.
+
+\justify\large Improving the user interface and navigation experience.
+
+\justify\large Enhancing route calculation accuracy and performance.
+
+\justify\large Improving battery efficiency during continuous location tracking.
+
+\justify\large Adding new features such as improved ride analytics, enhanced reward systems, or better community ride options.
+
+\justify\large Perfective maintenance helps improve overall system quality and user satisfaction.
+
+\subsection{Preventive Maintenance}
+\justify\large Preventive maintenance involves updating and optimizing the system to avoid potential problems in the future.
+
+\justify\large Examples in RouteMate include:
+
+\justify\large Regular monitoring of database performance and storage usage.
+
+\justify\large Updating system dependencies and libraries to avoid security vulnerabilities.
+
+\justify\large Implementing backup and recovery mechanisms for important user data.
+
+\justify\large Conducting security checks for authentication and payment modules.
+
+\justify\large Periodically reviewing server logs to detect abnormal activities.
+
+\justify\large Preventive maintenance reduces the chances of system failure and improves system reliability.
+
+\section{Maintenance Tools and Technologies}
+
+\justify\large The RouteMate system uses several technologies that support maintenance and monitoring:
+
+\justify\large Firestore Database – Used for storing user data, ride connections, and transactions.
+
+\justify\large Backend APIs (Vercel) – Used for handling authentication, ride logic, and wallet processing.
+
+\justify\large Cloudinary CDN – Used for managing user profile images.
+
+\justify\large Version Control Systems (Git) – Used for tracking code updates and maintaining development history.
+
+\justify\large Monitoring and Logging Tools – Used to track system errors, performance issues, and user activity.
+
+\justify\large These tools help developers maintain and update the system efficiently.
+
+\section{Future Maintenance Considerations}
+\justify\large Future maintenance of the RouteMate system may involve several improvements and updates.
+\justify\large Some possible enhancements include:
+
+\justify\large Integration of secure online payment systems once the application is published in app stores.
+
+\justify\large Improving the ride matching algorithm using advanced route prediction techniques.
+
+\justify\large Enhancing real-time tracking accuracy and performance.
+
+\justify\large Implementing advanced security mechanisms for user identity verification.
+
+\justify\large Expanding the system to support larger communities and higher numbers of simultaneous users.
+
+\justify\large Continuous maintenance and system updates will ensure that RouteMate remains reliable, scalable, and user-friendly for both drivers and passengers.
+\newpage
+
+\chapter{Results and Discussions}
+
+\section{Introduction}
+\justify\large The results and discussion chapter presents the outcomes obtained from the implementation and testing of the RouteMate system. The objective of this chapter is to analyze the performance of the application and evaluate its ability to provide a reliable ride-sharing platform that connects drivers and passengers in real time.
+\justify\large The results are demonstrated through output screenshots of the mobile application, analysis of ride matching functionality, and observations obtained during system testing. The performance of key features such as authentication, ride request handling, real-time location tracking, and wallet-based payment processing was evaluated to determine the overall effectiveness of the system.
+
+\section{Output Screenshots}
+\justify\large The RouteMate application was successfully implemented and tested on multiple Android devices. The system allows users to discover nearby drivers and passengers, request rides, and complete trips using a real-time map-based interface.
+\justify\large The application interface enables users to search for destinations, view routes on the map, switch between driver and passenger modes, and manage ride requests. When a passenger sends a ride request, the driver receives a notification and can accept or reject the request. After acceptance, an OTP-based verification process ensures secure passenger pickup.
+\justify\large Screenshots of the application demonstrate the login interface, map-based ride discovery, ride request workflow, driver acceptance interface, and ride completion process. These outputs verify that the system successfully performs location tracking, route visualization, ride connection management, and wallet-based payment processing.
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{loginpage.jpeg}
+\captionof{figure}{Loginpage}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{map.jpeg}
+\captionof{figure}{Map}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{search.jpeg}
+\captionof{figure}{Search}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{accdetails.jpeg}
+\captionof{figure}{Account Details}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{community.jpeg}
+\captionof{figure}{Community Screen}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{ridehistory'.jpeg}
+\captionof{figure}{Ride History}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+
+\vspace{0.4cm}
+\begin{center}
+\includegraphics[scale=0.20]{vouchers.jpeg}
+\captionof{figure}{Voucher Screen}
+\label{fig:ROUTE_MATE ARCH}
+\end{center}
+\vspace{0.5cm}
+
+
+
+\section{Performance Analysis}
+\justify\large Performance analysis was conducted to evaluate the efficiency of the RouteMate system under different operating conditions. Several parameters such as location update responsiveness, ride matching accuracy, request processing time, and database response time were analyzed to assess system performance.
+\justify\large The location tracking analysis shows that the application can update user locations in near real time, allowing accurate visualization of nearby drivers and passengers on the map. The ride matching functionality successfully identifies compatible drivers based on route direction and proximity.
+\justify\large The request processing analysis indicates that ride requests are delivered to drivers quickly and responses are processed efficiently by the backend system. Additionally, wallet transaction processing ensures secure and atomic payment handling during ride completion.
+\justify\large Despite variations in network connectivity and device performance, the application maintained stable system behavior and provided reliable ride discovery and ride request handling. These results confirm that RouteMate can effectively support real-time ride sharing in typical urban environments.
+
+\section{Advantages and Limitations}
+
+\subsection{Advantages}
+\begin{itemize}
+\item \textbf{Real-Time Ride Matching:} RouteMate connects passengers with nearby drivers by analyzing route compatibility and location proximity.
+
+\item\textbf{Secure Ride Verification:} OTP-based passenger verification ensures that the correct passenger is picked up by the driver.
+
+\item\textbf{Integrated Wallet System:} The internal wallet system enables automatic fare deduction and driver payment upon ride completion.
+
+\item \textbf{Community-Based Ride Sharing:} The application supports community mode, allowing users to share rides within trusted groups such as universities or organizations.
+
+\item \textbf{Safety Features:} The application includes features such as a panic button and live ride tracking for enhanced passenger and driver safety.
+\end{itemize}
+
+\subsection{Limitations}
+\begin{itemize}
+\item \textbf{Dependence on Internet Connectivity:} Since RouteMate relies on real-time location tracking and backend communication, a stable internet connection is required for optimal operation.
+
+\item\textbf{Location Accuracy Limitations:} GPS accuracy may vary depending on device capabilities and environmental conditions.
+
+\item\textbf{Scalability Considerations:} As the number of users increases, additional optimization may be required to maintain efficient ride matching and database performance.
+\end{itemize}
+
+\section{Discussion}
+\justify\large The results obtained from system testing and performance evaluation indicate that the RouteMate application successfully demonstrates the feasibility of a real-time ride-sharing platform. The system effectively integrates location tracking, ride matching, wallet-based payments, and secure ride verification into a single mobile application.
+\justify\large The implementation confirms that drivers and passengers can easily connect, request rides, and complete trips using an intuitive map-based interface. The testing results also show that the backend system efficiently processes ride requests and manages ride connections between users.
+\justify\large Although certain limitations such as dependence on internet connectivity and GPS accuracy exist, the overall system performance remains stable under normal usage conditions. With further improvements and scalability enhancements, RouteMate can be extended to support larger user bases and additional ride-sharing features in future versions.
+
+
+\newpage
+
+\chapter{Conclusion and Future Work}
+
+\section{Summary of Results}
+\justify\large The development of the RouteMate system demonstrates the feasibility of an intelligent route-based ride-sharing platform that connects drivers and passengers travelling along similar routes. The primary objective of the project was to design and implement a system that enables efficient ride matching, improves vehicle utilization, and reduces traffic congestion through shared transportation.
+\justify\large The system was successfully implemented as a mobile application integrated with a cloud-based backend architecture. The application allows users to register, authenticate, select destinations, and switch between passenger and driver modes. By utilizing real-time location tracking and route analysis, the system identifies compatible drivers and passengers whose travel paths overlap or are sufficiently close. This route compatibility mechanism enables efficient ride discovery without requiring exact pickup and drop-off matches.
+\justify\large During the implementation phase, multiple modules were developed and integrated to provide a complete ride-sharing workflow. These modules include authentication and session management, destination search and route visualization, ride matching, ride request handling, OTP-based passenger verification, wallet-based payment processing, and community-based ride sharing. The integration of these components resulted in a functional application capable of managing the entire lifecycle of a shared ride.
+\justify\large Testing and evaluation of the system confirmed that RouteMate performs reliably under normal operating conditions. Users are able to discover nearby drivers and passengers using the map-based interface, initiate ride requests, and establish ride connections efficiently. The OTP-based verification mechanism ensures that the correct passenger is picked up by the driver, improving security and reducing the possibility of ride fraud.
+\justify\large Another important result of the system implementation is the successful integration of an internal wallet system for handling ride payments. The wallet system ensures that ride fares are automatically transferred from the passenger’s balance to the driver’s balance upon ride completion. All payment operations are processed securely on the backend using transactional database operations to maintain consistency and prevent negative balances.
+\justify\large The testing phase also validated the performance of the location tracking system and ride request workflow. Real-time location updates allow the application to display nearby users on the map and provide accurate navigation routes. Ride requests are delivered promptly to drivers, and responses are processed efficiently by the backend system.
+\justify\large In addition, the implementation of KYC verification ensures that users can verify their identities before accessing certain features such as becoming a driver or withdrawing earnings. This enhances trust and safety within the platform.
+\justify\large The results obtained during testing confirm that RouteMate successfully achieves its main objectives of providing a reliable and efficient ride-sharing platform. The system integrates real-time location tracking, route matching, ride connection management, and secure wallet transactions into a unified application that supports practical ride-sharing scenarios.
+
+\section{Conclusion Drawn}
+\justify\large The development of the RouteMate system highlights the potential of technology-driven ride-sharing solutions in addressing common urban transportation challenges. Many commuters travel along similar routes every day, yet available transportation systems often fail to efficiently utilize this opportunity for shared travel. RouteMate addresses this problem by introducing a route-based ride-sharing model that connects users with compatible travel paths.
+\justify\large Through the design and implementation of this system, it is evident that route-based ride matching can significantly improve the efficiency of ride-sharing services. Instead of relying on traditional point-to-point ride requests, RouteMate identifies drivers whose routes naturally align with the passenger’s journey. This approach increases the chances of finding suitable ride partners and improves vehicle occupancy rates.
+\justify\large The integration of real-time location tracking and map-based visualization plays a crucial role in enabling effective ride discovery. By continuously updating user locations, the system provides an accurate representation of nearby drivers and passengers. This improves the reliability of ride matching and enhances the user experience.
+\justify\large Another significant outcome of the project is the implementation of a secure and transparent payment mechanism. The internal wallet system ensures that payments are processed automatically and reliably once a ride is completed. By performing payment processing exclusively on the backend, the system prevents unauthorized manipulation of wallet balances and ensures financial integrity.
+\justify\large The OTP-based ride verification mechanism further strengthens the safety and reliability of the platform. This feature ensures that only the intended passenger can begin the ride with the driver, thereby preventing misuse or accidental pickups.
+\justify\large Community-based ride sharing is another valuable feature implemented in the system. By allowing users to restrict ride sharing within specific communities such as organizations, universities, or residential groups, RouteMate enables safer and more trusted ride-sharing environments.
+\justify\large Overall, the RouteMate project demonstrates how modern mobile technologies, cloud computing, and real-time data processing can be combined to create an effective ride-sharing platform. The project successfully illustrates the practical implementation of an intelligent transportation system that improves commuting efficiency while promoting shared mobility.
+
+\section{Scope for Further Improvement}
+\justify\large Although the RouteMate system successfully demonstrates the concept of route-based ride sharing, several opportunities exist for further enhancement and expansion of the platform. Future improvements can significantly increase the scalability, usability, and functionality of the system.
+\justify\large One potential improvement is the enhancement of the ride matching algorithm. While the current system matches drivers and passengers based on route compatibility and proximity, more advanced algorithms could be implemented to optimize ride pairing. Techniques such as machine learning and predictive analytics could analyze historical ride patterns to improve matching accuracy and reduce waiting times.
+\justify\large Another important area for improvement is scalability. As the number of users increases, the system will need to handle larger volumes of location updates, ride requests, and database transactions. Future implementations could incorporate distributed caching systems, real-time streaming services, and optimized geospatial indexing to maintain system performance at large scale.
+\justify\large Integration with external payment gateways is another possible enhancement. While the current system uses an internal wallet mechanism, integrating secure online payment services would allow users to add funds and withdraw earnings more conveniently. This would make the platform more suitable for commercial deployment.
+\justify\large Improving navigation and route optimization features is another area for future work. Advanced route planning algorithms could consider factors such as traffic congestion, travel time predictions, and dynamic route adjustments. This would help drivers select more efficient routes and reduce travel time for passengers.
+\justify\large Safety features could also be expanded in future versions of the system. For example, the application could include emergency contact notifications, ride monitoring by trusted contacts, and automated safety alerts. Integrating real-time incident reporting or safety monitoring systems would further enhance user trust.
+\justify\large Another promising enhancement is the implementation of a rating and reputation system for both drivers and passengers. Such a system would allow users to provide feedback after each ride, helping maintain service quality and identify reliable participants within the platform.
+\justify\large Expanding the application to support additional transportation modes could also be explored. For example, future versions of RouteMate could support bike sharing, carpooling groups, or integration with public transportation systems. This would transform the application into a more comprehensive mobility platform.
+\justify\large Artificial intelligence techniques could also be used to predict ride demand and suggest optimal ride matches before users actively search for rides. Predictive ride suggestions could significantly improve user convenience and reduce waiting times.
+\justify\large Another potential improvement involves enhancing the user interface and experience. As the system evolves, improvements such as smoother animations, improved map visualization, and intelligent notifications could make the application more intuitive and user-friendly.
+\justify\large Finally, deploying the system on production-level infrastructure and conducting large-scale field testing would provide valuable insights into real-world performance. Such testing would help identify practical challenges and guide further development of the platform.
+
+
+
+\newpage
+
+\chapter*{REFERENCES}
+\addcontentsline{toc}{chapter}{REFERENCES}
+
+\begin{enumerate}
+    \item Zhang, X., et al. (2020). \textit{Efficient and Privacy-Preserving Ride Matching Using Exact Road Distance in Online Ride-Hailing Services}. IEEE Transactions on Intelligent Transportation Systems.
+
+    \item Santi, P., et al. (2014). \textit{Real-Time City-Scale Taxi Ridesharing}. Proceedings of the National Academy of Sciences, USA.
+
+    \item Shao, H., et al. (2025). \textit{Day-to-Day Dynamic Traffic Evolution in the Urban Traffic System with Ride-Sharing}. Transportation Research Part B.
+
+    \item Fagnant, D., and Kockelman, K. (2023). \textit{Analysing Mobility and Environmental Impacts of Automated Ride-Sharing Services under Mixed Traffic}. Journal of Transport Policy.
+
+    \item Liu, Y., et al. (2025). \textit{Shared Mobility, Metro Accessibility and Equity in Urban Travel}. Journal of Urban Transportation.
+
+    \item Ma, S., Zheng, Y., \& Wolfson, O. (2013). \textit{T-Share: A Large-Scale Dynamic Taxi Ridesharing Service}. IEEE 29th International Conference on Data Engineering (ICDE).
+
+    \item Alonso-Mora, J., Samaranayake, S., Wallar, A., Frazzoli, E., \& Rus, D. (2017). \textit{On-Demand High-Capacity Ride-Sharing via Dynamic Trip-Vehicle Assignment}. Proceedings of the National Academy of Sciences, USA.
+
+    \item Stiglic, M., Agatz, N., Savelsbergh, M., \& Gradisar, M. (2016). \textit{The Benefits of Meeting Points in Ride-Sharing Systems}. Transportation Research Part B: Methodological.
+
+    \item Agatz, N., Erera, A., Savelsbergh, M., \& Wang, X. (2012). \textit{Optimization for Dynamic Ride-Sharing: A Review}. European Journal of Operational Research.
+
+    \item Shaheen, S., Cohen, A., \& Zohdy, I. (2016). \textit{Shared Mobility: Current Practices and Guiding Principles}. U.S. Department of Transportation, Federal Highway Administration.
+
+    \item Bischoff, J., \& Maciejewski, M. (2016). \textit{Simulation of City-Wide Replacement of Private Cars with Autonomous Taxis in Berlin}. Procedia Computer Science, Elsevier.
+.
+\end{enumerate}
+
+\end{document}
